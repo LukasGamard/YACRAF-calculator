@@ -1,5 +1,4 @@
 from view import ConfigurationView, SetupView
-from blocks_buttons import GUIChangeViewButton
 from connection_gui import GUIConnection
 from config import *
 
@@ -16,29 +15,38 @@ class Model:
         self.__root.rowconfigure(0, weight=1)
         self.__root.columnconfigure(0, weight=1)
         
-        self.create_view(True, "Configuration")
-        
-        for i in range(5):
-            self.create_view(False, f"Setup {i+1}")
-        
+        # Create new views
+        if new_save:
+            self.create_view(True, "Configuration")
+            
+            for i in range(3):
+                self.create_view(False, f"Setup {i+1}")
+            
+        # Restore saved views
+        else:
+            with open(FILE_PATHS_SAVES_PATH, "r") as file_with_paths:
+                mapping_configuration_class_gui = {}
+                
+                for line in file_with_paths:
+                    view_type, file_path = line.strip().split(",")
+                    view_name = file_path.replace(".pickle", "").split("/")[-1]
+                    
+                    if view_type == "configuration":
+                        configuration_view = self.create_view(True, view_name)
+                        mapping_configuration_class_gui.update(configuration_view.restore_save(file_path))
+                        
+                    elif view_type == "setup":
+                        setup_view = self.create_view(False, view_name)
+                        setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_groups_per_number)
+                            
+                for setup_view in self.__setup_views:
+                    setup_view.calculate_values()
+                    
         self.change_view(self.__configuration_views[0])
         
-        # Restore saved views
-        if not new_save:
-            mapping_configuration_class_gui = {}
-            
-            for i, configuration_view in enumerate(self.__configuration_views):
-                mapping_configuration_class_gui.update(configuration_view.restore_save(i))
-                
-            for i, setup_view in enumerate(self.__setup_views):
-                setup_view.restore_save(len(self.__configuration_views)+i, mapping_configuration_class_gui, self.__linked_groups_per_number).items()
-                
-            for setup_view in self.__setup_views:
-                setup_view.calculate_values()
-    
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
-        for existing_view in self.__setup_views:
-            existing_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
+        for existing_setup_view in self.__setup_views:
+            existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
             
     def remove_add_to_setup_buttons(self, to_setup_buttons):
         for to_setup_button in to_setup_buttons:
@@ -102,31 +110,47 @@ class Model:
             
         new_view.grid(row=0, column=0, sticky="nswe")
         
-        configuration_view_x = CANVAS_WIDTH // LENGTH_UNIT - 2 * CHANGE_VIEW_WIDTH
-        setup_view_x = CANVAS_WIDTH // LENGTH_UNIT - CHANGE_VIEW_WIDTH
-        
-        # Add button to change to other views to the new view
+        # Add button to change to other view from the new view
         for i, configuration_view in enumerate(self.__configuration_views):
-            GUIChangeViewButton(self, new_view, configuration_view_x, i*CHANGE_VIEW_HEIGHT, configuration_view.get_name(), configuration_view)
+            new_view.add_change_view_button(CHANGE_VIEW_CONFIGURATION_START_POSITION[0], CHANGE_VIEW_CONFIGURATION_START_POSITION[1]+i*CHANGE_VIEW_HEIGHT, configuration_view, False)
             
         for i, setup_view in enumerate(self.__setup_views):
-            GUIChangeViewButton(self, new_view, setup_view_x, i*CHANGE_VIEW_HEIGHT, setup_view.get_name(), setup_view)
+            new_view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], CHANGE_VIEW_SETUP_START_POSITION[1]+i*CHANGE_VIEW_HEIGHT, setup_view, True)
             
         # Add the new view to the existing ones
         if is_configuration_view:
             self.__configuration_views.append(new_view)
-            
         else:
             self.__setup_views.append(new_view)
             
         # Add button to change to the new view to all existing views
         for view in self.__configuration_views + self.__setup_views:
             if is_configuration_view:
-                GUIChangeViewButton(self, view, configuration_view_x, (len(self.__configuration_views)-1)*CHANGE_VIEW_HEIGHT, view_name, new_view)
+                view.add_change_view_button(CHANGE_VIEW_CONFIGURATION_START_POSITION[0], (len(self.__configuration_views)-1)*CHANGE_VIEW_HEIGHT, new_view, False)
                 
             else:
-                GUIChangeViewButton(self, view, setup_view_x, (len(self.__setup_views)-1)*CHANGE_VIEW_HEIGHT, view_name, new_view)
-                        
+                view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], (len(self.__setup_views)-1)*CHANGE_VIEW_HEIGHT, new_view, True)
+                
+        if not is_configuration_view:
+            for configuration_view in self.__configuration_views:
+                for i, configuration_class_gui in enumerate(configuration_view.get_configuration_classes_gui()):
+                    new_view.create_add_to_setup_button(i, configuration_class_gui)
+                     
+        return new_view
+        
+    def delete_view(self, view_to_delete):
+        view_to_delete.delete()
+        
+        for view in self.__configuration_views + self.__setup_views:
+            if view != view_to_delete:
+                view.remove_change_view_button(view_to_delete)
+                
+        if view_to_delete in self.__configuration_views:
+            self.__configuration_views.remove(view_to_delete)
+            
+        elif view_to_delete in self.__setup_views:
+            self.__setup_views.remove(view_to_delete)
+            
     def change_view(self, view):
         view.tkraise()
         
@@ -137,6 +161,11 @@ class Model:
     def get_setup_view_names(self):
         return [view.get_name() for view in self.__setup_views]
         
+    def set_text_change_view_buttons(self, view_with_changed_name, text):
+        # Go through all views and update the text of the corresponding change view button
+        for view in self.__configuration_views + self.__setup_views:
+            view.set_text_change_view_button(view_with_changed_name, text)
+        
     def create_connection(self, block, direction):
         connection = GUIConnection(self, block.get_view(), block, direction)
         block.get_view().set_held_connection(connection)
@@ -144,5 +173,9 @@ class Model:
         return connection
         
     def save(self):
-        for i, view in enumerate(self.__configuration_views + self.__setup_views):
-            view.save(i)
+        # Create file where the path and view type of each saved view is stored, also storing the order of the views
+        with open(FILE_PATHS_SAVES_PATH, "w") as file_with_paths:
+            # Need to store configuration views first as they need to be restored before setup views so that they can use their configurations
+            for view in self.__configuration_views + self.__setup_views:
+                view_type, file_path = view.save()
+                file_with_paths.write(f"{view_type},{file_path}\n")

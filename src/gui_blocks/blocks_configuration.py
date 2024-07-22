@@ -2,12 +2,13 @@ from blocks_general import GUIModelingBlock
 from blocks_buttons import GUIAddAttributeButton
 from calculations_configuration import ConfigurationClass
 from options import OptionsConfigurationClass, OptionsConfigurationAttribute, OptionsCalculationInput
+from helper_functions import delete_all
 from config import *
 
 class GUIConfigurationClass(GUIModelingBlock):
     def __init__(self, model, view, x, y):
         self.__configuration_class = ConfigurationClass("New class")
-        super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, CLASS_COLOR, bind_left=True, bind_right=True)
+        super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, CLASS_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
         self.__configuration_attributes_gui = []
         
         self.__setup_classes_gui = []
@@ -16,7 +17,9 @@ class GUIConfigurationClass(GUIModelingBlock):
         self.__add_button = GUIAddAttributeButton(model, view, x+CLASS_WIDTH//2, y+CLASS_HEIGHT, self)
         self.add_attached_block(self.__add_button)
         
-    def right_clicked(self, event):
+        # self.snap_to_grid()
+        
+    def right_pressed(self, event):
         OptionsConfigurationClass(self.get_model().get_root(), self)
         
     def get_configuration_class(self):
@@ -41,6 +44,9 @@ class GUIConfigurationClass(GUIModelingBlock):
     def add_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.append(setup_class_gui)
         
+    def remove_setup_class_gui(self, setup_class_gui):
+        self.__setup_classes_gui.remove(setup_class_gui)
+        
     def remove_configuration_attribute_gui(self, configuration_attribute_gui_to_remove):
         configuration_attribute_index = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_remove)
         self.__configuration_attributes_gui.remove(configuration_attribute_gui_to_remove)
@@ -52,9 +58,6 @@ class GUIConfigurationClass(GUIModelingBlock):
         
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.remove_setup_attribute_gui_by_index(configuration_attribute_index)
-        
-    def remove_setup_class_gui(self, setup_class_gui):
-        self.__setup_classes_gui.remove(setup_class_gui)
         
     def add_to_setup_button(self, to_setup_button):
         self.__to_setup_buttons.append(to_setup_button)
@@ -77,12 +80,9 @@ class GUIConfigurationClass(GUIModelingBlock):
         
         self.get_model().remove_add_to_setup_buttons(self.__to_setup_buttons)
         
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.delete()
-            
-        for configuration_attribute_gui in self.__configuration_attributes_gui:
-            configuration_attribute_gui.delete()
-            
+        delete_all(self.__setup_classes_gui)
+        delete_all(self.__configuration_attributes_gui)
+        
         self.get_view().remove_configuration_class_gui(self)
         
     def save_state(self):
@@ -98,32 +98,38 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_attribute = configuration_class_gui.get_configuration_class().create_attribute("New Attribute")
         self.__configuration_class_gui = configuration_class_gui
         
-        super().__init__(model, view, self.__configuration_attribute.get_name(), x, y, ATTRIBUTE_WIDTH, ATTRIBUTE_HEIGHT, ATTRIBUTE_COLOR, bind_left=True, bind_right=True)
+        super().__init__(model, view, self.__configuration_attribute.get_name(), x, y, ATTRIBUTE_WIDTH, ATTRIBUTE_HEIGHT, ATTRIBUTE_COLOR, bind_left=MOUSE_PRESS, bind_right=MOUSE_PRESS)
         self.__configuration_input = None
         self.__connections = []
         self.__is_hidden = False
         
         self.__setup_attributes_gui = []
         
-    def left_clicked(self, event):
+    def left_pressed(self, event):
         held_connection = self.get_view().get_held_connection()
         
         if held_connection == None:
             held_connection = self.get_model().create_connection(self, self.get_direction(event.x, event.y))
-            held_connection.create_lines((event.x, event.y))
+            held_connection.create_new_lines((event.x, event.y))
             
         else:
             self.get_view().reset_held_connection(True)
             
-    def right_clicked(self, event):
+    def right_pressed(self, event):
         OptionsConfigurationAttribute(self.get_model().get_root(), self)
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
         for connection in self.__connections:
-            connection.create_lines()
+            connection.move_lines(move_x, move_y)
             
+    def scale(self, last_length_unit):
+        super().scale(last_length_unit)
+        
+        for connection in self.__connections:
+            connection.scale(last_length_unit)
+        
     def get_configuration_attribute(self):
         return self.__configuration_attribute
         
@@ -190,9 +196,8 @@ class GUIConfigurationAttribute(GUIModelingBlock):
     def delete(self):
         super().delete()
         
-        for connection in self.__connections:
-            connection.delete()
-            
+        delete_all(self.__connections)
+        
         self.__configuration_class_gui.remove_configuration_attribute_gui(self)
         
     def save_state(self):
@@ -200,16 +205,18 @@ class GUIConfigurationAttribute(GUIModelingBlock):
 
 class GUIConfigurationInput(GUIModelingBlock):
     def __init__(self, model, view, x, y):
-        super().__init__(model, view, "?", x, y, INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, bind_left=True, bind_right=True)
+        super().__init__(model, view, "?", x, y, INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
         self.__attached_attribute_gui = None
         self.__connections = []
         self.__symbol_calculation_type = ""
         
-    def left_clicked(self, event):
+        # self.snap_to_grid()
+        
+    def left_pressed(self, event):
         held_connection = self.get_view().get_held_connection()
         direction = "LEFT"
         
-        # If clicking to add a connection
+        # If clicking to add a held connection
         if held_connection != None:
             if self.__attached_attribute_gui != None and self.__attached_attribute_gui.get_x() < self.get_x():
                 direction = "RIGHT"
@@ -217,28 +224,30 @@ class GUIConfigurationInput(GUIModelingBlock):
             held_connection.set_end_location(self, direction)
             self.get_view().reset_held_connection()
             
-        # If clicking to move the block
+        # Move block
         else:
-            super().left_clicked(event)
+            super().left_pressed(event)
             
-            # Put down block
-            if not self.is_picked_up():
-                self.put_down_block()
-                            
-            # Pick up block
-            elif self.__attached_attribute_gui != None:
+            # Remove from being an input to an attribute
+            if self.__attached_attribute_gui != None:
                 self.__attached_attribute_gui.remove_configuration_input()
                 self.__attached_attribute_gui = None
                 
-    def right_clicked(self, event):
+    def left_released(self, event):
+        if super().left_released(event):
+            self.put_down_block()
+        
+    def right_pressed(self, event):
         OptionsCalculationInput(self.get_model().get_root(), self)
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
-        for connection in self.__connections:
-            connection.create_lines()
-            
+        # If panning or zooming, only the corresponding attribute should move the lines
+        if not self.get_view().is_panning() and not self.get_view().is_zooming():
+            for connection in self.__connections:
+                connection.move_lines(move_x, move_y)
+                
     def put_down_block(self):
         for configuration_class_gui in self.get_view().get_configuration_classes_gui():
             for configuration_attribute_gui in configuration_class_gui.get_configuration_attributes_gui():
@@ -288,8 +297,9 @@ class GUIConfigurationInput(GUIModelingBlock):
     def delete(self):
         super().delete()
         
-        for i in range(len(self.__connections)-1, -1, -1):
-            self.__connections[i].delete()
+        delete_all(self.__connections)
+        
+        self.get_view().remove_configuration_input_gui(self)
             
     def save_state(self):
         return super().save_state() | {"symbol_calculation_type": self.get_symbol_calculation_type(), "connections": [connection.save_state() for connection in self.__connections]}

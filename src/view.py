@@ -2,53 +2,189 @@ import tkinter as tk
 import pickle
 from blocks_configuration import GUIConfigurationClass, GUIConfigurationInput
 from blocks_setup import GUISetupClass, GUIConnectionTriangle
-from blocks_buttons import GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton
+from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton
 from connection_gui import GUIConnection, GUIConnectionWithBlocks
+from helper_functions import convert_actual_coordinate_to_grid, delete_all
 from config import *
 
 class View(tk.Frame):
     def __init__(self, model, name):
         super().__init__()
+        self.__model = model
         self.__name = name
+        self.__configuration_change_view_buttons = {} # View and corresponding button
+        self.__setup_change_view_buttons = {} # View and corersponding button
+        self.__held_connection = None
+        
+        self.__is_panning = False
+        self.__is_zooming = False
+        self.__panning_last_mouse_coordinate = (0, 0)
+        self.__length_unit_difference = 0
+        self.__grid_offset = (0, 0) # How much items are offset from the grid in the range [0, 1) due to panning/zooming
+        
         self.__canvas = tk.Canvas(self, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg=BACKGROUND_COLOR)
-        self.__background_rect = self.__canvas.create_rectangle(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, fill=BACKGROUND_COLOR, outline="")
-        self.__save_button = GUISaveButton(model, self, 0, CANVAS_HEIGHT//LENGTH_UNIT-SAVE_HEIGHT)
+        self.__add_change_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_SETUP_START_POSITION[1])
+        self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
+        
+        self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
+        self.__canvas.bind(MOUSE_LEFT_DRAG, self.pan_move)
+        self.__canvas.bind(MOUSE_LEFT_RELEASE, self.pan_stop)
+        self.__canvas.bind(MOUSE_MOTION, self.move_items)
+        
+        # Binds two variations to cover Linux, macOS, and Windows
+        self.__canvas.bind(MOUSE_WHEEL_UP, self.zoom_in)
+        self.__canvas.bind(MOUSE_WHEEL_DOWN, self.zoom_out)
+        self.__canvas.bind(MOUSE_WHEEL, lambda event: self.zoom_in(event) if event.delta > 0 else self.zoom_out(event))
         
         self.__canvas.pack()
         
-        self.__held_connection = None
-        self.__canvas.bind(MOUSE_MOTION, self.move_items)
+    def pan_start(self, event):
+        self.__is_panning = len(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y))) == 0
         
-        self.__is_panning = False
-        self.__panning_last_coordinate = (0, 0)
-        self.__canvas.tag_bind(self.__background_rect, MOUSE_LEFT, self.left_clicked)
+        print(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y)))
         
-    def left_clicked(self, event):
-        self.__is_panning = not self.__is_panning
-        self.__panning_last_coordinate = (event.x // LENGTH_UNIT, event.y // LENGTH_UNIT)
+        if self.__is_panning:
+            # self.__canvas.scan_mark(event.x, event.y)
+            self.__panning_last_mouse_coordinate = (event.x, event.y)
+            
+    def pan_move(self, event):
+        if self.__is_panning:
+            """
+            # Move all items
+            self.__canvas.scan_dragto(event.x, event.y, gain=1)
+            
+            # Move back static items that should not have been moved
+            for button in self.__change_view_buttons + [self.__save_button] + self.get_static_items():
+                move_x = (self.__canvas.canvasx(0) - self.__panning_last_offset[0]) / LENGTH_UNIT
+                move_y = (self.__canvas.canvasy(0) - self.__panning_last_offset[1]) / LENGTH_UNIT
+                
+                button.move_block(move_x, move_y)
+                
+            self.__panning_last_offset = (self.__canvas.canvasx(0), self.__canvas.canvasy(0))
+            """
+            
+            move_x, move_y = convert_actual_coordinate_to_grid(self, event.x-self.__panning_last_mouse_coordinate[0], event.y-self.__panning_last_mouse_coordinate[1])
+            
+            self.update_grid_offset(move_x, move_y)
+            
+            for movable_item in self.get_movable_items():
+                movable_item.move_block(move_x, move_y)
+                
+            self.__panning_last_mouse_coordinate = (event.x, event.y)
+            
+    def pan_stop(self, event):
+        # Snap blocks to grid
+        if self.__is_panning:
+            """
+            for movable_item in self.get_movable_items():
+                movable_item.snap_to_grid()
+                
+                x = movable_item.get_x()
+                y = movable_item.get_y()
+                
+                move_x = int(x + 0.5) - x
+                move_y = int(y + 0.5) - y
+                
+                if x < 0:
+                    move_x -= 1
+                    
+                if y < 0:
+                    move_y -= 1
+                
+                movable_item.move_block(move_x, move_y)
+            """
+            self.__is_panning = False
+    
+    def zoom_in(self, event):
+        if self.get_length_unit() < LENGTH_UNIT_ZOOM_LIMITS[1]:
+            self.zoom(event, 1)
+        
+    def zoom_out(self, event):
+        if self.get_length_unit() > LENGTH_UNIT_ZOOM_LIMITS[0]:
+            self.zoom(event, -1)
+        
+    def zoom(self, event, length_unit_difference):
+        self.__is_zooming = True
+        
+        last_length_unit = self.get_length_unit()
+        self.__length_unit_difference += length_unit_difference
+        
+        scale_origin_x, scale_origin_y = convert_actual_coordinate_to_grid(self, event.x, event.y) # Remove?
+        length_unit_change = last_length_unit / self.get_length_unit() - 1
+        
+        move_x = scale_origin_x * length_unit_change
+        move_y = scale_origin_y * length_unit_change
+        
+        self.update_grid_offset(move_x, move_y)
+        
+        for movable_item in self.get_movable_items():
+            movable_item.scale(last_length_unit) # Scales entire grid and all its components
+            movable_item.move_block(move_x, move_y) # Moves all components on the grid to simulate zooming in at the coordinates of the mouse
+            
+        self.__is_zooming = False
+        
+    def get_model(self):
+        return self.__model
         
     def get_name(self):
         return self.__name
         
+    def set_name(self, name):
+        self.__name = name
+        self.__model.set_text_change_view_buttons(self, name) # Need to update the text of the change view buttons in all views
+        
     def get_canvas(self):
         return self.__canvas
         
-    def move_items(self, event):
-        for block in self.get_movable_items():
-            if self.__is_panning:
-                if isinstance(block, (GUIConfigurationClass, GUISetupClass)) or (isinstance(block, (GUIConfigurationInput, GUIConnectionTriangle)) and not block.is_attached()):
-                    move_x = event.x // LENGTH_UNIT - self.__panning_last_coordinate[0]
-                    move_y = event.y // LENGTH_UNIT - self.__panning_last_coordinate[1]
-                    
-                    block.move_block(move_x, move_y)
-                
-            else:
-                block.move_if_picked_up(event.x, event.y)
-                
-        if self.__held_connection != None:
-            self.__held_connection.create_lines((event.x, event.y))
+    def add_change_view_button(self, x, y, view_to_change_to, is_setup_view):
+        if not is_setup_view:
+            self.__configuration_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+        else:
+            self.__setup_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+        
+        if is_setup_view:
+            self.move_add_change_view_button(False)
             
-        self.__panning_last_coordinate = (event.x // LENGTH_UNIT, event.y // LENGTH_UNIT)
+    def remove_change_view_button(self, view_to_remove):
+        if view_to_remove in self.__configuration_change_view_buttons:
+            change_view_buttons = self.__configuration_change_view_buttons
+            
+        elif view_to_remove in self.__setup_change_view_buttons:
+            change_view_buttons = self.__setup_change_view_buttons
+            self.move_add_change_view_button(True)
+            
+        found_deleted = False
+        
+        # Adjust the position of all affected buttons that change view
+        for current_view, change_view_button in change_view_buttons.items():
+            if current_view == view_to_remove:
+                found_deleted = True
+                    
+            # Move up all buttons for changing view
+            elif found_deleted:
+                change_view_button.move_block(0, -1)
+                
+        # Remove the button to change view
+        change_view_buttons[view_to_remove].delete()
+        change_view_buttons.pop(view_to_remove)
+        
+    def set_text_change_view_button(self, view_with_changed_name, text):
+        # Find and change the text of a specific change view button within this view
+        if view_with_changed_name in self.__configuration_change_view_buttons:
+            self.__configuration_change_view_buttons[view_with_changed_name].set_text(text)
+            
+        elif view_with_changed_name in self.__setup_change_view_buttons:
+            self.__setup_change_view_buttons[view_with_changed_name].set_text(text)
+            
+    def move_items(self, event):
+        if self.__held_connection != None:
+            self.__held_connection.create_new_lines((event.x, event.y))
+            
+    def move_add_change_view_button(self, move_up):
+        if move_up:
+            self.__add_change_view_button.move_block(0, -1)
+        else:
+            self.__add_change_view_button.move_block(0, 1)
             
     def get_held_connection(self):
         return self.__held_connection
@@ -62,6 +198,27 @@ class View(tk.Frame):
             
         self.__held_connection = None
         
+    def is_zooming(self):
+        return self.__is_zooming
+        
+    def is_panning(self):
+        return self.__is_panning
+        
+    def get_length_unit(self):
+        return LENGTH_UNIT + self.__length_unit_difference
+        
+    def update_grid_offset(self, move_x, move_y):
+        grid_offset_x = (self.__grid_offset[0] + move_x) % 1
+        grid_offset_y = (self.__grid_offset[1] + move_y) % 1
+        
+        self.__grid_offset = (grid_offset_x, grid_offset_y)
+        
+    def get_grid_offset(self):
+        return self.__grid_offset
+        
+    def delete(self):
+        self.destroy()
+        
 class ConfigurationView(View):
     def __init__(self, model, name):
         super().__init__(model, name)
@@ -69,8 +226,8 @@ class ConfigurationView(View):
         self.__configuration_classes_gui = []
         self.__configuration_inputs_gui = []
         
-        GUIAddConfigurationClassButton(model, self, 0, 0)
-        GUIAddInputButton(model, self, 0, CHANGE_VIEW_HEIGHT)
+        self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, 0, 0)
+        self.__add_input_button = GUIAddInputButton(model, self, 0, CHANGE_VIEW_HEIGHT)
         
     def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         configuration_class_gui = GUIConfigurationClass(self.__model, self, x, y)
@@ -92,23 +249,39 @@ class ConfigurationView(View):
         
         return configuration_input_gui
         
-    def get_movable_items(self):
-        return self.__configuration_classes_gui + self.__configuration_inputs_gui
+    def remove_configuration_input_gui(self, configuration_input_gui):
+        self.__configuration_inputs_gui.remove(configuration_input_gui)
         
-    def save(self, file_number):
+    def get_static_items(self):
+        return [self.__add_configuration_class_button, self.__add_input_button]
+        
+    def get_movable_items(self):
+        movable_items = self.__configuration_classes_gui.copy()
+        
+        for configuration_input_gui in self.__configuration_inputs_gui:
+            if not configuration_input_gui.is_attached():
+                movable_items.append(configuration_input_gui)
+        
+        return movable_items
+        
+    def save(self):
         saved_states_configuration_classes_gui = [class_gui.save_state() for class_gui in self.__configuration_classes_gui]
         saved_states_configuration_inputs_gui = [input_gui.save_state() for input_gui in self.__configuration_inputs_gui]
         
-        with open(f"saved_views/saved_view_{file_number}.pickle", "wb") as file_pickle:
+        file_path = f"{CONFIGURATION_SAVES_PATH}/{self.get_name()}.pickle"
+        
+        with open(file_path, "wb") as file_pickle:
             pickle.dump((saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
             
-    def restore_save(self, file_number):
+        return "configuration", file_path
+            
+    def restore_save(self, file_path):
         if not SHOULD_RESTORE_SAVE:
             return {}
             
         # try:
         if True:
-            with open(f"saved_views/saved_view_{file_number}.pickle", "rb") as file_pickle:
+            with open(file_path, "rb") as file_pickle:
                 saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
                 mapping_configuration_class_gui = {}
                 mapping_configuration_attribute_gui = {}
@@ -163,6 +336,12 @@ class ConfigurationView(View):
             
         return {}
         
+    def delete(self):
+        delete_all(self.__configuration_classes_gui)
+        delete_all(self.__configuration_inputs_gui)
+        
+        super().delete()
+        
 class SetupView(View):
     def __init__(self, model, name):
         super().__init__(model, name)
@@ -172,10 +351,8 @@ class SetupView(View):
         self.__to_setup_buttons = []
         # self.__moving_connection_corner = None
         
-        mid_x = int(CANVAS_WIDTH / (2 * LENGTH_UNIT))
-        
-        GUIAddConnectionButton(model, self, mid_x - ADD_CONNECTION_WIDTH, 0)
-        GUICalculateValuesButton(model, self, mid_x, 0)
+        self.__add_connection_button = GUIAddConnectionButton(model, self, ADD_CONNECTION_POSITION[0], ADD_CONNECTION_POSITION[1])
+        self.__calculate_value_button = GUICalculateValuesButton(model, self, CALCULATE_VALUES_POSITION[0], CALCULATE_VALUES_POSITION[1])
         
     def create_connection_with_blocks(self):
         connection_with_blocks = GUIConnectionWithBlocks(self.__model, self)
@@ -205,7 +382,7 @@ class SetupView(View):
     def reset_moving_connection_corner(self):
         self.__moving_connection_corner = None
     """
-        
+    
     def get_movable_items(self):
         movable_items = self.__setup_classes_gui.copy()
         
@@ -216,7 +393,7 @@ class SetupView(View):
             # movable_items.append(self.__moving_connection_corner)
             
         return movable_items
-        
+    
     def reset_calculated_values(self):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.reset_calculated_values()
@@ -226,8 +403,8 @@ class SetupView(View):
         
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
-                    
-    def delete_connection_with_blocks(self, connection):
+            
+    def remove_connection_with_blocks(self, connection):
         self.__connections_with_blocks.remove(connection)
         
     def create_add_to_setup_button(self, current_number_of_buttons, configuration_class_gui):
@@ -241,21 +418,28 @@ class SetupView(View):
         
         for to_setup_button_to_move in self.__to_setup_buttons[button_index:]:
             to_setup_button_to_move.move_block(0, -1)
+            
+    def get_static_items(self):
+        return [self.__add_connection_button, self.__calculate_value_button] + self.__to_setup_buttons
         
-    def save(self, file_number):
+    def save(self):
         saved_states_setup_classes_gui = [class_gui.save_state() for class_gui in self.__setup_classes_gui]
         saved_states_connections_with_blocks = [connection.save_state() for connection in self.__connections_with_blocks]
         
-        with open(f"saved_views/saved_view_{file_number}.pickle", "wb") as file_pickle:
+        file_path = f"{SETUP_SAVES_PATH}/{self.get_name()}.pickle"
+        
+        with open(file_path, "wb") as file_pickle:
             pickle.dump((saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
-    def restore_save(self, file_number, mapping_configuration_class_gui, linked_groups_per_number):
+        return "setup", file_path
+            
+    def restore_save(self, file_path, mapping_configuration_class_gui, linked_groups_per_number):
         if not SHOULD_RESTORE_SAVE:
-            return {}
+            return
             
         # try:
         if True:
-            with open(f"saved_views/saved_view_{file_number}.pickle", "rb") as file_pickle:
+            with open(file_path, "rb") as file_pickle:
                 saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
                 
                 # Restore setup classes
@@ -291,10 +475,12 @@ class SetupView(View):
                     saved_states_end_block = saved_states_connection_with_blocks["end_block"]
                     
                     connection_with_blocks.move_and_place_blocks(saved_states_start_block["x"], saved_states_start_block["y"], saved_states_end_block["x"], saved_states_end_block["y"])
-                
-            return linked_groups_per_number
             
         # except:
             # print("Creating new setup view")
             
-        return {}
+    def delete(self):
+        delete_all(self.__setup_classes_gui)
+        delete_all(self.__connections_with_blocks)
+        
+        super().delete()
