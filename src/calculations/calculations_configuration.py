@@ -58,7 +58,6 @@ class ConfigurationAttribute:
         
     def set_input_attribute(self, input_attribute, is_internal):
         self.__input_attributes[input_attribute] = is_internal
-        print(self.__input_attributes[input_attribute])
         
     def remove_input_attribute(self, input_attribute):
         self.__input_attributes.pop(input_attribute)
@@ -67,14 +66,9 @@ class ConfigurationAttribute:
         filtered_connected_setup_attributes = set()
         
         for connected_configuration_attribute, is_internal in self.__input_attributes.items():
-            print(is_internal)
-            print(connected_configuration_attribute)
-            print(f"{connected_setup_class} {current_setup_class}")
             if (is_internal and connected_setup_class == current_setup_class) or (not is_internal and connected_setup_class != current_setup_class):
                 for connected_setup_attribute in connected_setup_class.get_setup_attributes():
                     if connected_setup_attribute.has_configuration_attribute(connected_configuration_attribute):
                         filtered_connected_setup_attributes.add(connected_setup_attribute)
-                        print("ADD")
                         
-        print(filtered_connected_setup_attributes)
         return filtered_connected_setup_attributes

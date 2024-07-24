@@ -24,8 +24,12 @@ def extract_input_values(input_attributes):
     
     for input_attribute in input_attributes:
         input_symbol_value_type = input_attribute.get_symbol_value_type()
-        input_value = input_attribute.get_value()
         
+        if input_attribute.has_override_value():
+            input_value = input_attribute.get_override_value()
+        else:
+            input_value = input_attribute.get_value()
+            
         if input_value != None:
             if input_symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
                 try:
@@ -121,31 +125,3 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_attributes)
         return None
         
     return output_values
-
-"""    
-def calculate_value(input_values, calculation_symbol):
-    output_value = None
-    
-    if calculation_symbol == SYMBOL_CALCULATION_MEAN:
-        output_value = 0
-        
-        for input_value in input_values:
-            output_value += float(input_value)
-            
-        output_value /= len(input_values)
-        
-    elif calculation_symbol == SYMBOL_CALCULATION_AND:
-        output_value = 0
-        
-        for input_value in input_values:
-            output_value += float(input_value)
-            
-    elif calculation_symbol == SYMBOL_CALCULATION_OR:
-        output_value = None
-        
-        for input_value in input_values:
-            if output_value == None or float(input_value) < output_value:
-                output_value = float(input_value)
-            
-    return output_value
-"""

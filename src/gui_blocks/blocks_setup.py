@@ -139,7 +139,11 @@ class GUISetupClass(GUIModelingBlock):
             
             self.__circle_linked_group = self.get_view().get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=LINKED_GROUP_CIRCLE_OUTLINE, outline=LINKED_GROUP_CIRCLE_OUTLINE_COLOR, fill=LINKED_GROUP_CIRCLE_COLOR)
             self.__label_linked_group = self.get_view().get_canvas().create_text(actual_x, actual_y, text=self.__linked_group_number, font=FONT)
-        
+            
+    def update_value_input_types(self):
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
+            
     def calculate_values(self):
         self.__setup_class.calculate_values()
         
@@ -191,14 +195,31 @@ class GUISetupAttribute(GUIModelingBlock):
         configuration_attribute_gui.add_setup_attribute_gui(self)
         # self.add_attached_block(self.__value_distribution)
         
-    def add_entered_value_to_attribute(self):
-        if not self.__configuration_attribute_gui.get_configuration_attribute().has_input_attributes():
-            self.__setup_attribute.set_value(self.get_entered_value())
+    def update_value_input_type(self, setup_class, connected_setup_classes):
+        has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes(setup_class, connected_setup_classes)
         
-    def update_value(self):
-        if self.__configuration_attribute_gui.get_configuration_attribute().has_input_attributes():
+        if has_currently_connected_inputs:
             self.enable_value_label()
+        else:
+            self.enable_value_entry()
+            
+    def add_entered_value_to_attribute(self):
+        if self.has_input_entry():
+            self.__setup_attribute.set_value(self.get_entered_value())
+            
+    def update_value(self):
+        if self.__setup_attribute.has_override_value():
+            self.enable_value_label()
+            self.set_displayed_value(self.__setup_attribute.get_override_value(), "red")
+        else:
             self.set_displayed_value(self.__setup_attribute.get_value())
+            
+    def set_override_value(self, override_value):
+        self.__setup_attribute.set_override_value(override_value)
+        
+    def reset_override_value(self):
+        self.__setup_attribute.reset_override_value()
+        self.update_value_input_type()
             
     def set_name(self, name):
         self.__setup_attribute.set_name(name)

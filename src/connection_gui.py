@@ -408,6 +408,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         if start_class_gui != None and end_class_gui != None:
             end_class_gui.get_setup_class().add_input_class(start_class_gui.get_setup_class())
+            end_class_gui.update_value_input_types()
             
     def attempt_to_disconnect_both_classes(self):
         start_class_gui = self.__start_block.get_attached_class()
@@ -415,6 +416,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         if start_class_gui != None and end_class_gui != None:
             end_class_gui.get_setup_class().remove_input_class(start_class_gui.get_setup_class())
+            end_class_gui.update_value_input_types()
             
     def move_and_place_blocks(self, new_start_x, new_start_y, new_end_x, new_end_y):
         self.__start_block.move_block(new_start_x - GUI_BLOCK_START_COORDINATES[0][0], new_start_y - GUI_BLOCK_START_COORDINATES[0][1])

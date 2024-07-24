@@ -166,6 +166,8 @@ class GUIModelingBlock(GUIBlock):
         if has_value:
             self.enable_value_entry()
             
+        self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
+        
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
@@ -220,6 +222,9 @@ class GUIModelingBlock(GUIBlock):
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text)
         
+    def has_input_entry(self):
+        return self.__entry_value != None
+        
     def enable_value_label(self):
         if self.__entry_value != None:
             self.get_view().get_canvas().delete(self.__entry_value_window)
@@ -241,17 +246,20 @@ class GUIModelingBlock(GUIBlock):
         height -= OUTLINE_WIDTH * 2
         
         return width, height
-            
+        
     def get_entered_value(self):
         if self.__has_value and self.__entry_value != None:
             return self.__entry_text.get()
             
         return None
         
-    def set_displayed_value(self, value):
+    def set_displayed_value(self, value, color=None):
+        if color == None:
+            color = self.__default_text_color
+            
         # Set value in Label
         if self.__entry_value == None:
-            self.get_canvas().itemconfig(self.__label_value, text=str(value))
+            self.get_view().get_canvas().itemconfig(self.__label_value, text=str(value), fill=color)
             
         # Set value in Entry
         else:

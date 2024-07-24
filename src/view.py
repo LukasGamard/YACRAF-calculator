@@ -216,6 +216,9 @@ class View(tk.Frame):
     def get_grid_offset(self):
         return self.__grid_offset
         
+    def set_grid_offset(self, offset_x, offset_y):
+        self.__grid_offset = (offset_x, offset_y)
+        
     def delete(self):
         self.destroy()
         
@@ -271,7 +274,7 @@ class ConfigurationView(View):
         file_path = f"{CONFIGURATION_SAVES_PATH}/{self.get_name()}.pickle"
         
         with open(file_path, "wb") as file_pickle:
-            pickle.dump((saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
+            pickle.dump((self.get_grid_offset(), saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
             
         return "configuration", file_path
             
@@ -282,7 +285,9 @@ class ConfigurationView(View):
         # try:
         if True:
             with open(file_path, "rb") as file_pickle:
-                saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
+                grid_offset, saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
+                self.set_grid_offset(grid_offset[0], grid_offset[1])
+                
                 mapping_configuration_class_gui = {}
                 mapping_configuration_attribute_gui = {}
                 
@@ -429,7 +434,7 @@ class SetupView(View):
         file_path = f"{SETUP_SAVES_PATH}/{self.get_name()}.pickle"
         
         with open(file_path, "wb") as file_pickle:
-            pickle.dump((saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
+            pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
         return "setup", file_path
             
@@ -440,7 +445,8 @@ class SetupView(View):
         # try:
         if True:
             with open(file_path, "rb") as file_pickle:
-                saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
+                grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
+                self.set_grid_offset(grid_offset[0], grid_offset[1])
                 
                 # Restore setup classes
                 for saved_states_setup_class_gui in saved_states_setup_classes_gui:
