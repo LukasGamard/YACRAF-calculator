@@ -123,6 +123,9 @@ class View(tk.Frame):
             
         self.__is_zooming = False
         
+    def get_font_size(self):
+        return int(FONT[1] * self.get_length_unit() / LENGTH_UNIT)
+        
     def get_model(self):
         return self.__model
         
@@ -409,6 +412,26 @@ class SetupView(View):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
             
+    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
+        matching_setup_classes = []
+        
+        for setup_class_gui in self.__setup_classes_gui:
+            if setup_class_gui.get_configuration_name() == class_configuration_name:
+                if class_instance_name == None or setup_class_gui.get_name() == class_instance_name:
+                    matching_setup_classes.append(setup_class_gui)
+                    
+        return matching_setup_classes
+        
+    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
+        matching_setup_attributes = []
+        
+        for matching_setup_class_gui in self.get_matching_setup_classes_gui(class_configuration_name, class_instance_name):
+            for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
+                if setup_attribute_gui.get_name() == attribute_name:
+                    matching_setup_attributes.append(setup_attribute_gui)
+                    
+        return matching_setup_attributes
+        
     def remove_connection_with_blocks(self, connection):
         self.__connections_with_blocks.remove(connection)
         

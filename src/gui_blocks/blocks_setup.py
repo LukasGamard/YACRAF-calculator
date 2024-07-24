@@ -1,6 +1,6 @@
 import numpy as np
-from helper_functions import convert_grid_coordinate_to_actual, get_triangle_coordinates
-from blocks_general import GUIBlock, GUIModelingBlock
+from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates
+from blocks_general import GUIBlock, GUIModelingBlock, NumberIndicator
 from options import OptionsSetupClass
 from config import *
 
@@ -14,8 +14,9 @@ class GUISetupClass(GUIModelingBlock):
         self.__connections = []
         
         self.__linked_group_number = linked_group_number
-        self.__circle_linked_group = None
-        self.__label_linked_group = None
+        self.__linked_group_indicator = None
+        
+        self.__script_marker_indicators = []
         
         configuration_class_gui.add_setup_class_gui(self)
         
@@ -35,11 +36,11 @@ class GUISetupClass(GUIModelingBlock):
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
-        if self.__linked_group_number != None:
-            actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.get_view(), move_x, move_y)
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.move(move_x, move_y)
             
-            self.get_canvas().move(self.__circle_linked_group, actual_move_x, actual_move_y)
-            self.get_canvas().move(self.__label_linked_group, actual_move_x, actual_move_y)
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_marker_indicator.move(move_x, move_y)
             
     def scale(self, last_length_unit):
         super().scale(last_length_unit)
@@ -48,6 +49,12 @@ class GUISetupClass(GUIModelingBlock):
             # Only scale connection if this class is connected to the start block of the connection to avoid moving it twice
             if self.has_attached_block(connection.get_start_block()):
                 connection.scale(last_length_unit)
+                
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.scale(last_length_unit)
+            
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_marker_indicator.scale(last_length_unit)
             
     def is_adjacent(self, coordinates):
         # Above class
@@ -124,22 +131,25 @@ class GUISetupClass(GUIModelingBlock):
         
     def update_linked_group_indicator(self):
         # Remove any existing indicator
-        if self.__circle_linked_group != None:
-            self.get_canvas().delete(self.__circle_linked_group)
-            self.__circle_linked_group = None
-            
-        if self.__label_linked_group != None:
-            self.get_canvas().delete(self.__label_linked_group)
-            self.__label_linked_group = None
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.remove()
                 
         # Add or update indicator
         if self.__linked_group_number != None:
-            circle_radius = convert_grid_coordinate_to_actual(self.get_view(), LINKED_GROUP_CIRCLE_RADIUS, 0)[0]
-            actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x(), self.get_y())
+            if self.__linked_group_indicator == None:
+                self.__linked_group_indicator = NumberIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
+            else:
+                self.__linked_group_indicator.create(self.__linked_group_number)
+                
+    def create_script_marker_indicator(self, text, color):
+        self.__script_marker_indicators.append(NumberIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
+        
+    def reset_script_marker_indicators(self):
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_indicator.remove()
             
-            self.__circle_linked_group = self.get_view().get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=LINKED_GROUP_CIRCLE_OUTLINE, outline=LINKED_GROUP_CIRCLE_OUTLINE_COLOR, fill=LINKED_GROUP_CIRCLE_COLOR)
-            self.__label_linked_group = self.get_view().get_canvas().create_text(actual_x, actual_y, text=self.__linked_group_number, font=FONT)
-            
+        self.__script_marker_indicators = []
+        
     def update_value_input_types(self):
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
@@ -156,6 +166,9 @@ class GUISetupClass(GUIModelingBlock):
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.add_entered_value_to_attribute()
             
+    def get_configuration_name(self):
+        return self.__configuration_class_gui.get_name()
+        
     def get_name(self):
         return self.__setup_class.get_instance_name()
         
@@ -220,7 +233,10 @@ class GUISetupAttribute(GUIModelingBlock):
     def reset_override_value(self):
         self.__setup_attribute.reset_override_value()
         self.update_value_input_type()
-            
+        
+    def get_name(self):
+        return self.__setup_attribute.get_name()
+    
     def set_name(self, name):
         self.__setup_attribute.set_name(name)
         
@@ -232,7 +248,7 @@ class GUISetupAttribute(GUIModelingBlock):
         self.add_entered_value_to_attribute()
         
         return super().save_state() | {"value": self.__setup_attribute.get_value()}
-                
+        
 class GUIConnectionTriangle(GUIBlock):
     def __init__(self, model, view, x, y, direction, is_end_block):
         self.__is_end_block = is_end_block
@@ -279,7 +295,7 @@ class GUIConnectionTriangle(GUIBlock):
                 self.__connection.update_direction(self, direction)
                 self.rotate_triangle(direction)
                 return
-        
+                
     def rotate_triangle(self, new_direction):
         if self.__is_end_block:
             directions = ["UP", "RIGHT", "DOWN", "LEFT"]

@@ -25,7 +25,7 @@ class GUIBlockButton(GUIBlock):
     def delete(self):
         self.get_canvas().delete(self.__rect)
         self.get_canvas().delete(self.__label)
-
+        
 class GUIAddAttributeButton(GUIBlockButton):
     def __init__(self, model, view, x, y, configuration_class_gui):
         super().__init__(model, view, "+", x, y, ADD_ATTRIBUTE_WIDTH, ADD_ATTRIBUTE_HEIGHT, ADD_ATTRIBUTE_COLOR)

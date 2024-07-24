@@ -1,7 +1,7 @@
 import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
-from blocks_general import GUIConnectionCorner
+from blocks_general import GUIConnectionCorner, NumberIndicator
 from blocks_setup import GUIConnectionTriangle
 from config import *
 
@@ -24,8 +24,7 @@ class GUIConnection:
         self.__lines = []
         
         self.__num_order = None
-        self.__circle_num_order = None
-        self.__label_num_order = None
+        self.__num_order_indicator = None
         
         self.__is_external = is_external
         
@@ -123,6 +122,9 @@ class GUIConnection:
         for corner in self.__corners:
             corner.scale(last_length_unit)
             
+        if self.__num_order_indicator != None:
+            self.__num_order_indicator.scale(last_length_unit)
+            
     def move_lines(self, move_x, move_y):
         # If currently panning or zooming, only move lines and corners
         if self.__view.is_panning() or self.__view.is_zooming():
@@ -136,28 +138,24 @@ class GUIConnection:
         # If not panning, need to create completely new lines and corners
         else:
             self.create_new_lines()
-        
+            
+        if self.__num_order_indicator != None:
+            self.__num_order_indicator.move(move_x, move_y)
+            
     def attempt_to_set_number(self):
         if self.__num_order != None:
             num_order_x = self.__start_x
             num_order_y = self.__start_y + self.__start_block.get_height() / 2
             
-            circle_radius = convert_grid_coordinate_to_actual(self.__view, NUM_ORDER_CIRCLE_RADIUS, 0)[0]
-            
             if self.__start_direction == "LEFT":
                 num_order_x += 1
                 
-            num_order_actual_x, num_order_actual_y = convert_grid_coordinate_to_actual(self.__view, num_order_x, num_order_y)
-            
-            self.__circle_num_order = self.__view.get_canvas().create_oval(num_order_actual_x-circle_radius, num_order_actual_y-circle_radius, num_order_actual_x+circle_radius, num_order_actual_y+circle_radius, width=NUM_ORDER_CIRCLE_OUTLINE, outline=NUM_ORDER_CIRCLE_OUTLINE_COLOR, fill=NUM_ORDER_CIRCLE_COLOR)
-            self.__label_num_order = self.__view.get_canvas().create_text(num_order_actual_x, num_order_actual_y, text=self.__num_order, font=FONT)
+            self.__num_order_indicator = NumberIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
             
     def attempt_to_remove_number(self):
-        if self.__circle_num_order != None:
-            self.__view.get_canvas().delete(self.__circle_num_order)
-            
-        if self.__label_num_order != None:
-            self.__view.get_canvas().delete(self.__label_num_order)
+        if self.__num_order_indicator != None:
+            self.__num_order_indicator.remove()
+            self.__num_order_indicator = None
         
     def create_lines_from_corners(self, corner_coordinates):
         actual_coordinates = [self.get_actual_attached_coordinates(self.__start_x, self.__start_y, self.__start_direction)]

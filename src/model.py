@@ -172,6 +172,22 @@ class Model:
         
         return connection
         
+    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
+        matching_setup_classes = []
+        
+        for setup_view in self.__setup_views:
+            matching_setup_classes += setup_view.get_matching_setup_classes_gui(class_configuration_name, class_instance_name)
+            
+        return matching_setup_classes
+        
+    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
+        matching_setup_attributes = []
+        
+        for setup_view in self.__setup_views:
+            matching_setup_attributes += setup_view.get_matching_setup_attributes_gui(attribute_name, class_configuration_name, class_instance_name)
+            
+        return matching_setup_attributes
+        
     def save(self):
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
         with open(FILE_PATHS_SAVES_PATH, "w") as file_with_paths:

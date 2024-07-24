@@ -48,9 +48,6 @@ class SetupAttribute:
         self.__value = None
         self.__override_value = None
         
-        if configuration_attribute.get_name() == "Out Attribute 1":
-            self.__override_value = 2
-        
     def get_value(self):
         return self.__value
         
