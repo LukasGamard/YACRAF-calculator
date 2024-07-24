@@ -144,9 +144,15 @@ class GUISetupClass(GUIModelingBlock):
     def create_script_marker_indicator(self, text, color):
         self.__script_marker_indicators.append(NumberIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
         
-    def reset_script_marker_indicators(self):
+    def reset_changes_by_script(self):
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            did_reset = setup_attribute_gui.attempt_to_reset_override_value()
+            
+            if did_reset:
+                setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
+                
         for script_marker_indicator in self.__script_marker_indicators:
-            script_indicator.remove()
+            script_marker_indicator.remove()
             
         self.__script_marker_indicators = []
         
@@ -230,10 +236,14 @@ class GUISetupAttribute(GUIModelingBlock):
     def set_override_value(self, override_value):
         self.__setup_attribute.set_override_value(override_value)
         
-    def reset_override_value(self):
-        self.__setup_attribute.reset_override_value()
-        self.update_value_input_type()
-        
+    def attempt_to_reset_override_value(self):
+        if self.__setup_attribute.has_override_value():
+            self.__setup_attribute.reset_override_value()
+            
+            return True
+            
+        return False
+            
     def get_name(self):
         return self.__setup_attribute.get_name()
     

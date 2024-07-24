@@ -1,8 +1,9 @@
 import tkinter as tk
 import pickle
+import os
 from blocks_configuration import GUIConfigurationClass, GUIConfigurationInput
 from blocks_setup import GUISetupClass, GUIConnectionTriangle
-from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton
+from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton, GUIRunScriptButton
 from connection_gui import GUIConnection, GUIConnectionWithBlocks
 from helper_functions import convert_actual_coordinate_to_grid, delete_all
 from config import *
@@ -274,7 +275,7 @@ class ConfigurationView(View):
         saved_states_configuration_classes_gui = [class_gui.save_state() for class_gui in self.__configuration_classes_gui]
         saved_states_configuration_inputs_gui = [input_gui.save_state() for input_gui in self.__configuration_inputs_gui]
         
-        file_path = f"{CONFIGURATION_SAVES_PATH}/{self.get_name()}.pickle"
+        file_path = os.path.join(CONFIGURATION_SAVES_PATH, f"{self.get_name()}.pickle")
         
         with open(file_path, "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
@@ -362,6 +363,18 @@ class SetupView(View):
         self.__add_connection_button = GUIAddConnectionButton(model, self, ADD_CONNECTION_POSITION[0], ADD_CONNECTION_POSITION[1])
         self.__calculate_value_button = GUICalculateValuesButton(model, self, CALCULATE_VALUES_POSITION[0], CALCULATE_VALUES_POSITION[1])
         
+        self.__run_script_buttons = []
+        
+        for file_name_full in os.listdir(SCRIPTS_PATH):
+            file_name = file_name_full.replace(".py", "")
+            
+            if file_name not in ("SCRIPT_TEMPLATE", "__pycache__"):
+                if len(self.__run_script_buttons) == 0:
+                    self.__run_script_buttons.append(GUIRunScriptButton(model, self, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
+                    
+                run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
+                self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
+                
     def create_connection_with_blocks(self):
         connection_with_blocks = GUIConnectionWithBlocks(self.__model, self)
         self.__connections_with_blocks.append(connection_with_blocks)
@@ -407,10 +420,16 @@ class SetupView(View):
             setup_class_gui.reset_calculated_values()
         
     def calculate_values(self):
-        self.__model.reset_calculated_values_all_setup_views()
-        
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
+            
+    def reset_changes_by_script(self):
+        for setup_class_gui in self.__setup_classes_gui:
+            setup_class_gui.reset_changes_by_script()
+            
+    def reset_override_values(self):
+        for setup_class_gui in self.__setup_classes_gui:
+            setup_class_gui.reset_override_value()
             
     def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
         matching_setup_classes = []
@@ -454,7 +473,7 @@ class SetupView(View):
         saved_states_setup_classes_gui = [class_gui.save_state() for class_gui in self.__setup_classes_gui]
         saved_states_connections_with_blocks = [connection.save_state() for connection in self.__connections_with_blocks]
         
-        file_path = f"{SETUP_SAVES_PATH}/{self.get_name()}.pickle"
+        file_path = os.path.join(SETUP_SAVES_PATH, f"{self.get_name()}.pickle")
         
         with open(file_path, "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)

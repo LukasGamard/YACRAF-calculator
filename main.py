@@ -1,10 +1,13 @@
 import tkinter as tk
 import pickle
 import sys
+import os
 
 sys.path.append("src")
-sys.path.append("src/calculations")
-sys.path.append("src/gui_blocks")
+from config import *
+sys.path.append(os.path.join("src", "calculations"))
+sys.path.append(os.path.join("src", "gui_blocks"))
+sys.path.append(SCRIPTS_PATH)
 from model import Model
 
 def main():

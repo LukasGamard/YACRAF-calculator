@@ -1,6 +1,9 @@
+import os
+import importlib.util
 from helper_functions import convert_grid_coordinate_to_actual
 from blocks_general import GUIBlock
 from options import OptionsView
+from script_interface import ScriptInterface
 from config import *
 
 class GUIBlockButton(GUIBlock):
@@ -93,7 +96,7 @@ class GUICalculateValuesButton(GUIBlockButton):
         super().__init__(model, view, "Calculate", x, y, CALCULATE_VALUES_WIDTH, CALCULATE_VALUES_HEIGHT, CALCULATE_VALUES_COLOR)
         
     def left_pressed(self, event):
-        self.get_view().calculate_values()
+        self.get_model().calculate_values()
         
 class GUIAddConnectionButton(GUIBlockButton):
     def __init__(self, model, view, x, y):
@@ -101,3 +104,28 @@ class GUIAddConnectionButton(GUIBlockButton):
         
     def left_pressed(self, event):
         self.get_view().create_connection_with_blocks()
+        
+class GUIRunScriptButton(GUIBlockButton):
+    def __init__(self, model, view, script_name, x, y, is_clear_button=False):
+        if not is_clear_button:
+            color = RUN_SCRIPT_COLOR
+        else:
+            color = RUN_SCRIPT_CLEAR_COLOR
+            
+        super().__init__(model, view, script_name, x, y, RUN_SCRIPT_WIDTH, RUN_SCRIPT_HEIGHT, color)
+        self.__script_interface = ScriptInterface(model)
+        self.__is_clear_button = is_clear_button
+        
+        if not is_clear_button:
+            # Import the module of the script
+            script_path = os.path.join(SCRIPTS_PATH, f"{script_name}.py")
+            spec = importlib.util.spec_from_file_location(script_name, script_path)
+            self.__script_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self.__script_module)
+        
+    def left_pressed(self, event):
+        if self.__is_clear_button:
+            self.get_model().reset_changes_by_script()
+            
+        else:
+            self.__script_module.script_control(self.__script_interface)

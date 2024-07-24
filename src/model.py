@@ -1,3 +1,4 @@
+import os
 from view import ConfigurationView, SetupView
 from connection_gui import GUIConnection
 from config import *
@@ -29,7 +30,8 @@ class Model:
                 
                 for line in file_with_paths:
                     view_type, file_path = line.strip().split(",")
-                    view_name = file_path.replace(".pickle", "").split("/")[-1]
+                    _, view_name = os.path.split(file_path) # Get last element in path
+                    view_name = view_name.replace(".pickle", "")
                     
                     if view_type == "configuration":
                         configuration_view = self.create_view(True, view_name)
@@ -38,12 +40,11 @@ class Model:
                     elif view_type == "setup":
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_groups_per_number)
-                            
-                for setup_view in self.__setup_views:
-                    setup_view.calculate_values()
-                    
+                        
+                self.calculate_values()
+                
         self.change_view(self.__configuration_views[0])
-        
+            
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
         for existing_setup_view in self.__setup_views:
             existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
@@ -98,6 +99,22 @@ class Model:
                 configuration_classes += existing_view.get_configuration_classes()
                 
         return configuration_classes
+        
+    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
+        matching_setup_classes_gui = []
+        
+        for setup_view in self.__setup_views:
+            matching_setup_classes_gui += setup_view.get_matching_setup_classes_gui(class_configuration_name, class_instance_name)
+            
+        return matching_setup_classes_gui
+        
+    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
+        matching_setup_attributes_gui = []
+        
+        for setup_view in self.__setup_views:
+            matching_setup_attributes_gui += setup_view.get_matching_setup_attributes_gui(attribute_name, class_configuration_name, class_instance_name)
+            
+        return matching_setup_attributes_gui
         
     def get_root(self):
         return self.__root
@@ -154,10 +171,15 @@ class Model:
     def change_view(self, view):
         view.tkraise()
         
-    def reset_calculated_values_all_setup_views(self):
+    def calculate_values(self):
+        # Reset all values first
         for setup_view in self.__setup_views:
             setup_view.reset_calculated_values()
-        
+            
+        # Calculate new values
+        for setup_view in self.__setup_views:
+            setup_view.calculate_values()
+            
     def get_setup_view_names(self):
         return [view.get_name() for view in self.__setup_views]
         
@@ -172,21 +194,11 @@ class Model:
         
         return connection
         
-    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
-        matching_setup_classes = []
-        
+    def reset_changes_by_script(self):
         for setup_view in self.__setup_views:
-            matching_setup_classes += setup_view.get_matching_setup_classes_gui(class_configuration_name, class_instance_name)
+            setup_view.reset_changes_by_script()
             
-        return matching_setup_classes
-        
-    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
-        matching_setup_attributes = []
-        
-        for setup_view in self.__setup_views:
-            matching_setup_attributes += setup_view.get_matching_setup_attributes_gui(attribute_name, class_configuration_name, class_instance_name)
-            
-        return matching_setup_attributes
+        self.calculate_values()
         
     def save(self):
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
