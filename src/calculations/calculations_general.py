@@ -17,7 +17,7 @@ def check_input_value_types(symbol_calculation_type, input_attributes):
             return False
             
     return True
-            
+    
 def extract_input_values(input_attributes):
     input_values = []
     input_symbol_value_type = ""
@@ -36,27 +36,27 @@ def extract_input_values(input_attributes):
                     input_value_int = float(str(input_value).strip())
                     
                 except:
-                    print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type}")
+                    print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
                     return None
                     
                 input_values.append(np.array([input_value_int]))
                 
             elif input_symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
                 try:
-                    current_input_values = [int(value.strip()) for value in input_value.split("/")]
+                    current_input_values = [float(value.strip()) for value in input_value.split("/")]
                     
                 except:
-                    print(f"Error: Could not cast the elements of {input_values} to int for {input_symbol_value_type}")
+                    print(f"Error: Could not cast the elements of {input_values} to float for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
                     return None
                     
                 if len(current_input_values) != 3:
-                    print(f"Error: Not three values in {input_values} for {input_symbol_value_type}")
+                    print(f"Error: Not three values in {input_values} for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
                     return None
                     
                 input_values.append(np.array(current_input_values))
                 
             else:
-                print(f"Error: Did not recognize the value type {input_symbol_value_type}")
+                print(f"Error: Did not recognize the value type {input_symbol_value_type} at attribute {input_attribute.get_name()}")
                 return None
             
     return input_values

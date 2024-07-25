@@ -236,6 +236,12 @@ class GUISetupAttribute(GUIModelingBlock):
     def set_override_value(self, override_value):
         self.__setup_attribute.set_override_value(override_value)
         
+    def get_current_value(self):
+        if self.__setup_attribute.has_override_value():
+            return self.__setup_attribute.get_override_value()
+            
+        return self.__setup_attribute.get_value()
+        
     def attempt_to_reset_override_value(self):
         if self.__setup_attribute.has_override_value():
             self.__setup_attribute.reset_override_value()

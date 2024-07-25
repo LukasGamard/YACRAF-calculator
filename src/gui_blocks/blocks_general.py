@@ -254,6 +254,9 @@ class GUIModelingBlock(GUIBlock):
         if color == None:
             color = self.__default_text_color
             
+        if value == None:
+            value = "ERROR"
+            
         # Set value in Label
         if self.__entry_value == None:
             self.get_view().get_canvas().itemconfig(self.__label_value, text=str(value), fill=color)

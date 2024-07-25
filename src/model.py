@@ -100,20 +100,23 @@ class Model:
                 
         return configuration_classes
         
-    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
-        matching_setup_classes_gui = []
+    def get_matching_setup_classes_gui(self, *, class_configuration_name=None, class_instance_name=None):
+        matching_setup_classes_gui = {}
         
         for setup_view in self.__setup_views:
-            matching_setup_classes_gui += setup_view.get_matching_setup_classes_gui(class_configuration_name, class_instance_name)
+            matching_setup_classes_gui.update(setup_view.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name))
             
         return matching_setup_classes_gui
         
-    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
-        matching_setup_attributes_gui = []
+    def get_matching_setup_attributes_gui(self, *, class_configuration_name=None, class_instance_name=None, attribute_name=None):
+        matching_setup_attributes_gui = {}
         
-        for setup_view in self.__setup_views:
-            matching_setup_attributes_gui += setup_view.get_matching_setup_attributes_gui(attribute_name, class_configuration_name, class_instance_name)
-            
+        for matching_setup_class_gui, current_class_names in self.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name).items():
+            for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
+                if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
+                    current_class_configuration_name, current_class_instance_name = current_class_names
+                    matching_setup_attributes_gui[setup_attribute_gui] = (current_class_configuration_name, current_class_instance_name, setup_attribute_gui.get_name())
+                    
         return matching_setup_attributes_gui
         
     def get_root(self):
@@ -200,10 +203,29 @@ class Model:
             
         self.calculate_values()
         
+    def update_duplicate_view_name(self, view, existing_view_names):
+        added_number = 1
+        
+        while view.get_name() in existing_view_names:
+            view.set_name(f"{view.get_name()} ({added_number})")
+        
     def save(self):
+        configuration_view_names = set()
+        setup_view_names = set()
+        
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
         with open(FILE_PATHS_SAVES_PATH, "w") as file_with_paths:
             # Need to store configuration views first as they need to be restored before setup views so that they can use their configurations
-            for view in self.__configuration_views + self.__setup_views:
-                view_type, file_path = view.save()
-                file_with_paths.write(f"{view_type},{file_path}\n")
+            for configuration_view in self.__configuration_views:
+                self.update_duplicate_view_name(configuration_view, configuration_view_names)
+                configuration_view_names.add(configuration_view.get_name())
+                
+                file_path = configuration_view.save()
+                file_with_paths.write(f"configuration,{file_path}\n")
+                
+            for setup_view in self.__setup_views:
+                self.update_duplicate_view_name(setup_view, setup_view_names)
+                setup_view_names.add(setup_view.get_name())
+                
+                file_path = setup_view.save()
+                file_with_paths.write(f"setup,{file_path}\n")

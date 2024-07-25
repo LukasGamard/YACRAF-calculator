@@ -280,8 +280,8 @@ class ConfigurationView(View):
         with open(file_path, "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
             
-        return "configuration", file_path
-            
+        return file_path
+        
     def restore_save(self, file_path):
         if not SHOULD_RESTORE_SAVE:
             return {}
@@ -431,25 +431,15 @@ class SetupView(View):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.reset_override_value()
             
-    def get_matching_setup_classes_gui(self, class_configuration_name, class_instance_name=None):
-        matching_setup_classes = []
+    def get_matching_setup_classes_gui(self, *, class_configuration_name=None, class_instance_name=None):
+        matching_setup_classes_gui = {}
         
         for setup_class_gui in self.__setup_classes_gui:
-            if setup_class_gui.get_configuration_name() == class_configuration_name:
+            if class_configuration_name == None or setup_class_gui.get_configuration_name() == class_configuration_name:
                 if class_instance_name == None or setup_class_gui.get_name() == class_instance_name:
-                    matching_setup_classes.append(setup_class_gui)
+                    matching_setup_classes_gui[setup_class_gui] = (setup_class_gui.get_configuration_name(), setup_class_gui.get_name())
                     
-        return matching_setup_classes
-        
-    def get_matching_setup_attributes_gui(self, attribute_name, class_configuration_name, class_instance_name=None):
-        matching_setup_attributes = []
-        
-        for matching_setup_class_gui in self.get_matching_setup_classes_gui(class_configuration_name, class_instance_name):
-            for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
-                if setup_attribute_gui.get_name() == attribute_name:
-                    matching_setup_attributes.append(setup_attribute_gui)
-                    
-        return matching_setup_attributes
+        return matching_setup_classes_gui
         
     def remove_connection_with_blocks(self, connection):
         self.__connections_with_blocks.remove(connection)
@@ -478,8 +468,8 @@ class SetupView(View):
         with open(file_path, "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
-        return "setup", file_path
-            
+        return file_path
+        
     def restore_save(self, file_path, mapping_configuration_class_gui, linked_groups_per_number):
         if not SHOULD_RESTORE_SAVE:
             return
