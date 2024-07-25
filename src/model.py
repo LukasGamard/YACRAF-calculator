@@ -9,7 +9,8 @@ class Model:
         self.__configuration_views = []
         self.__setup_views = []
         
-        self.__linked_groups_per_number = {}
+        self.__linked_configuration_groups_per_number = {}
+        self.__linked_setup_groups_per_number = {}
         
         self.__root.title("Canvas")
         self.__root.geometry(f"{CANVAS_WIDTH}x{CANVAS_HEIGHT}")
@@ -35,16 +36,16 @@ class Model:
                     
                     if view_type == "configuration":
                         configuration_view = self.create_view(True, view_name)
-                        mapping_configuration_class_gui.update(configuration_view.restore_save(file_path))
+                        mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
                         
                     elif view_type == "setup":
                         setup_view = self.create_view(False, view_name)
-                        setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_groups_per_number)
+                        setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
                         
                 self.calculate_values()
                 
         self.change_view(self.__configuration_views[0])
-            
+        
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
         for existing_setup_view in self.__setup_views:
             existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
@@ -53,46 +54,64 @@ class Model:
         for to_setup_button in to_setup_buttons:
             to_setup_button.get_view().remove_add_to_setup_button(to_setup_button)
             
-    def get_linked_setup_classes_gui(self, linked_group_number):
-        return self.__linked_groups_per_number[linked_group_number]
-            
-    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_number_to_copy_to):
-        view_to_copy_to = self.__setup_views[int(view_number_to_copy_to)]
+    def get_linked_configuration_classes_gui(self, linked_group_number):
+        return self.__linked_configuration_groups_per_number[linked_group_number]
         
-        # Need to create a new group
-        if setup_class_gui_to_copy.get_linked_group_number() == None:
-            linked_group_number = len(self.__linked_groups_per_number)
+    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+        self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
+        
+        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy, x, y)
+        self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
             
-            self.__linked_groups_per_number[linked_group_number] = [setup_class_gui_to_copy]
-            setup_class_gui_to_copy.set_linked_group_number(linked_group_number)
+        return linked_configuration_class_gui
+        
+    def get_linked_setup_classes_gui(self, linked_group_number):
+        return self.__linked_setup_groups_per_number[linked_group_number]
+        
+    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+        self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number)
             
         # Create new linked copy and add it to the group
-        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(configuration_class_gui, setup_class=setup_class_gui_to_copy.get_setup_class(), linked_group_number=setup_class_gui_to_copy.get_linked_group_number())
-        self.__linked_groups_per_number[linked_setup_class_gui.get_linked_group_number()].append(linked_setup_class_gui)
+        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(configuration_class_gui, x=x, y=y, setup_class=setup_class_gui_to_copy.get_setup_class(), linked_group_number=setup_class_gui_to_copy.get_linked_group_number())
+        self.__linked_setup_groups_per_number[linked_setup_class_gui.get_linked_group_number()].append(linked_setup_class_gui)
         
-    def remove_setup_class_gui_from_linked_group(self, linked_setup_class_gui):
-        linked_group_number = linked_setup_class_gui.get_linked_group_number()
+        return linked_setup_class_gui
         
-        self.__linked_groups_per_number[linked_group_number].remove(linked_setup_class_gui)
+    def attempt_to_create_linked_group(self, class_gui_to_copy, view_to_copy_to, linked_groups_per_number):
+        # Need to create a new group
+        if class_gui_to_copy.get_linked_group_number() == None:
+            linked_group_number = len(linked_groups_per_number)
+            
+            linked_groups_per_number[linked_group_number] = [class_gui_to_copy]
+            class_gui_to_copy.set_linked_group_number(linked_group_number)
         
-        if len(self.__linked_groups_per_number[linked_group_number]) <= 1:
-            for setup_class_gui in self.__linked_groups_per_number[linked_group_number]:
-                setup_class_gui.set_linked_group_number(None)
+    def remove_class_gui_from_linked_group(self, linked_class_gui, is_configuration_view):
+        linked_group_number = linked_class_gui.get_linked_group_number()
+        
+        if is_configuration_view:
+            linked_groups_per_number = self.__linked_configuration_groups_per_number
+        else:
+            linked_groups_per_number = self.__linked_setup_groups_per_number
+        
+        linked_groups_per_number[linked_group_number].remove(linked_class_gui)
+        
+        # Should remove group as there is at most only one class in it
+        if len(linked_groups_per_number[linked_group_number]) <= 1:
+            for class_gui in linked_groups_per_number[linked_group_number]:
+                class_gui.set_linked_group_number(None)
                 
-            self.__linked_groups_per_number.pop(linked_group_number)
+            linked_groups_per_number.pop(linked_group_number)
             
             # Decrement all group numbers above the removed one
-            group_numbers = list(self.__linked_groups_per_number.keys())
-            
-            for group_number in group_numbers:
+            for group_number in list(linked_groups_per_number.keys()):
                 if group_number > linked_group_number:
                     # Remove and add again with new number
-                    group = self.__linked_groups_per_number.pop(group_number)
-                    self.__linked_groups_per_number[group_number-1] = group
+                    group = linked_groups_per_number.pop(group_number)
+                    linked_groups_per_number[group_number-1] = group
                     
                     # Set the new number in each setup class
-                    for setup_class_gui in group:
-                        setup_class_gui.set_linked_group_number(group_number-1)
+                    for class_gui in group:
+                        class_gui.set_linked_group_number(group_number-1)
         
     def get_configuration_classes(self):
         configuration_classes = []
@@ -116,14 +135,21 @@ class Model:
         
         for matching_setup_class_gui, current_class_names in self.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name).items():
             for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
-                if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
-                    current_class_configuration_name, current_class_instance_name = current_class_names
-                    matching_setup_attributes_gui[setup_attribute_gui] = (current_class_configuration_name, current_class_instance_name, setup_attribute_gui.get_name())
+                if not setup_attribute_gui.is_hidden():
+                    if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
+                        current_class_configuration_name, current_class_instance_name = current_class_names
+                        matching_setup_attributes_gui[setup_attribute_gui] = (current_class_configuration_name, current_class_instance_name, setup_attribute_gui.get_name())
                     
         return matching_setup_attributes_gui
         
     def get_root(self):
         return self.__root
+        
+    def get_configuration_views(self):
+        return self.__configuration_views
+        
+    def get_setup_views(self):
+        return self.__setup_views
         
     def create_view(self, is_configuration_view, view_name):
         if is_configuration_view:

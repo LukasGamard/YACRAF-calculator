@@ -1,21 +1,18 @@
 import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates
-from blocks_general import GUIBlock, GUIModelingBlock, NumberIndicator
+from blocks_general import GUIBlock, GUIModelingBlock, GUIClass, NumberIndicator
 from options import OptionsSetupClass
 from config import *
 
-class GUISetupClass(GUIModelingBlock):
+class GUISetupClass(GUIClass):
     def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
         self.__configuration_class_gui = configuration_class_gui
         self.__setup_class = setup_class
         
-        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, CLASS_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
         self.__setup_attributes_gui = []
         self.__connections = []
-        
-        self.__linked_group_number = linked_group_number
-        self.__linked_group_indicator = None
         
         self.__script_marker_indicators = []
         
@@ -26,19 +23,13 @@ class GUISetupClass(GUIModelingBlock):
             
         self.update_text()
         
-        if self.__linked_group_number != None:
-            self.update_linked_group_indicator()
-            
         # self.snap_to_grid()
         
     def right_pressed(self, event):
-        OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_view_names())
+        OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
-        
-        if self.__linked_group_indicator != None:
-            self.__linked_group_indicator.move(move_x, move_y)
             
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.move(move_x, move_y)
@@ -51,9 +42,6 @@ class GUISetupClass(GUIModelingBlock):
             if self.has_attached_block(connection.get_start_block()):
                 connection.scale(last_length_unit)
                 
-        if self.__linked_group_indicator != None:
-            self.__linked_group_indicator.scale(last_length_unit)
-            
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.scale(last_length_unit)
             
@@ -99,7 +87,7 @@ class GUISetupClass(GUIModelingBlock):
         
     def convert_to_attribute_gui(self, configuration_attribute_gui, setup_attribute):
         if not configuration_attribute_gui.is_hidden():
-            setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
+            setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, self, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
             
             self.__setup_attributes_gui.append(setup_attribute_gui)
             self.add_attached_block(setup_attribute_gui)
@@ -110,11 +98,12 @@ class GUISetupClass(GUIModelingBlock):
     def get_setup_attributes_gui(self):
         return self.__setup_attributes_gui
         
-    def remove_setup_attribute_gui_by_index(self, setup_attribute_gui_index):
-        self.__setup_attributes_gui.pop(setup_attribute_gui_index)
+    def remove_setup_attribute_gui(self, setup_attribute_gui_to_remove):
+        index_first_move_up = self.__setup_attributes_gui.index(setup_attribute_gui_to_remove)
+        self.__setup_attributes_gui.remove(setup_attribute_gui_to_remove)
         
-        for setup_attribute_gui in self.__setup_attributes_gui[setup_attribute_gui_index:]:
-            setup_attribute_gui.move_block(0, -1)
+        for setup_attribute_gui in self.__setup_attributes_gui[index_first_move_up:]:
+            setup_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
             
     def add_connection(self, connection):
         self.__connections.append(connection)
@@ -122,26 +111,7 @@ class GUISetupClass(GUIModelingBlock):
     def remove_connection(self, connection):
         if connection in self.__connections:
             self.__connections.remove(connection)
-            
-    def get_linked_group_number(self):
-        return self.__linked_group_number
-        
-    def set_linked_group_number(self, linked_group_number):
-        self.__linked_group_number = linked_group_number
-        self.update_linked_group_indicator()
-                
-    def update_linked_group_indicator(self):
-        # Remove any existing indicator
-        if self.__linked_group_indicator != None:
-            self.__linked_group_indicator.remove()
-                
-        # Add or update indicator
-        if self.__linked_group_number != None:
-            if self.__linked_group_indicator == None:
-                self.__linked_group_indicator = NumberIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
-            else:
-                self.__linked_group_indicator.create(self.__linked_group_number)
-                
+                 
     def create_script_marker_indicator(self, text, color):
         self.__script_marker_indicators.append(NumberIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
         
@@ -159,12 +129,12 @@ class GUISetupClass(GUIModelingBlock):
         
     def update_value_input_types(self, check_linked=True):
         for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
+            setup_attribute_gui.update_value_input_type()
             
-        if self.__linked_group_number != None and check_linked:
-            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self.__linked_group_number):
+        if self.get_linked_group_number() != None and check_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self.get_linked_group_number()):
                 linked_setup_class_gui.update_value_input_types(False)
-            
+                
     def calculate_values(self):
         self.__setup_class.calculate_values()
         
@@ -190,19 +160,16 @@ class GUISetupClass(GUIModelingBlock):
     def update_text(self):
         self.set_text(f"{self.__configuration_class_gui.get_name()}: {self.__setup_class.get_instance_name()}")
         
+    def remove_to_setup_button(self, view):
+        self.__configuration_class_gui.remove_to_setup_button(view)
+        
     def delete(self):
         super().delete()
         self.__configuration_class_gui.remove_setup_class_gui(self)
         self.get_view().remove_setup_class_gui(self)
         
-        if self.__linked_group_number != None:
-            self.get_canvas().delete(self.__circle_linked_group)
-            self.get_canvas().delete(self.__label_linked_group)
-            
-            self.get_model().remove_setup_class_gui_from_linked_group(self)
-        
     def save_state(self):
-        saved_states = super().save_state() | {"name": self.get_name(), "linked_group_number": self.__linked_group_number, "configuration_class_gui": str(self.__configuration_class_gui), "setup_attributes_gui": []}
+        saved_states = super().save_state() | {"name": self.get_name(), "configuration_class_gui": str(self.__configuration_class_gui), "setup_attributes_gui": []}
         
         for setup_attribute_gui in self.__setup_attributes_gui:
             saved_states["setup_attributes_gui"].append(setup_attribute_gui.save_state())
@@ -210,8 +177,9 @@ class GUISetupClass(GUIModelingBlock):
         return saved_states
         
 class GUISetupAttribute(GUIModelingBlock):
-    def __init__(self, model, view, setup_attribute, configuration_attribute_gui, x, y):
+    def __init__(self, model, view, setup_attribute, setup_class_gui, configuration_attribute_gui, x, y):
         self.__setup_attribute = setup_attribute
+        self.__setup_class_gui = setup_class_gui
         self.__configuration_attribute_gui = configuration_attribute_gui
         
         width = ATTRIBUTE_WIDTH * SETUP_WIDTH_MULTIPLIER
@@ -255,8 +223,8 @@ class GUISetupAttribute(GUIModelingBlock):
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
             self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
-    def update_value_input_type(self, setup_class, connected_setup_classes):
-        has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes(setup_class, connected_setup_classes)
+    def update_value_input_type(self):
+        has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
         
         if has_currently_connected_inputs:
             self.switch_to_value_label()
@@ -339,9 +307,16 @@ class GUISetupAttribute(GUIModelingBlock):
     def set_name(self, name):
         self.__setup_attribute.set_name(name)
         
+    def is_hidden(self):
+        return self.__configuration_attribute_gui.is_hidden()
+        
     def delete(self):
         super().delete()
         self.__configuration_attribute_gui.remove_setup_attribute_gui(self)
+        self.__setup_class_gui.remove_setup_attribute_gui(self)
+        
+        if self.__entry_value != None:
+            self.get_view().get_canvas().delete(self.__entry_value_window)
         
     def save_state(self):
         self.add_entered_value_to_attribute()

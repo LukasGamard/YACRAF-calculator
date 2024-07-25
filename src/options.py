@@ -60,14 +60,29 @@ class OptionsView(Options):
         self.__model.delete_view(self.__view)
         
 class OptionsConfigurationClass(Options):
-    def __init__(self, root, configuration_class_gui):
-        super().__init__(root, configuration_class_gui)
+    def __init__(self, model, configuration_class_gui, configuration_views):
+        super().__init__(model.get_root(), configuration_class_gui)
+        self.__model = model
+        self.__configuration_class_gui = configuration_class_gui
         
         self.add_entry("Name:")
-        self.add_delete_button(1, 0, 2, configuration_class_gui)
+        
+        self.add_label(1, 0, 2, "Add linked copy to setup view:")
+        
+        for i, configuration_view in enumerate(configuration_views):
+            link_button = tk.Button(self.get_window(), text=configuration_view.get_name(), font=FONT, command=lambda configuration_view=configuration_view: self.create_linked_configuration_class_gui(configuration_view))
+            link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
+            
+        row_after_link_buttons = 2 + len(configuration_views)
+        
+        self.add_label(row_after_link_buttons, 0, 2, "")
+        self.add_delete_button(row_after_link_buttons+1, 0, 2, configuration_class_gui)
+        
+    def create_linked_configuration_class_gui(self, configuration_view):
+        self.__model.create_linked_configuration_class_gui(self.__configuration_class_gui, configuration_view)
         
 class OptionsSetupClass(Options):
-    def __init__(self, model, setup_class_gui, configuration_class_gui, setup_view_names):
+    def __init__(self, model, setup_class_gui, configuration_class_gui, setup_views):
         super().__init__(model.get_root(), setup_class_gui)
         self.__model = model
         self.__setup_class_gui = setup_class_gui
@@ -77,17 +92,17 @@ class OptionsSetupClass(Options):
         
         self.add_label(1, 0, 2, "Add linked copy to setup view:")
         
-        for i, setup_view_name in enumerate(setup_view_names):
-            link_button = tk.Button(self.get_window(), text=setup_view_name, font=FONT, command=lambda i=i: self.create_linked_setup_class_gui(i))
+        for i, setup_view in enumerate(setup_views):
+            link_button = tk.Button(self.get_window(), text=setup_view.get_name(), font=FONT, command=lambda setup_view=setup_view: self.create_linked_setup_class_gui(setup_view))
             link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
             
-        row_after_link_buttons = 2 + len(setup_view_names)
+        row_after_link_buttons = 2 + len(setup_views)
         
         self.add_label(row_after_link_buttons, 0, 2, "")
         self.add_delete_button(row_after_link_buttons+1, 0, 2, setup_class_gui)
         
-    def create_linked_setup_class_gui(self, setup_view_number):
-        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view_number)
+    def create_linked_setup_class_gui(self, setup_view):
+        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view)
         
 class OptionsConfigurationAttribute(Options):
     def __init__(self, root, configuration_attribute_gui):

@@ -15,7 +15,7 @@ class SetupClass:
         
     def calculate_values(self):
         for attribute in self.__setup_attributes:
-            attribute.calculate_value(self, self.__input_classes)
+            attribute.calculate_value()
             
     def reset_calculated_values(self):
         for attribute in self.__setup_attributes:
@@ -25,7 +25,7 @@ class SetupClass:
         return self.__setup_attributes
         
     def create_setup_attribute(self, configuration_attribute):
-        setup_attribute = SetupAttribute(configuration_attribute)
+        setup_attribute = SetupAttribute(self, configuration_attribute)
         self.__setup_attributes.append(setup_attribute)
         
         return setup_attribute
@@ -43,7 +43,8 @@ class SetupClass:
         return self.__instance_name
         
 class SetupAttribute:
-    def __init__(self, configuration_attribute):
+    def __init__(self, setup_class, configuration_attribute):
+        self.__setup_class = setup_class
         self.__configuration_attribute = configuration_attribute
         self.__value = None
         self.__override_value = None
@@ -73,31 +74,37 @@ class SetupAttribute:
     def reset_override_value(self):
         self.__override_value = None
         
-    def has_connected_setup_attributes(self, setup_class, connected_setup_classes):
-        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes(setup_class, connected_setup_classes)
+    def has_connected_setup_attributes(self, ):
+        connected_setup_classes = self.__setup_class.get_input_classes()
+        
+        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes()
         
         return len(internal_connected_setup_attributes) > 0 or len(external_connected_setup_attributes) > 0
         
-    def get_connected_setup_attributes(self, setup_class, connected_setup_classes):
+    def get_connected_setup_attributes(self):
+        connected_setup_classes = self.__setup_class.get_input_classes()
+        
         # Internal connections
-        internal_connected_setup_attributes = self.__configuration_attribute.get_connected_setup_attributes(setup_class, setup_class)
+        internal_connected_setup_attributes = self.__configuration_attribute.get_connected_setup_attributes(self.__setup_class, self.__setup_class)
         
         # External connections
         external_connected_setup_attributes = set()
         
         for connected_setup_class in connected_setup_classes:
-            external_connected_setup_attributes |= self.__configuration_attribute.get_connected_setup_attributes(connected_setup_class, setup_class)
+            external_connected_setup_attributes |= self.__configuration_attribute.get_connected_setup_attributes(connected_setup_class, self.__setup_class)
                 
         return internal_connected_setup_attributes, external_connected_setup_attributes
         
-    def calculate_value(self, setup_class, connected_setup_classes):
+    def calculate_value(self):
+        connected_setup_classes = self.__setup_class.get_input_classes()
+        
         if self.__value != None:
             return
             
-        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes(setup_class, connected_setup_classes)
+        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes()
         
         for internal_connected_setup_attribute in internal_connected_setup_attributes:
-            internal_connected_setup_attribute.calculate_value(setup_class, connected_setup_classes)
+            internal_connected_setup_attribute.calculate_value(self.__setup_class, connected_setup_classes)
             
         for connected_setup_class in connected_setup_classes:
             connected_setup_class.calculate_values()

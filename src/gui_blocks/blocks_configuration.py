@@ -1,18 +1,17 @@
-from blocks_general import GUIModelingBlock
+from blocks_general import GUIModelingBlock, GUIClass
 from blocks_buttons import GUIAddAttributeButton
-from calculations_configuration import ConfigurationClass
 from options import OptionsConfigurationClass, OptionsConfigurationAttribute, OptionsCalculationInput
 from helper_functions import delete_all
 from config import *
 
-class GUIConfigurationClass(GUIModelingBlock):
-    def __init__(self, model, view, x, y):
-        self.__configuration_class = ConfigurationClass("New class")
-        super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, CLASS_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+class GUIConfigurationClass(GUIClass):
+    def __init__(self, model, view, configuration_class, x, y, linked_group_number=None):
+        self.__configuration_class = configuration_class
+        super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, True, linked_group_number)
         self.__configuration_attributes_gui = []
         
         self.__setup_classes_gui = []
-        self.__to_setup_buttons = []
+        self.__to_setup_buttons = {} # Add to setup button per view
         
         self.__add_button = GUIAddAttributeButton(model, view, x+CLASS_WIDTH//2, y+CLASS_HEIGHT, self)
         self.add_attached_block(self.__add_button)
@@ -20,15 +19,18 @@ class GUIConfigurationClass(GUIModelingBlock):
         # self.snap_to_grid()
         
     def right_pressed(self, event):
-        OptionsConfigurationClass(self.get_model().get_root(), self)
+        OptionsConfigurationClass(self.get_model(), self, self.get_model().get_configuration_views())
         
     def get_configuration_class(self):
         return self.__configuration_class
         
-    def create_attribute(self):
+    def create_attribute(self, *, configuration_attribute=None):
+        if configuration_attribute == None:
+            configuration_attribute = self.__configuration_class.create_attribute("New Attribute")
+            
         height_offset = CLASS_HEIGHT + len(self.__configuration_attributes_gui) * ATTRIBUTE_HEIGHT
         
-        configuration_attribute_gui = GUIConfigurationAttribute(self.get_model(), self.get_view(), self, self.get_x(), self.get_y()+height_offset)
+        configuration_attribute_gui = GUIConfigurationAttribute(self.get_model(), self.get_view(), configuration_attribute, self, self.get_x(), self.get_y()+height_offset)
         
         self.__configuration_attributes_gui.append(configuration_attribute_gui)
         self.add_attached_block(configuration_attribute_gui)
@@ -41,26 +43,26 @@ class GUIConfigurationClass(GUIModelingBlock):
     def get_configuration_attributes_gui(self):
         return self.__configuration_attributes_gui
         
+    def remove_configuration_attribute_gui(self, configuration_attribute_gui_to_remove):
+        index_first_move_up = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_remove)
+        self.__configuration_attributes_gui.remove(configuration_attribute_gui_to_remove)
+        
+        for configuration_attribute_gui in self.__configuration_attributes_gui[index_first_move_up:]:
+            configuration_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
+            
+        self.__add_button.move_block(0, -ATTRIBUTE_HEIGHT)
+        
     def add_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.append(setup_class_gui)
         
     def remove_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.remove(setup_class_gui)
         
-    def remove_configuration_attribute_gui(self, configuration_attribute_gui_to_remove):
-        configuration_attribute_index = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_remove)
-        self.__configuration_attributes_gui.remove(configuration_attribute_gui_to_remove)
+    def add_to_setup_button(self, view, to_setup_button):
+        self.__to_setup_buttons[view] = to_setup_button
         
-        for configuration_attribute_gui in self.__configuration_attributes_gui[configuration_attribute_index:]:
-            configuration_attribute_gui.move_block(0, -1)
-            
-        self.__add_button.move_block(0, -1)
-        
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.remove_setup_attribute_gui_by_index(configuration_attribute_index)
-        
-    def add_to_setup_button(self, to_setup_button):
-        self.__to_setup_buttons.append(to_setup_button)
+    def remove_to_setup_button(self, view):
+        self.__to_setup_buttons.pop(view)
         
     def get_name(self):
         return self.__configuration_class.get_name()
@@ -69,21 +71,40 @@ class GUIConfigurationClass(GUIModelingBlock):
         self.__configuration_class.set_name(name)
         self.set_text(name)
         
+        if self.get_linked_group_number() != None:
+            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self.get_linked_group_number()):
+                if linked_configuration_class_gui is not self:
+                    linked_configuration_class_gui.set_text(name)
+        
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.update_text()
             
-        for add_to_setup_button in self.__to_setup_buttons:
+        for add_to_setup_button in self.__to_setup_buttons.values():
             add_to_setup_button.set_text(name)
             
+    def copy(self, view_to_copy_to, x, y):
+        configuration_class_gui = GUIConfigurationClass(self.get_model(), view_to_copy_to, self.__configuration_class, x, y, self.get_linked_group_number())
+        
+        # Create configuration attributes
+        for configuration_attribute_gui in self.__configuration_attributes_gui:
+            configuration_class_gui.create_attribute(configuration_attribute=configuration_attribute_gui.get_configuration_attribute())
+            
+        for setup_class_gui in self.__setup_classes_gui:
+            configuration_class_gui.add_setup_class_gui(setup_class_gui)
+            
+        for add_to_setup_button in self.__to_setup_buttons.values():
+            configuration_class_gui.add_to_setup_button(add_to_setup_button)
+            
+        return configuration_class_gui
+        
     def delete(self):
         super().delete()
-        
-        self.get_model().remove_add_to_setup_buttons(self.__to_setup_buttons)
-        
-        delete_all(self.__setup_classes_gui)
-        delete_all(self.__configuration_attributes_gui)
-        
         self.get_view().remove_configuration_class_gui(self)
+        
+        if self.get_linked_group_number() == None:
+            self.get_model().remove_add_to_setup_buttons(list(self.__to_setup_buttons.values()))
+            
+            delete_all(self.__setup_classes_gui)
         
     def save_state(self):
         saved_states = super().save_state() | {"name": self.get_name(), "configuration_class_gui": str(self), "configuration_attributes_gui": []}
@@ -94,16 +115,17 @@ class GUIConfigurationClass(GUIModelingBlock):
         return saved_states
         
 class GUIConfigurationAttribute(GUIModelingBlock):
-    def __init__(self, model, view, configuration_class_gui, x, y):
-        self.__configuration_attribute = configuration_class_gui.get_configuration_class().create_attribute("New Attribute")
+    def __init__(self, model, view, configuration_attribute, configuration_class_gui, x, y):
+        self.__configuration_attribute = configuration_attribute
         self.__configuration_class_gui = configuration_class_gui
         
         super().__init__(model, view, self.__configuration_attribute.get_name(), x, y, ATTRIBUTE_WIDTH, ATTRIBUTE_HEIGHT, ATTRIBUTE_COLOR, bind_left=MOUSE_PRESS, bind_right=MOUSE_PRESS)
         self.__configuration_input = None
         self.__connections = []
-        self.__is_hidden = False
         
         self.__setup_attributes_gui = []
+        
+        self.update_text()
         
     def left_pressed(self, event):
         held_connection = self.get_view().get_held_connection()
@@ -129,6 +151,20 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
         for connection in self.__connections:
             connection.scale(last_length_unit)
+            
+    def get_linked_configuration_attributes_gui(self):
+        linked_configuration_attributes_gui = []
+        linked_group_number = self.__configuration_class_gui.get_linked_group_number()
+        
+        if linked_group_number != None:
+            index_configuration_attribute_gui = self.__configuration_class_gui.get_configuration_attributes_gui().index(self)
+            
+            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(linked_group_number):
+                if linked_configuration_class_gui is not self:
+                    linked_configuration_attribute_gui = linked_configuration_class_gui.get_configuration_attributes_gui()[index_configuration_attribute_gui]
+                    linked_configuration_attributes_gui.append(linked_configuration_attribute_gui)
+                    
+        return linked_configuration_attributes_gui
         
     def get_configuration_attribute(self):
         return self.__configuration_attribute
@@ -160,10 +196,10 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__connections.remove(connection)
         
     def is_hidden(self):
-        return self.__is_hidden
+        return self.__configuration_attribute.is_hidden()
         
     def set_hidden(self, is_hidden):
-        self.__is_hidden = is_hidden
+        self.__configuration_attribute.set_hidden(is_hidden)
         
     def add_setup_attribute_gui(self, setup_attribute_gui):
         self.__setup_attributes_gui.append(setup_attribute_gui)
@@ -178,9 +214,15 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_attribute.set_name(name)
         self.update_text()
         
+        for linked_configuration_attribute_gui in self.get_linked_configuration_attributes_gui():
+            linked_configuration_attribute_gui.update_text()
+            
     def set_value_type(self, symbol_value_type):
         self.__configuration_attribute.set_symbol_value_type(symbol_value_type)
         self.update_text()
+        
+        for linked_configuration_attribute_gui in self.get_linked_configuration_attributes_gui():
+            linked_configuration_attribute_gui.update_text()
             
     def update_text(self):
         if self.__configuration_attribute.get_symbol_value_type() != None:
@@ -198,7 +240,10 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
         delete_all(self.__connections)
         
-        self.__configuration_class_gui.remove_configuration_attribute_gui(self)
+        # Only the attribute is deleted, not the class itself
+        if not self.__configuration_class_gui.is_deleted():
+            self.__configuration_class_gui.remove_configuration_attribute_gui(self)
+            delete_all(self.__setup_attributes_gui)
         
     def save_state(self):
         return {"configuration_attribute_gui": str(self), "name": self.get_name(), "symbol_value_type": self.__configuration_attribute.get_symbol_value_type(), "is_hidden": self.is_hidden()}

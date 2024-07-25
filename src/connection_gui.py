@@ -435,6 +435,9 @@ class GUIConnectionWithBlocks(GUIConnection):
     def has_options(self):
         return False
         
+    def is_deleted(self):
+        return self.__is_deleted()
+        
     def delete(self):
         if not self.__is_deleted:
             self.__is_deleted = True

@@ -1,6 +1,7 @@
 import tkinter as tk
 import pickle
 import os
+from calculations_configuration import ConfigurationClass
 from blocks_configuration import GUIConfigurationClass, GUIConfigurationInput
 from blocks_setup import GUISetupClass, GUIConnectionTriangle
 from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton, GUIRunScriptButton
@@ -24,7 +25,8 @@ class View(tk.Frame):
         self.__grid_offset = (0, 0) # How much items are offset from the grid in the range [0, 1) due to panning/zooming
         
         self.__canvas = tk.Canvas(self, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg=BACKGROUND_COLOR)
-        self.__add_change_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_SETUP_START_POSITION[1])
+        self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_CONFIGURATION_START_POSITION[1], True)
+        self.__add_change_setup_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_SETUP_START_POSITION[1], False)
         self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
         
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
@@ -143,19 +145,20 @@ class View(tk.Frame):
     def add_change_view_button(self, x, y, view_to_change_to, is_setup_view):
         if not is_setup_view:
             self.__configuration_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+            self.__add_change_configuration_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
+            
         else:
             self.__setup_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
-        
-        if is_setup_view:
-            self.move_add_change_view_button(False)
+            self.__add_change_setup_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
             
     def remove_change_view_button(self, view_to_remove):
         if view_to_remove in self.__configuration_change_view_buttons:
             change_view_buttons = self.__configuration_change_view_buttons
+            self.__add_change_configuration_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
             
         elif view_to_remove in self.__setup_change_view_buttons:
             change_view_buttons = self.__setup_change_view_buttons
-            self.move_add_change_view_button(True)
+            self.__add_change_setup_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
             
         found_deleted = False
         
@@ -166,7 +169,7 @@ class View(tk.Frame):
                     
             # Move up all buttons for changing view
             elif found_deleted:
-                change_view_button.move_block(0, -1)
+                change_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
                 
         # Remove the button to change view
         change_view_buttons[view_to_remove].delete()
@@ -183,12 +186,6 @@ class View(tk.Frame):
     def move_items(self, event):
         if self.__held_connection != None:
             self.__held_connection.create_new_lines((event.x, event.y))
-            
-    def move_add_change_view_button(self, move_up):
-        if move_up:
-            self.__add_change_view_button.move_block(0, -1)
-        else:
-            self.__add_change_view_button.move_block(0, 1)
             
     def get_held_connection(self):
         return self.__held_connection
@@ -229,17 +226,25 @@ class View(tk.Frame):
 class ConfigurationView(View):
     def __init__(self, model, name):
         super().__init__(model, name)
-        self.__model = model
         self.__configuration_classes_gui = []
         self.__configuration_inputs_gui = []
         
         self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, 0, 0)
         self.__add_input_button = GUIAddInputButton(model, self, 0, CHANGE_VIEW_HEIGHT)
         
-    def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
-        configuration_class_gui = GUIConfigurationClass(self.__model, self, x, y)
+    def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], configuration_class=None, linked_group_number=None):
+        if configuration_class == None:
+            configuration_class = ConfigurationClass("New class")
+            
+        configuration_class_gui = GUIConfigurationClass(self.get_model(), self, configuration_class, x, y, linked_group_number)
         
-        self.__model.create_add_to_setup_buttons(len(self.__configuration_classes_gui), configuration_class_gui) # Add buttons to add the setup class version
+        self.get_model().create_add_to_setup_buttons(len(self.__configuration_classes_gui), configuration_class_gui) # Add buttons to add the setup class version
+        self.__configuration_classes_gui.append(configuration_class_gui)
+        
+        return configuration_class_gui
+        
+    def create_configuration_class_gui_copy(self, configuration_class_gui_to_copy, x, y):
+        configuration_class_gui = configuration_class_gui_to_copy.copy(self, x, y)
         self.__configuration_classes_gui.append(configuration_class_gui)
         
         return configuration_class_gui
@@ -251,7 +256,7 @@ class ConfigurationView(View):
         return self.__configuration_classes_gui
         
     def create_configuration_input_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
-        configuration_input_gui = GUIConfigurationInput(self.__model, self, x, y)
+        configuration_input_gui = GUIConfigurationInput(self.get_model(), self, x, y)
         self.__configuration_inputs_gui.append(configuration_input_gui)
         
         return configuration_input_gui
@@ -282,7 +287,7 @@ class ConfigurationView(View):
             
         return file_path
         
-    def restore_save(self, file_path):
+    def restore_save(self, file_path, linked_groups_per_number):
         if not SHOULD_RESTORE_SAVE:
             return {}
             
@@ -297,9 +302,18 @@ class ConfigurationView(View):
                 
                 # Restore configuration classes
                 for saved_states_configuration_class_gui in saved_states_configuration_classes_gui:
-                    # Create configuration class
-                    configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], y=saved_states_configuration_class_gui["y"])
+                    linked_group_number = saved_states_configuration_class_gui["linked_group_number"]
                     
+                    # Should bind to already existing configuration class
+                    if linked_group_number != None and linked_group_number in linked_groups_per_number:
+                        configuration_class_gui = self.get_model().create_linked_configuration_class_gui(linked_groups_per_number[linked_group_number][0], self, x=saved_states_configuration_class_gui["x"], y=saved_states_configuration_class_gui["y"])
+                        
+                    else:
+                        configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], y=saved_states_configuration_class_gui["y"], linked_group_number=linked_group_number)
+                        
+                        if linked_group_number != None:
+                            linked_groups_per_number[linked_group_number] = [configuration_class_gui]
+                            
                     # Set configuration class data
                     configuration_class_gui.set_name(saved_states_configuration_class_gui["name"])
                     
@@ -331,7 +345,7 @@ class ConfigurationView(View):
                     
                     # Restore configuration connections
                     for saved_states_connection in saved_states_configuration_input_gui["connections"]:
-                        connection = GUIConnection(self.__model, \
+                        connection = GUIConnection(self.get_model(), \
                                 self, mapping_configuration_attribute_gui[saved_states_connection["start_block"]], \
                                 saved_states_connection["start_direction"], \
                                 end_block=configuration_input_gui, \
@@ -354,7 +368,6 @@ class ConfigurationView(View):
 class SetupView(View):
     def __init__(self, model, name):
         super().__init__(model, name)
-        self.__model = model
         self.__setup_classes_gui = []
         self.__connections_with_blocks = []
         self.__to_setup_buttons = []
@@ -376,7 +389,7 @@ class SetupView(View):
                 self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
                 
     def create_connection_with_blocks(self):
-        connection_with_blocks = GUIConnectionWithBlocks(self.__model, self)
+        connection_with_blocks = GUIConnectionWithBlocks(self.get_model(), self)
         self.__connections_with_blocks.append(connection_with_blocks)
         
         return connection_with_blocks
@@ -385,7 +398,7 @@ class SetupView(View):
         if setup_class == None:
             setup_class = configuration_class_gui.get_configuration_class().create_setup_version()
             
-        setup_class_gui = GUISetupClass(self.__model, self, setup_class, configuration_class_gui, x, y, linked_group_number)
+        setup_class_gui = GUISetupClass(self.get_model(), self, setup_class, configuration_class_gui, x, y, linked_group_number)
         self.__setup_classes_gui.append(setup_class_gui)
         
         return setup_class_gui
@@ -445,7 +458,7 @@ class SetupView(View):
         self.__connections_with_blocks.remove(connection)
         
     def create_add_to_setup_button(self, current_number_of_buttons, configuration_class_gui):
-        self.__to_setup_buttons.append(GUIAddToSetupButton(self.__model, self, 0, current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
+        self.__to_setup_buttons.append(GUIAddToSetupButton(self.get_model(), self, 0, current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
         
     def remove_add_to_setup_button(self, to_setup_button):
         to_setup_button.delete()
@@ -454,7 +467,7 @@ class SetupView(View):
         self.__to_setup_buttons.remove(to_setup_button)
         
         for to_setup_button_to_move in self.__to_setup_buttons[button_index:]:
-            to_setup_button_to_move.move_block(0, -1)
+            to_setup_button_to_move.move_block(0, -ADD_TO_SETUP_HEIGHT)
             
     def get_static_items(self):
         return [self.__add_connection_button, self.__calculate_value_button] + self.__to_setup_buttons
@@ -485,21 +498,17 @@ class SetupView(View):
                     linked_group_number = saved_states_setup_class_gui["linked_group_number"]
                     
                     configuration_class_gui = mapping_configuration_class_gui[saved_states_setup_class_gui["configuration_class_gui"]]
-                    setup_class = None
                     
                     # Should bind to already existing setup class
                     if linked_group_number != None and linked_group_number in linked_groups_per_number:
-                        setup_class = linked_groups_per_number[linked_group_number][0].get_setup_class()
-                    
-                    setup_class_gui = self.create_setup_class_gui(configuration_class_gui, x=saved_states_setup_class_gui["x"], y=saved_states_setup_class_gui["y"], setup_class=setup_class, linked_group_number=linked_group_number)
-                    
-                    # Add to group if there was one
-                    if linked_group_number != None:
-                        if linked_group_number not in linked_groups_per_number:
+                        setup_class_gui = self.get_model().create_linked_setup_class_gui(linked_groups_per_number[linked_group_number][0], configuration_class_gui, self, x=saved_states_setup_class_gui["x"], y=saved_states_setup_class_gui["y"])
+                        
+                    else:
+                        setup_class_gui = self.create_setup_class_gui(configuration_class_gui, x=saved_states_setup_class_gui["x"], y=saved_states_setup_class_gui["y"], linked_group_number=linked_group_number)
+                        
+                        if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [setup_class_gui]
-                        else:
-                            linked_groups_per_number[linked_group_number].append(setup_class_gui)
-                            
+                        
                     # Set setup class data
                     setup_class_gui.set_name(saved_states_setup_class_gui["name"])
                     
@@ -518,6 +527,10 @@ class SetupView(View):
             # print("Creating new setup view")
             
     def delete(self):
+        # Remove the stored references to the buttons in the configuration class through the setup class
+        for setup_class_gui in self.__setup_classes_gui:
+            setup_class_gui.remove_to_setup_button(self)
+            
         delete_all(self.__setup_classes_gui)
         delete_all(self.__connections_with_blocks)
         

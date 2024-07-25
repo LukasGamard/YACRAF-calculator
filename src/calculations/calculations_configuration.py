@@ -34,6 +34,7 @@ class ConfigurationAttribute:
         self.__symbol_value_type = symbol_value_type
         self.__symbol_calculation_type = symbol_calculation_type
         self.__input_attributes = {}
+        self.__is_hidden = False
         
     def get_name(self):
         return self.__name
@@ -61,6 +62,12 @@ class ConfigurationAttribute:
         
     def remove_input_attribute(self, input_attribute):
         self.__input_attributes.pop(input_attribute)
+        
+    def is_hidden(self):
+        return self.__is_hidden
+        
+    def set_hidden(self, is_hidden):
+        self.__is_hidden = is_hidden
         
     def get_connected_setup_attributes(self, connected_setup_class, current_setup_class):
         filtered_connected_setup_attributes = set()

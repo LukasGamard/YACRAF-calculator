@@ -50,7 +50,7 @@ def extract_input_values(input_attributes):
                     return None
                     
                 if len(current_input_values) != 3:
-                    print(f"Error: Not three values in {input_values} for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
+                    print(f"Error: Not three values in {input_value} for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
                     return None
                     
                 input_values.append(np.array(current_input_values))

@@ -29,6 +29,8 @@ class GUIBlock:
             if bind_right == MOUSE_PRESS:
                 view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
+        self.__is_deleted = False
+                
     def left_pressed(self, event):
         # Pick up block
         if self.__draggable:
@@ -120,7 +122,12 @@ class GUIBlock:
             
         return direction
         
+    def is_deleted(self):
+        return self.__is_deleted
+        
     def delete(self):
+        self.__is_deleted = True
+        
         for pressable_items in self.__pressable_items:
             self.get_canvas().delete(pressable_items)
             
@@ -206,9 +213,57 @@ class GUIModelingBlock(GUIBlock):
         super().delete()
         
         delete_all(self.__attached_blocks)
+            
+class GUIClass(GUIModelingBlock):
+    def __init__(self, model, view, text, x, y, width, height, is_configuration_class, linked_group_number=None):
+        super().__init__(model, view, text, x, y, width, height, CLASS_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+        self.__is_configuration_class = is_configuration_class
+        self.__linked_group_number = linked_group_number
+        self.__linked_group_indicator = None
         
-        if self.__entry_value != None:
-            self.get_view().get_canvas().delete(self.__entry_value_window)
+        if self.__linked_group_number != None:
+            self.update_linked_group_indicator()
+        
+    def move_block(self, move_x, move_y):
+        super().move_block(move_x, move_y)
+        
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.move(move_x, move_y)
+            
+    def scale(self, last_length_unit):
+        super().scale(last_length_unit)
+        
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.scale(last_length_unit)
+            
+    def get_linked_group_number(self):
+        return self.__linked_group_number
+        
+    def set_linked_group_number(self, linked_group_number):
+        self.__linked_group_number = linked_group_number
+        self.update_linked_group_indicator()
+                
+    def update_linked_group_indicator(self):
+        # Remove any existing indicator
+        if self.__linked_group_indicator != None:
+            self.__linked_group_indicator.remove()
+                
+        # Add or update indicator
+        if self.__linked_group_number != None:
+            if self.__linked_group_indicator == None:
+                self.__linked_group_indicator = NumberIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
+            else:
+                self.__linked_group_indicator.create(self.__linked_group_number)
+                
+    def delete(self):
+        super().delete()
+        
+        if self.__linked_group_number != None:
+            self.__linked_group_indicator.remove()
+            self.get_model().remove_class_gui_from_linked_group(self, self.__is_configuration_class)
+            
+    def save_state(self):
+        return super().save_state() | {"linked_group_number": self.__linked_group_number}
             
 class GUIConnectionCorner(GUIBlock):
     def __init__(self, model, view, connection, x, y):

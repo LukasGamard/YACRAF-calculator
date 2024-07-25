@@ -38,11 +38,15 @@ class GUIAddAttributeButton(GUIBlockButton):
         self.__configuration_class_gui.create_attribute()
         
 class GUIAddChangeViewButton(GUIBlockButton):
-    def __init__(self, model, view, x, y):
+    def __init__(self, model, view, x, y, is_configuration_view):
         super().__init__(model, view, "+", x, y, ADD_CHANGE_VIEW_WIDTH, ADD_CHANGE_VIEW_HEIGHT, ADD_CHANGE_VIEW_COLOR)
+        self.__is_configuration_view = is_configuration_view
         
     def left_pressed(self, event):
-        self.get_model().create_view(False, "New setup")
+        if self.__is_configuration_view:
+            self.get_model().create_view(True, "New configuration")
+        else:
+            self.get_model().create_view(False, "New setup")
         
 class GUISaveButton(GUIBlockButton):
     def __init__(self, model, view, x, y):
@@ -79,7 +83,7 @@ class GUIAddToSetupButton(GUIBlockButton):
         super().__init__(model, view, f"Add {configuration_class_gui.get_name()}", x, y, ADD_TO_SETUP_WIDTH, ADD_TO_SETUP_HEIGHT, ADD_TO_SETUP_COLOR)
         self.__configuration_class_gui = configuration_class_gui
         
-        configuration_class_gui.add_to_setup_button(self)
+        configuration_class_gui.add_to_setup_button(view, self)
         
     def left_pressed(self, event):
         self.get_view().create_setup_class_gui(self.__configuration_class_gui)
