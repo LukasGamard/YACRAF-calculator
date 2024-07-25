@@ -128,42 +128,31 @@ class GUIBlock:
         return {"x": self.__x, "y": self.__y}
         
 class GUIModelingBlock(GUIBlock):
-    def __init__(self, model, view, text, x, y, width, height, fill_color, *, bind_left=None, bind_right=None, has_value=False):
+    def __init__(self, model, view, text, x, y, width, height, fill_color, *, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None):
         canvas = view.get_canvas()
         actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
         actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
         
         self.__rect = canvas.create_rectangle(actual_rect_x1, actual_rect_y1, actual_rect_x2, actual_rect_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=fill_color)
-        self.__entry_value = None
-        self.__entry_value_window = None
         
-        if has_value:
-            actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, x+width/4, y+height/2)
-            actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
+        if label_text_x == None:
+            label_text_x = x + width / 2
             
-            self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT)
-            self.__label_value = canvas.create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
-            
-            self.__entry_text = tk.StringVar()
-            self.__entry_text.set("Value")
-        else:
-            actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, x+width/2, y+height/2)
-            self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT)
-            
+        actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, label_text_x, y+height/2)
+        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT)
+        self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
+        
         pressable_items = [self.__rect, self.__label_text]
         
-        if has_value:
-            pressable_items.append(self.__label_value)
+        if additional_pressable_items != None:
+            for additional_pressable_item in additional_pressable_items:
+                canvas.tag_raise(additional_pressable_item)
+                
+            pressable_items += additional_pressable_items
             
         super().__init__(model, view, pressable_items, x, y, width, height, bind_left=bind_left, bind_right=bind_right)
         self.__text = text
-        self.__has_value = has_value
         self.__attached_blocks = []
-        
-        if has_value:
-            self.enable_value_entry()
-            
-        self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -172,29 +161,11 @@ class GUIModelingBlock(GUIBlock):
             if block != self:
                 block.move_block(move_x, move_y)
                 
-        if self.__has_value:
-            if self.__entry_value != None:
-                actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.get_view(), move_x, move_y)
-                new_actual_x, new_actual_y = self.get_view().get_canvas().coords(self.__entry_value_window)
-                new_actual_x += actual_move_x
-                new_actual_y += actual_move_y
-                
-                self.get_view().get_canvas().coords(self.__entry_value_window, new_actual_x, new_actual_y)
-                
     def scale(self, last_length_unit):
         super().scale(last_length_unit)
         
         for attached_block in self.__attached_blocks:
             attached_block.scale(last_length_unit)
-            
-        if self.__entry_value != None:
-            font_size = self.get_view().get_font_size()
-            actual_width, actual_height = self.get_entry_size()
-            actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), self.get_view().get_canvas().coords(self.__entry_value_window), last_length_unit)
-            
-            self.__entry_value.config(font=(FONT[0], font_size))
-            self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
-            self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
     def is_adjacent(self, coordinates):
         for coordinate in coordinates:
@@ -219,52 +190,8 @@ class GUIModelingBlock(GUIBlock):
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text)
         
-    def has_input_entry(self):
-        return self.__entry_value != None
-        
-    def enable_value_label(self):
-        if self.__entry_value != None:
-            self.get_view().get_canvas().delete(self.__entry_value_window)
-            self.__entry_value_window = None
-            self.__entry_value = None
-            
-    def enable_value_entry(self):
-        if self.__entry_value == None:
-            actual_width, actual_height = self.get_entry_size()
-            actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x()+self.get_width()/2, self.get_y())
-            
-            # Create Entry and Window to put Entry in to allow it be put inside the Canvas
-            self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
-            self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), window=self.__entry_value, anchor="nw", width=actual_width, height=actual_height)
-            
-    def get_entry_size(self):
-        width, height = convert_grid_coordinate_to_actual(self.get_view(), self.get_width()/2, self.get_height())
-        width -= OUTLINE_WIDTH
-        height -= OUTLINE_WIDTH * 2
-        
-        return width, height
-        
-    def get_entered_value(self):
-        if self.__has_value and self.__entry_value != None:
-            return self.__entry_text.get()
-            
-        return None
-        
-    def set_displayed_value(self, value, color=None):
-        if color == None:
-            color = self.__default_text_color
-            
-        if value == None:
-            value = "ERROR"
-            
-        # Set value in Label
-        if self.__entry_value == None:
-            self.get_view().get_canvas().itemconfig(self.__label_value, text=str(value), fill=color)
-            
-        # Set value in Entry
-        else:
-            self.__entry_value.delete(0, "end")
-            self.__entry_value.insert(0, str(value))
+    def get_default_text_color(self):
+        return self.__default_text_color
             
     def add_attached_block(self, block):
         self.__attached_blocks.append(block)

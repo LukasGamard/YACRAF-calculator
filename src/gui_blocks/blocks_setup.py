@@ -1,3 +1,4 @@
+import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates
 from blocks_general import GUIBlock, GUIModelingBlock, NumberIndicator
@@ -128,7 +129,7 @@ class GUISetupClass(GUIModelingBlock):
     def set_linked_group_number(self, linked_group_number):
         self.__linked_group_number = linked_group_number
         self.update_linked_group_indicator()
-        
+                
     def update_linked_group_indicator(self):
         # Remove any existing indicator
         if self.__linked_group_indicator != None:
@@ -156,9 +157,13 @@ class GUISetupClass(GUIModelingBlock):
             
         self.__script_marker_indicators = []
         
-    def update_value_input_types(self):
+    def update_value_input_types(self, check_linked=True):
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
+            
+        if self.__linked_group_number != None and check_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self.__linked_group_number):
+                linked_setup_class_gui.update_value_input_types(False)
             
     def calculate_values(self):
         self.__setup_class.calculate_values()
@@ -209,26 +214,104 @@ class GUISetupAttribute(GUIModelingBlock):
         self.__setup_attribute = setup_attribute
         self.__configuration_attribute_gui = configuration_attribute_gui
         
-        super().__init__(model, view, configuration_attribute_gui.get_text(), x, y, ATTRIBUTE_WIDTH*SETUP_WIDTH_MULTIPLIER, ATTRIBUTE_HEIGHT, ATTRIBUTE_COLOR, has_value=True)
+        width = ATTRIBUTE_WIDTH * SETUP_WIDTH_MULTIPLIER
+        height = ATTRIBUTE_HEIGHT
+        
+        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
+        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
+        
+        super().__init__(model, view, configuration_attribute_gui.get_text(), x, y, width, height, ATTRIBUTE_COLOR, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
+        self.__entry_value = None
+        self.__entry_value_window = None
+        
+        self.__entry_text = tk.StringVar()
+        self.__entry_text.set("Value")
         
         configuration_attribute_gui.add_setup_attribute_gui(self)
         # self.add_attached_block(self.__value_distribution)
         
+        self.switch_to_value_entry()
+        
+    def move_block(self, move_x, move_y):
+        super().move_block(move_x, move_y)
+        
+        if self.__entry_value != None:
+            actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.get_view(), move_x, move_y)
+            new_actual_x, new_actual_y = self.get_view().get_canvas().coords(self.__entry_value_window)
+            new_actual_x += actual_move_x
+            new_actual_y += actual_move_y
+            
+            self.get_view().get_canvas().coords(self.__entry_value_window, new_actual_x, new_actual_y)
+            
+    def scale(self, last_length_unit):
+        super().scale(last_length_unit)
+        
+        if self.__entry_value != None:
+            font_size = self.get_view().get_font_size()
+            actual_width, actual_height = self.get_entry_size()
+            actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), self.get_view().get_canvas().coords(self.__entry_value_window), last_length_unit)
+            
+            self.__entry_value.config(font=(FONT[0], font_size))
+            self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
+            self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
+            
     def update_value_input_type(self, setup_class, connected_setup_classes):
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes(setup_class, connected_setup_classes)
         
         if has_currently_connected_inputs:
-            self.enable_value_label()
+            self.switch_to_value_label()
         else:
-            self.enable_value_entry()
+            self.switch_to_value_entry()
             
+    def switch_to_value_label(self):
+        if self.__entry_value != None:
+            self.get_view().get_canvas().delete(self.__entry_value_window)
+            self.__entry_value_window = None
+            self.__entry_value = None
+            
+            self.set_displayed_value("-")
+            
+    def switch_to_value_entry(self):
+        if self.__entry_value == None:
+            actual_width, actual_height = self.get_entry_size()
+            actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x()+self.get_width()/2, self.get_y())
+            
+            # Create Entry and Window to put Entry in to allow it be put inside the Canvas
+            self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
+            self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), window=self.__entry_value, anchor="nw", width=actual_width, height=actual_height)
+            
+            self.set_displayed_value("Value")
+            
+    def get_entry_size(self):
+        width, height = convert_grid_coordinate_to_actual(self.get_view(), self.get_width()/2, self.get_height())
+        width -= OUTLINE_WIDTH
+        height -= OUTLINE_WIDTH * 2
+        
+        return width, height
+        
     def add_entered_value_to_attribute(self):
-        if self.has_input_entry():
-            self.__setup_attribute.set_value(self.get_entered_value())
+        if self.__entry_value != None:
+            self.__setup_attribute.set_value(self.__entry_text.get())
+            
+    def set_displayed_value(self, value, color=None):
+        if color == None:
+            color = self.get_default_text_color()
+            
+        if value == None:
+            value = "ERROR"
+            
+        # Set value in Label
+        if self.__entry_value == None:
+            self.get_view().get_canvas().itemconfig(self.__label_value, text=str(value), fill=color)
+            
+        # Set value in Entry
+        else:
+            self.__entry_value.delete(0, "end")
+            self.__entry_value.insert(0, str(value))
             
     def update_value(self):
         if self.__setup_attribute.has_override_value():
-            self.enable_value_label()
+            self.switch_to_value_label()
             self.set_displayed_value(self.__setup_attribute.get_override_value(), "red")
         else:
             self.set_displayed_value(self.__setup_attribute.get_value())

@@ -53,6 +53,9 @@ class Model:
         for to_setup_button in to_setup_buttons:
             to_setup_button.get_view().remove_add_to_setup_button(to_setup_button)
             
+    def get_linked_setup_classes_gui(self, linked_group_number):
+        return self.__linked_groups_per_number[linked_group_number]
+            
     def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_number_to_copy_to):
         view_to_copy_to = self.__setup_views[int(view_number_to_copy_to)]
         
