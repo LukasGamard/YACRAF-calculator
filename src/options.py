@@ -18,7 +18,7 @@ class Options:
     def get_window(self):
         return self.__window
         
-    def add_entry(self, text):
+    def add_name_entry(self, text):
         self.__entry_name_text = tk.StringVar()
         self.__entry_name_text.set(self.__to_configure.get_name())
         
@@ -33,12 +33,22 @@ class Options:
         label = tk.Label(self.__window, text=text, font=FONT, bg=BACKGROUND_COLOR)
         label.grid(row=row, column=column, columnspan=columnspan, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING)
         
+    def add_swap_buttons(self, row, column, columnspan):
+        move_up_button = tk.Button(self.__window, text="Move up", font=FONT, command=lambda: self.move(True))
+        move_up_button.grid(row=row, column=column, columnspan=columnspan, sticky=tk.W+tk.E)
+        
+        move_down_button = tk.Button(self.__window, text="Move down", font=FONT, command=lambda: self.move(False))
+        move_down_button.grid(row=row+1, column=column, columnspan=columnspan, sticky=tk.W+tk.E)
+        
     def add_delete_button(self, row, column, columnspan, to_delete):
         delete_button = tk.Button(self.__window, text="Delete", font=FONT, command=lambda: self.delete(to_delete))
         delete_button.grid(row=row, column=column, columnspan=columnspan, sticky=tk.W+tk.E)
         
     def update_name(self, *args):
         self.__to_configure.set_name(self.__entry_name_text.get())
+        
+    def move(self, up):
+        pass
         
     def delete(self, to_delete):
         if to_delete != None:
@@ -52,8 +62,12 @@ class OptionsView(Options):
         self.__model = model
         self.__view = view
         
-        self.add_entry("Name:")
-        self.add_delete_button(1, 0, 2, None)
+        self.add_name_entry("Name:")
+        self.add_swap_buttons(1, 0, 2)
+        self.add_delete_button(3, 0, 2, None)
+        
+    def move(self, up):
+        self.__model.swap_view_places(self.__view, up)
         
     def delete(self, to_delete):
         super().delete(to_delete)
@@ -65,7 +79,7 @@ class OptionsConfigurationClass(Options):
         self.__model = model
         self.__configuration_class_gui = configuration_class_gui
         
-        self.add_entry("Name:")
+        self.add_name_entry("Name:")
         
         self.add_label(1, 0, 2, "Add linked copy to setup view:")
         
@@ -81,53 +95,38 @@ class OptionsConfigurationClass(Options):
     def create_linked_configuration_class_gui(self, configuration_view):
         self.__model.create_linked_configuration_class_gui(self.__configuration_class_gui, configuration_view)
         
-class OptionsSetupClass(Options):
-    def __init__(self, model, setup_class_gui, configuration_class_gui, setup_views):
-        super().__init__(model.get_root(), setup_class_gui)
-        self.__model = model
-        self.__setup_class_gui = setup_class_gui
-        self.__configuration_class_gui = configuration_class_gui
-        
-        self.add_entry("Name:")
-        
-        self.add_label(1, 0, 2, "Add linked copy to setup view:")
-        
-        for i, setup_view in enumerate(setup_views):
-            link_button = tk.Button(self.get_window(), text=setup_view.get_name(), font=FONT, command=lambda setup_view=setup_view: self.create_linked_setup_class_gui(setup_view))
-            link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
-            
-        row_after_link_buttons = 2 + len(setup_views)
-        
-        self.add_label(row_after_link_buttons, 0, 2, "")
-        self.add_delete_button(row_after_link_buttons+1, 0, 2, setup_class_gui)
-        
-    def create_linked_setup_class_gui(self, setup_view):
-        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view)
-        
 class OptionsConfigurationAttribute(Options):
-    def __init__(self, root, configuration_attribute_gui):
+    def __init__(self, root, configuration_class_gui, configuration_attribute_gui):
         super().__init__(root, configuration_attribute_gui)
+        self.__configuration_class_gui = configuration_class_gui
         self.__configuration_attribute_gui = configuration_attribute_gui
         self.__value_type = tk.StringVar()
         self.__is_hidden = tk.BooleanVar()
         
-        self.add_entry("Name:")
+        self.__value_type.set(configuration_attribute_gui.get_configuration_attribute().get_symbol_value_type())
+        self.__is_hidden.set(configuration_attribute_gui.is_hidden())
         
-        self.add_label(1, 0, 2, "Type of value:")
+        self.add_name_entry("Name:")
+        self.add_swap_buttons(1, 0, 2)
+        
+        self.add_label(3, 0, 2, "Type of value:")
         
         for i, value_type_symbol_and_text in enumerate(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS):
             value_type_symbol, text = value_type_symbol_and_text
             
             radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__value_type, value=value_type_symbol, command=self.set_value_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_ATTRIBUTE_WIDTH, anchor="w")
-            radio_button.grid(row=2+i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
+            radio_button.grid(row=4+i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
-        row_after_radio_buttons = 2 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
+        row_after_radio_buttons = 4 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
         self.add_label(row_after_radio_buttons, 0, 2, "")
         
         self.__hidden_toggle = tk.Checkbutton(self.get_window(), text="Hide", font=FONT, variable=self.__is_hidden, command=self.set_is_hidden)
         self.__hidden_toggle.grid(row=row_after_radio_buttons+1, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
         
         self.add_delete_button(row_after_radio_buttons+2, 0, 2, configuration_attribute_gui)
+        
+    def move(self, up):
+        self.__configuration_class_gui.swap_attribute_places(self.__configuration_attribute_gui, up)
         
     def set_value_type(self):
         self.__configuration_attribute_gui.set_value_type(self.__value_type.get())
@@ -139,6 +138,8 @@ class OptionsCalculationInput(Options):
     def __init__(self, root, configuration_input):
         super().__init__(root, configuration_input)
         self.__calculation_type_choice = tk.StringVar()
+        
+        self.__calculation_type_choice.set(configuration_input.get_symbol_calculation_type())
         
         for i, config in enumerate(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS):
             calculation_symbol, text = config
@@ -153,6 +154,29 @@ class OptionsCalculationInput(Options):
         
     def set_calculation_type(self):
         self.get_to_configure().set_symbol_calculation_type(self.__calculation_type_choice.get())
+        
+class OptionsSetupClass(Options):
+    def __init__(self, model, setup_class_gui, configuration_class_gui, setup_views):
+        super().__init__(model.get_root(), setup_class_gui)
+        self.__model = model
+        self.__setup_class_gui = setup_class_gui
+        self.__configuration_class_gui = configuration_class_gui
+        
+        self.add_name_entry("Name:")
+        
+        self.add_label(1, 0, 2, "Add linked copy to setup view:")
+        
+        for i, setup_view in enumerate(setup_views):
+            link_button = tk.Button(self.get_window(), text=setup_view.get_name(), font=FONT, command=lambda setup_view=setup_view: self.create_linked_setup_class_gui(setup_view))
+            link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
+            
+        row_after_link_buttons = 2 + len(setup_views)
+        
+        self.add_label(row_after_link_buttons, 0, 2, "")
+        self.add_delete_button(row_after_link_buttons+1, 0, 2, setup_class_gui)
+        
+    def create_linked_setup_class_gui(self, setup_view):
+        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view)
         
 class OptionsConnection(Options):
     def __init__(self, root, connection):

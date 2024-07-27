@@ -13,6 +13,9 @@ class SetupClass:
     def set_instance_name(self, instance_name):
         self.__instance_name = instance_name
         
+    def get_configuration_name(self):
+        return self.__configuration_class.get_name()
+        
     def calculate_values(self):
         for attribute in self.__setup_attributes:
             attribute.calculate_value()
@@ -38,9 +41,6 @@ class SetupClass:
         
     def remove_input_class(self, input_class):
         self.__input_classes.remove(input_class)
-        
-    def get_instance_name(self):
-        return self.__instance_name
         
 class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):

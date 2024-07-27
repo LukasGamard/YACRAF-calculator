@@ -1,7 +1,7 @@
 from blocks_general import GUIModelingBlock, GUIClass
 from blocks_buttons import GUIAddAttributeButton
 from options import OptionsConfigurationClass, OptionsConfigurationAttribute, OptionsCalculationInput
-from helper_functions import delete_all
+from helper_functions import swap_attribute_places, delete_all
 from config import *
 
 class GUIConfigurationClass(GUIClass):
@@ -16,15 +16,13 @@ class GUIConfigurationClass(GUIClass):
         self.__add_button = GUIAddAttributeButton(model, view, x+CLASS_WIDTH//2, y+CLASS_HEIGHT, self)
         self.add_attached_block(self.__add_button)
         
-        # self.snap_to_grid()
-        
     def right_pressed(self, event):
         OptionsConfigurationClass(self.get_model(), self, self.get_model().get_configuration_views())
         
     def get_configuration_class(self):
         return self.__configuration_class
         
-    def create_attribute(self, *, configuration_attribute=None):
+    def create_attribute(self, *, configuration_attribute=None, update_linked=True):
         if configuration_attribute == None:
             configuration_attribute = self.__configuration_class.create_attribute("New Attribute")
             
@@ -40,6 +38,10 @@ class GUIConfigurationClass(GUIClass):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.create_setup_attribute(configuration_attribute_gui)
             
+        if update_linked:
+            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
+                linked_configuration_class_gui.create_attribute(configuration_attribute=configuration_attribute, update_linked=False)
+            
     def get_configuration_attributes_gui(self):
         return self.__configuration_attributes_gui
         
@@ -52,6 +54,14 @@ class GUIConfigurationClass(GUIClass):
             
         self.__add_button.move_block(0, -ATTRIBUTE_HEIGHT)
         
+    def swap_attribute_places(self, configuration_attribute_gui_to_move, move_up):
+        index_to_move = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_move)
+        
+        swap_attribute_places(index_to_move, move_up, self.__configuration_attributes_gui, self.__configuration_class.get_configuration_attributes())
+        
+        for setup_class_gui in self.__setup_classes_gui:
+            swap_attribute_places(index_to_move, move_up, setup_class_gui.get_setup_attributes_gui(), setup_class_gui.get_setup_class().get_setup_attributes())
+            
     def add_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.append(setup_class_gui)
         
@@ -72,9 +82,8 @@ class GUIConfigurationClass(GUIClass):
         self.set_text(name)
         
         if self.get_linked_group_number() != None:
-            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self.get_linked_group_number()):
-                if linked_configuration_class_gui is not self:
-                    linked_configuration_class_gui.set_text(name)
+            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
+                linked_configuration_class_gui.set_text(name)
         
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.update_text()
@@ -87,13 +96,13 @@ class GUIConfigurationClass(GUIClass):
         
         # Create configuration attributes
         for configuration_attribute_gui in self.__configuration_attributes_gui:
-            configuration_class_gui.create_attribute(configuration_attribute=configuration_attribute_gui.get_configuration_attribute())
+            configuration_class_gui.create_attribute(configuration_attribute=configuration_attribute_gui.get_configuration_attribute(), update_linked=False)
             
         for setup_class_gui in self.__setup_classes_gui:
             configuration_class_gui.add_setup_class_gui(setup_class_gui)
             
         for add_to_setup_button in self.__to_setup_buttons.values():
-            configuration_class_gui.add_to_setup_button(add_to_setup_button)
+            configuration_class_gui.add_to_setup_button(view_to_copy_to, add_to_setup_button)
             
         return configuration_class_gui
         
@@ -138,7 +147,7 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             self.get_view().reset_held_connection(True)
             
     def right_pressed(self, event):
-        OptionsConfigurationAttribute(self.get_model().get_root(), self)
+        OptionsConfigurationAttribute(self.get_model().get_root(), self.__configuration_class_gui, self)
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -151,26 +160,16 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
         for connection in self.__connections:
             connection.scale(last_length_unit)
-            
-    def get_linked_configuration_attributes_gui(self):
-        linked_configuration_attributes_gui = []
-        linked_group_number = self.__configuration_class_gui.get_linked_group_number()
-        
-        if linked_group_number != None:
-            index_configuration_attribute_gui = self.__configuration_class_gui.get_configuration_attributes_gui().index(self)
-            
-            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(linked_group_number):
-                if linked_configuration_class_gui is not self:
-                    linked_configuration_attribute_gui = linked_configuration_class_gui.get_configuration_attributes_gui()[index_configuration_attribute_gui]
-                    linked_configuration_attributes_gui.append(linked_configuration_attribute_gui)
-                    
-        return linked_configuration_attributes_gui
         
     def get_configuration_attribute(self):
         return self.__configuration_attribute
         
     def get_configuration_class_gui(self):
         return self.__configuration_class_gui
+        
+    def update_configuration_input_symbol(self):
+        if self.__configuration_input != None:
+            self.__configuration_input.update_symbol_calculation_type()
             
     def set_configuration_input(self, configuration_input):
         self.__configuration_input = configuration_input
@@ -214,14 +213,14 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_attribute.set_name(name)
         self.update_text()
         
-        for linked_configuration_attribute_gui in self.get_linked_configuration_attributes_gui():
+        for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self):
             linked_configuration_attribute_gui.update_text()
             
     def set_value_type(self, symbol_value_type):
         self.__configuration_attribute.set_symbol_value_type(symbol_value_type)
         self.update_text()
         
-        for linked_configuration_attribute_gui in self.get_linked_configuration_attributes_gui():
+        for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self):
             linked_configuration_attribute_gui.update_text()
             
     def update_text(self):
@@ -236,10 +235,14 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             setup_attribute_gui.set_text(text)
         
     def delete(self):
+        if self.is_deleted():
+            return
+            
         super().delete()
         
         delete_all(self.__connections)
-        
+        delete_all(self.get_model().get_linked_configuration_attributes_gui(self))
+            
         # Only the attribute is deleted, not the class itself
         if not self.__configuration_class_gui.is_deleted():
             self.__configuration_class_gui.remove_configuration_attribute_gui(self)
@@ -296,25 +299,42 @@ class GUIConfigurationInput(GUIModelingBlock):
     def put_down_block(self):
         for configuration_class_gui in self.get_view().get_configuration_classes_gui():
             for configuration_attribute_gui in configuration_class_gui.get_configuration_attributes_gui():
-                if configuration_attribute_gui.is_adjacent([(self.get_x(), self.get_y())])[0]:
+                is_adjacent, direction_out_from_block = configuration_attribute_gui.is_adjacent([(self.get_x(), self.get_y())])
+                
+                if is_adjacent:
                     self.__attached_attribute_gui = configuration_attribute_gui
                     self.__attached_attribute_gui.set_configuration_input(self)
+                    
+                    self.set_symbol_calculation_type(configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type())
+                    
+                    # If changing side of input block, the connections should also change side
+                    for connection in self.__connections:
+                        connection.update_direction(self, direction_out_from_block)
+                        
                     return
                     
     def is_attached(self):
         return self.__attached_attribute_gui != None
-            
+        
     def get_symbol_calculation_type(self):
         return self.__symbol_calculation_type
         
-    def set_symbol_calculation_type(self, symbol_calculation_type):
+    def set_symbol_calculation_type(self, symbol_calculation_type, update_linked=True):
         self.__symbol_calculation_type = symbol_calculation_type
         self.set_text(symbol_calculation_type)
         
         self.update_connection_numbers()
         
-        if self.__attached_attribute_gui != None:
+        if self.__attached_attribute_gui != None and update_linked:
             self.__attached_attribute_gui.get_configuration_attribute().set_symbol_calculation_type(symbol_calculation_type)
+            
+            for linked_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self.__attached_attribute_gui):
+                linked_attribute_gui.update_configuration_input_symbol()
+                
+    def update_symbol_calculation_type(self):
+        if self.__attached_attribute_gui != None:
+            symbol_calculation_type = self.__attached_attribute_gui.get_configuration_attribute().get_symbol_calculation_type()
+            self.set_symbol_calculation_type(symbol_calculation_type, False)
         
     def update_connection_numbers(self):
         for i, connection in enumerate(self.__connections):

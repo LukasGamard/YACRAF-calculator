@@ -83,6 +83,21 @@ def get_triangle_coordinates(view, x, y, direction):
         
     return actual_coordinates
     
+def swap_attribute_places(index_to_move, move_up, attributes_gui, attributes):
+    if move_up and index_to_move > 0:
+        attributes_gui[index_to_move].move_block(0, -ATTRIBUTE_HEIGHT)
+        attributes_gui[index_to_move-1].move_block(0, ATTRIBUTE_HEIGHT)
+        
+        attributes_gui[index_to_move], attributes_gui[index_to_move-1] = attributes_gui[index_to_move-1], attributes_gui[index_to_move]
+        attributes[index_to_move], attributes[index_to_move-1] = attributes[index_to_move-1], attributes[index_to_move]
+        
+    elif not move_up and index_to_move < len(attributes_gui) - 1:
+        attributes_gui[index_to_move].move_block(0, ATTRIBUTE_HEIGHT)
+        attributes_gui[index_to_move+1].move_block(0, -ATTRIBUTE_HEIGHT)
+        
+        attributes_gui[index_to_move], attributes_gui[index_to_move+1] = attributes_gui[index_to_move+1], attributes_gui[index_to_move]
+        attributes[index_to_move], attributes[index_to_move+1] = attributes[index_to_move+1], attributes[index_to_move]
+        
 def delete_all(to_delete_list):
     for i in range(len(to_delete_list)-1, -1, -1):
         to_delete_list[i].delete()

@@ -21,6 +21,15 @@ class ScriptInterface:
         for setup_class_gui in list(self.__model.get_matching_setup_classes_gui(class_configuration_name=class_type, class_instance_name=class_instance).keys()):
             setup_class_gui.create_script_marker_indicator(value, color)
             
+    def get_input_classes(self, *, class_type=None, class_instance=None):
+        input_classes = []
+        
+        for setup_class_gui in list(self.__model.get_matching_setup_classes_gui(class_configuration_name=class_type, class_instance_name=class_instance).keys()):
+            for input_setup_class in setup_class_gui.get_setup_class().get_input_classes():
+                input_classes.append((input_setup_class.get_name(), input_setup_class.get_instance_name()))
+                
+        return input_classes
+        
     def reset_script_changes(self):
         self.__model.reset_changes_by_script()
         

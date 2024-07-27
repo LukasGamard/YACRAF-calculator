@@ -23,14 +23,12 @@ class GUISetupClass(GUIClass):
             
         self.update_text()
         
-        # self.snap_to_grid()
-        
     def right_pressed(self, event):
         OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
-            
+        
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.move(move_x, move_y)
             
@@ -132,7 +130,7 @@ class GUISetupClass(GUIClass):
             setup_attribute_gui.update_value_input_type()
             
         if self.get_linked_group_number() != None and check_linked:
-            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self.get_linked_group_number()):
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
                 linked_setup_class_gui.update_value_input_types(False)
                 
     def calculate_values(self):

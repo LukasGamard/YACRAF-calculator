@@ -54,8 +54,25 @@ class Model:
         for to_setup_button in to_setup_buttons:
             to_setup_button.get_view().remove_add_to_setup_button(to_setup_button)
             
-    def get_linked_configuration_classes_gui(self, linked_group_number):
-        return self.__linked_configuration_groups_per_number[linked_group_number]
+    def get_linked_configuration_classes_gui(self, configuration_class_gui):
+        linked_group_number = configuration_class_gui.get_linked_group_number()
+        
+        if linked_group_number == None:
+            return []
+            
+        linked_configuration_classes_gui = self.__linked_configuration_groups_per_number[linked_group_number].copy()
+        linked_configuration_classes_gui.remove(configuration_class_gui)
+        
+        return linked_configuration_classes_gui
+        
+    def get_linked_configuration_attributes_gui(self, configuration_attribute_gui):
+        linked_configuration_attributes_gui = []
+        attribute_index = configuration_attribute_gui.get_configuration_class_gui().get_configuration_attributes_gui().index(configuration_attribute_gui)
+        
+        for linked_configuration_class_gui in self.get_linked_configuration_classes_gui(configuration_attribute_gui.get_configuration_class_gui()):
+            linked_configuration_attributes_gui.append(linked_configuration_class_gui.get_configuration_attributes_gui()[attribute_index])
+            
+        return linked_configuration_attributes_gui
         
     def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
@@ -65,8 +82,16 @@ class Model:
             
         return linked_configuration_class_gui
         
-    def get_linked_setup_classes_gui(self, linked_group_number):
-        return self.__linked_setup_groups_per_number[linked_group_number]
+    def get_linked_setup_classes_gui(self, setup_class_gui):
+        linked_group_number = setup_class_gui.get_linked_group_number()
+        
+        if linked_group_number == None:
+            return []
+        
+        linked_setup_classes_gui = self.__linked_setup_groups_per_number[linked_group_number].copy()
+        linked_setup_classes_gui.remove(setup_class_gui)
+        
+        return linked_setup_classes_gui
         
     def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number)
@@ -151,6 +176,35 @@ class Model:
     def get_setup_views(self):
         return self.__setup_views
         
+    def swap_view_places(self, view_to_move, move_up):
+        views_to_consider_moving = []
+        
+        if view_to_move in self.__configuration_views:
+            views_to_consider_moving = self.__configuration_views
+            
+        elif view_to_move in self.__setup_views:
+            views_to_consider_moving = self.__setup_views
+            
+        for i in range(len(views_to_consider_moving)):
+            if views_to_consider_moving[i] is view_to_move:
+                if (move_up and i > 0) or (not move_up and i < len(views_to_consider_moving) - 1):
+                    for view in self.__configuration_views + self.__setup_views:
+                        if move_up:
+                            view.move_change_view_button(views_to_consider_moving[i], True)
+                            view.move_change_view_button(views_to_consider_moving[i-1], False)
+                            
+                        else:
+                            view.move_change_view_button(views_to_consider_moving[i], False)
+                            view.move_change_view_button(views_to_consider_moving[i+1], True)
+                            
+                    if move_up:
+                        views_to_consider_moving[i], views_to_consider_moving[i-1] = views_to_consider_moving[i-1], views_to_consider_moving[i]
+                        
+                    else:
+                        views_to_consider_moving[i], views_to_consider_moving[i+1] = views_to_consider_moving[i+1], views_to_consider_moving[i]
+                        
+                    break
+                    
     def create_view(self, is_configuration_view, view_name):
         if is_configuration_view:
             new_view = ConfigurationView(self, view_name)
@@ -202,6 +256,14 @@ class Model:
             
     def change_view(self, view):
         view.tkraise()
+        
+    def get_num_configuration_classes(self):
+        num_configuration_classes = 0
+        
+        for view in self.__configuration_views:
+            num_configuration_classes += len(view.get_configuration_classes_gui())
+            
+        return num_configuration_classes
         
     def calculate_values(self):
         # Reset all values first

@@ -183,6 +183,18 @@ class View(tk.Frame):
         elif view_with_changed_name in self.__setup_change_view_buttons:
             self.__setup_change_view_buttons[view_with_changed_name].set_text(text)
             
+    def move_change_view_button(self, view_to_move, up):
+        to_move = CHANGE_VIEW_HEIGHT
+        
+        if up:
+            to_move *= -1
+        
+        if view_to_move in self.__configuration_change_view_buttons:
+            self.__configuration_change_view_buttons[view_to_move].move_block(0, to_move)
+            
+        elif view_to_move in self.__setup_change_view_buttons:
+            self.__setup_change_view_buttons[view_to_move].move_block(0, to_move)
+            
     def move_items(self, event):
         if self.__held_connection != None:
             self.__held_connection.create_new_lines((event.x, event.y))
@@ -238,7 +250,7 @@ class ConfigurationView(View):
             
         configuration_class_gui = GUIConfigurationClass(self.get_model(), self, configuration_class, x, y, linked_group_number)
         
-        self.get_model().create_add_to_setup_buttons(len(self.__configuration_classes_gui), configuration_class_gui) # Add buttons to add the setup class version
+        self.get_model().create_add_to_setup_buttons(self.get_model().get_num_configuration_classes(), configuration_class_gui) # Add buttons to add the setup class version
         self.__configuration_classes_gui.append(configuration_class_gui)
         
         return configuration_class_gui
