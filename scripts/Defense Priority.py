@@ -34,8 +34,8 @@ LOSS_EVENT_NAME = "Loss event"
 LOSS_EVENT_INSTANCES = []
 LOSS_EVENT_MAGNITUDE_ATTRIBUTE = "Magnitude"
 
-def disable_all_other_defenses(script_if, defenses_names, defense_to_exclude):
-    for defense_name in defenses_names:
+def disable_all_other_defenses(script_if, defenses_to_disable, defense_to_exclude):
+    for defense_name in defenses_to_disable:
         if defense_name != defense_to_exclude:
             script_if.override_attribute_values(0, class_type=DEFENSE_MECHANISM_NAME, class_instance=defense_name)
             
@@ -61,7 +61,7 @@ def script_logic(script_if):
         
         for defense_name in remaining_defenses_names:
             script_if.reset_override_attribute_values()
-            disable_all_other_defenses(script_if, defenses_names, defense_name)
+            disable_all_other_defenses(script_if, remaining_defenses_names, defense_name)
             total_magnitude = calculate_total_magnitude(script_if)
             
             if current_lowest_magnitude == None or total_magnitude < current_lowest_magnitude:
