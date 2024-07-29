@@ -15,7 +15,7 @@ class ScriptInterface:
         
     def override_attribute_values(self, override_value, *, class_type=None, class_instance=None, attribute=None):
         for setup_attribute_gui in list(self.__model.get_matching_setup_attributes_gui(class_configuration_name=class_type, class_instance_name=class_instance, attribute_name=attribute).keys()):
-            setup_attribute_gui.set_override_value(override_value)
+            setup_attribute_gui.get_setup_attribute().set_override_value(override_value)
             
     def set_class_marker(self, value, color, *, class_type=None, class_instance=None):
         for setup_class_gui in list(self.__model.get_matching_setup_classes_gui(class_configuration_name=class_type, class_instance_name=class_instance).keys()):

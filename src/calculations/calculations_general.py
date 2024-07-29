@@ -2,14 +2,22 @@ import numpy as np
 from config import *
         
 def check_input_value_types(symbol_calculation_type, input_attributes):
+    """
+    Checks that all the value types of all input attributes are allowed for the specific mathematical operation (calculation type)
+    """
+    
+    # Allowed input value types when sampling triangle distributions
     if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
+        # Need to be exactly two input attributes
         if len(input_attributes) != 2:
             return False
             
+        # All input values types must be triangle distributions
         for input_attribute in input_attributes:
             if input_attribute.get_symbol_value_type() != SYMBOL_VALUE_TYPE_TRIANGLE:
                 return False
                 
+    # Check that all input attributes are of the same value type
     input_attributes_list = list(input_attributes)
     
     for i in range(1, len(input_attributes_list)):

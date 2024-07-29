@@ -1,5 +1,4 @@
 import tkinter as tk
-import pickle
 import sys
 import os
 
@@ -21,4 +20,5 @@ def main():
     model = Model(root, new_save)
     root.mainloop()
     
-main()
+if __name__ == "__main__":
+    main()

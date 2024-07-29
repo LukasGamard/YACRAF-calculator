@@ -205,9 +205,9 @@ class View(tk.Frame):
     def set_held_connection(self, connection):
         self.__held_connection = connection
         
-    def reset_held_connection(self, remove_line=False):
-        if remove_line:
-            self.__held_connection.remove_lines()
+    def reset_held_connection(self, remove_connection=False):
+        if remove_connection:
+            self.__held_connection.delete()
             
         self.__held_connection = None
         
@@ -241,8 +241,8 @@ class ConfigurationView(View):
         self.__configuration_classes_gui = []
         self.__configuration_inputs_gui = []
         
-        self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, 0, 0)
-        self.__add_input_button = GUIAddInputButton(model, self, 0, CHANGE_VIEW_HEIGHT)
+        self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, ADD_CLASS_POSITION[0], ADD_CLASS_POSITION[0])
+        self.__add_input_button = GUIAddInputButton(model, self, ADD_INPUT_POSITION[0], ADD_INPUT_POSITION[1])
         
     def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], configuration_class=None, linked_group_number=None):
         if configuration_class == None:
@@ -275,6 +275,9 @@ class ConfigurationView(View):
         
     def remove_configuration_input_gui(self, configuration_input_gui):
         self.__configuration_inputs_gui.remove(configuration_input_gui)
+        
+    def get_configuration_inputs_gui(self):
+        return self.__configuration_inputs_gui
         
     def get_static_items(self):
         return [self.__add_configuration_class_button, self.__add_input_button]
@@ -325,25 +328,25 @@ class ConfigurationView(View):
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [configuration_class_gui]
+                        
+                        # Set configuration class data
+                        configuration_class_gui.set_name(saved_states_configuration_class_gui["name"])
+                        
+                        mapping_configuration_class_gui[saved_states_configuration_class_gui["configuration_class_gui"]] = configuration_class_gui
                             
-                    # Set configuration class data
-                    configuration_class_gui.set_name(saved_states_configuration_class_gui["name"])
-                    
-                    mapping_configuration_class_gui[saved_states_configuration_class_gui["configuration_class_gui"]] = configuration_class_gui
-                    
-                    # Restore configuration attributes
-                    for saved_states_configuration_attribute_gui in saved_states_configuration_class_gui["configuration_attributes_gui"]:
-                        # Create configuration attribute
-                        configuration_class_gui.create_attribute()
-                        configuration_attribute_gui = configuration_class_gui.get_configuration_attributes_gui()[-1]
-                        
-                        # Set configuration attribute data
-                        configuration_attribute_gui.set_name(saved_states_configuration_attribute_gui["name"])
-                        configuration_attribute_gui.set_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
-                        configuration_attribute_gui.set_hidden(saved_states_configuration_attribute_gui["is_hidden"])
-                        
-                        mapping_configuration_attribute_gui[saved_states_configuration_attribute_gui["configuration_attribute_gui"]] = configuration_attribute_gui
-                        
+                        # Restore configuration attributes
+                        for saved_states_configuration_attribute_gui in saved_states_configuration_class_gui["configuration_attributes_gui"]:
+                            # Create configuration attribute
+                            configuration_class_gui.create_attribute()
+                            configuration_attribute_gui = configuration_class_gui.get_configuration_attributes_gui()[-1]
+                            
+                            # Set configuration attribute data
+                            configuration_attribute_gui.set_name(saved_states_configuration_attribute_gui["name"])
+                            configuration_attribute_gui.set_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
+                            configuration_attribute_gui.set_hidden(saved_states_configuration_attribute_gui["is_hidden"])
+                            
+                            mapping_configuration_attribute_gui[saved_states_configuration_attribute_gui["configuration_attribute_gui"]] = configuration_attribute_gui
+                            
                 # Restore configuration inputs
                 for saved_states_configuration_input_gui in saved_states_configuration_inputs_gui:
                     # Create configuration input
@@ -352,13 +355,15 @@ class ConfigurationView(View):
                     # Set configuration input data
                     configuration_input_gui.put_down_block()
                     symbol_calculation_type = saved_states_configuration_input_gui["symbol_calculation_type"]
+                    
                     if symbol_calculation_type != "":
                         configuration_input_gui.set_symbol_calculation_type(symbol_calculation_type)
                     
                     # Restore configuration connections
                     for saved_states_connection in saved_states_configuration_input_gui["connections"]:
                         connection = GUIConnection(self.get_model(), \
-                                self, mapping_configuration_attribute_gui[saved_states_connection["start_block"]], \
+                                self, \
+                                mapping_configuration_attribute_gui[saved_states_connection["start_block"]], \
                                 saved_states_connection["start_direction"], \
                                 end_block=configuration_input_gui, \
                                 end_direction=saved_states_connection["end_direction"], \
@@ -443,7 +448,7 @@ class SetupView(View):
     def reset_calculated_values(self):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.reset_calculated_values()
-        
+            
     def calculate_values(self):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
@@ -470,7 +475,7 @@ class SetupView(View):
         self.__connections_with_blocks.remove(connection)
         
     def create_add_to_setup_button(self, current_number_of_buttons, configuration_class_gui):
-        self.__to_setup_buttons.append(GUIAddToSetupButton(self.get_model(), self, 0, current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
+        self.__to_setup_buttons.append(GUIAddToSetupButton(self.get_model(), self, ADD_TO_SETUP_START_POSITION[0], ADD_TO_SETUP_START_POSITION[1]+current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
         
     def remove_add_to_setup_button(self, to_setup_button):
         to_setup_button.delete()
@@ -539,10 +544,6 @@ class SetupView(View):
             # print("Creating new setup view")
             
     def delete(self):
-        # Remove the stored references to the buttons in the configuration class through the setup class
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.remove_to_setup_button(self)
-            
         delete_all(self.__setup_classes_gui)
         delete_all(self.__connections_with_blocks)
         

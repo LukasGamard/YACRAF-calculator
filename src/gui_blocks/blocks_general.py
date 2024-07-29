@@ -30,7 +30,7 @@ class GUIBlock:
                 view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
         self.__is_deleted = False
-                
+        
     def left_pressed(self, event):
         # Pick up block
         if self.__draggable:
@@ -223,7 +223,7 @@ class GUIClass(GUIModelingBlock):
         
         if self.__linked_group_number != None:
             self.update_linked_group_indicator()
-        
+            
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
@@ -236,6 +236,9 @@ class GUIClass(GUIModelingBlock):
         if self.__linked_group_indicator != None:
             self.__linked_group_indicator.scale(last_length_unit)
             
+    def is_linked(self):
+        return self.__linked_group_number != None
+        
     def get_linked_group_number(self):
         return self.__linked_group_number
         
@@ -264,7 +267,7 @@ class GUIClass(GUIModelingBlock):
             
     def save_state(self):
         return super().save_state() | {"linked_group_number": self.__linked_group_number}
-            
+        
 class GUIConnectionCorner(GUIBlock):
     def __init__(self, model, view, connection, x, y):
         actual_x, actual_y = convert_grid_coordinate_to_actual(view, x+0.5-CORNER_WIDTH/2, y+0.5-CORNER_HEIGHT/2)

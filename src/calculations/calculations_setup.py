@@ -5,8 +5,11 @@ class SetupClass:
         self.__instance_name = instance_name
         self.__configuration_class = configuration_class
         self.__setup_attributes = []
-        self.__input_classes = []
+        self.__input_setup_classes = []
         
+        for configuration_attribute in configuration_class.get_configuration_attributes():
+            self.create_setup_attribute(configuration_attribute)
+            
     def get_instance_name(self):
         return self.__instance_name
         
@@ -17,10 +20,16 @@ class SetupClass:
         return self.__configuration_class.get_name()
         
     def calculate_values(self):
+        """
+        Calculate the final value of all setup attributes of this setup class
+        """
         for attribute in self.__setup_attributes:
             attribute.calculate_value()
             
     def reset_calculated_values(self):
+        """
+        Reset the calculated value of all setup attributes of this setup class so that the program knows a new should be calculated later
+        """
         for attribute in self.__setup_attributes:
             attribute.reset_value_if_inputs()
             
@@ -33,15 +42,22 @@ class SetupClass:
         
         return setup_attribute
         
-    def get_input_classes(self):
-        return self.__input_classes
+    def remove_setup_attribute(self, configuration_attribute):
+        for setup_attribute in self.__setup_attributes:
+            if setup_attribute.has_configuration_attribute(configuration_attribute):
+                self.__setup_attributes.remove(setup_attribute)
+                break
         
-    def add_input_class(self, input_class):
-        self.__input_classes.append(input_class)
+    def get_input_setup_classes(self):
+        return self.__input_setup_classes
         
-    def remove_input_class(self, input_class):
-        self.__input_classes.remove(input_class)
+    def add_input_setup_class(self, input_class):
+        self.__input_setup_classes.append(input_class)
         
+    def remove_input_setup_class(self, input_class):
+        if input_class in self.__input_setup_classes:
+            self.__input_setup_classes.remove(input_class)
+            
 class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):
         self.__setup_class = setup_class
@@ -55,8 +71,14 @@ class SetupAttribute:
     def set_value(self, value):
         self.__value = value
         
+    def clear_value(self):
+        self.__value = None
+        
     def reset_value_if_inputs(self):
-        if self.__configuration_attribute.has_input_attributes():
+        """
+        Reset value so that the program knows it should calculate a new one, but only if there are input attributes as this attribute otherwise should take a manual input
+        """
+        if self.__configuration_attribute.has_input_configuration_attributes():
             self.__value = None
             return True
             
@@ -75,41 +97,20 @@ class SetupAttribute:
         self.__override_value = None
         
     def has_connected_setup_attributes(self, ):
-        connected_setup_classes = self.__setup_class.get_input_classes()
-        
-        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes()
-        
-        return len(internal_connected_setup_attributes) > 0 or len(external_connected_setup_attributes) > 0
-        
-    def get_connected_setup_attributes(self):
-        connected_setup_classes = self.__setup_class.get_input_classes()
-        
-        # Internal connections
-        internal_connected_setup_attributes = self.__configuration_attribute.get_connected_setup_attributes(self.__setup_class, self.__setup_class)
-        
-        # External connections
-        external_connected_setup_attributes = set()
-        
-        for connected_setup_class in connected_setup_classes:
-            external_connected_setup_attributes |= self.__configuration_attribute.get_connected_setup_attributes(connected_setup_class, self.__setup_class)
-                
-        return internal_connected_setup_attributes, external_connected_setup_attributes
+        return len(self.get_connected_setup_attributes()) > 0
         
     def calculate_value(self):
-        connected_setup_classes = self.__setup_class.get_input_classes()
-        
         if self.__value != None:
             return
             
-        internal_connected_setup_attributes, external_connected_setup_attributes = self.get_connected_setup_attributes()
+        connected_setup_attributes = self.get_connected_setup_attributes()
         
-        for internal_connected_setup_attribute in internal_connected_setup_attributes:
-            internal_connected_setup_attribute.calculate_value(self.__setup_class, connected_setup_classes)
+        # First calculate any dependent connected setup attributes
+        for connected_setup_attribute in connected_setup_attributes:
+            connected_setup_attribute.calculate_value()
             
-        for connected_setup_class in connected_setup_classes:
-            connected_setup_class.calculate_values()
-            
-        self.__value = combine_values(self.__configuration_attribute.get_symbol_calculation_type(), self.__configuration_attribute.get_symbol_value_type(), internal_connected_setup_attributes|external_connected_setup_attributes)
+        # Then calculate the value of this setup attribute considering all dependent connected setup attributes
+        self.__value = combine_values(self.__configuration_attribute.get_symbol_calculation_type(), self.__configuration_attribute.get_symbol_value_type(), connected_setup_attributes)
         
     def get_symbol_value_type(self):
         return self.__configuration_attribute.get_symbol_value_type()
@@ -119,3 +120,23 @@ class SetupAttribute:
         
     def get_name(self):
         return self.__configuration_attribute.get_name()
+        
+    def get_connected_setup_attributes(self):
+        filtered_connected_setup_attributes = set()
+        connected_setup_classes = self.__setup_class.get_input_setup_classes() + [self.__setup_class]
+        
+        # Go through all connected configuration attributes
+        for connected_configuration_attribute, is_internal in self.__configuration_attribute.get_input_configuration_attributes().items():
+            # Go through all connected setup classes
+            for connected_setup_class in connected_setup_classes:
+                found_internal_connection = is_internal and connected_setup_class == self.__setup_class
+                found_external_connection = not is_internal and connected_setup_class != self.__setup_class
+                
+                # If a setup class corresponding to the configuration class with the connected configuration attribute is currently connected
+                if found_internal_connection or found_external_connection:
+                    # Go through all setup attributes of the connected setup class to find the one with the correct configuration attribute
+                    for connected_setup_attribute in connected_setup_class.get_setup_attributes():
+                        if connected_setup_attribute.has_configuration_attribute(connected_configuration_attribute):
+                            filtered_connected_setup_attributes.add(connected_setup_attribute)
+                            
+        return filtered_connected_setup_attributes

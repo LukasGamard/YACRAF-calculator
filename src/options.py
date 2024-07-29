@@ -27,7 +27,7 @@ class Options:
         entry_name = tk.Entry(self.__window, textvariable=self.__entry_name_text, font=FONT)
         entry_name.grid(row=0, column=1, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING)
         
-        self.__entry_name_text.trace("w", self.update_name)
+        self.__entry_name_text.trace("w", lambda *args: self.set_name(self.__entry_name_text.get()))
         
     def add_label(self, row, column, columnspan, text):
         label = tk.Label(self.__window, text=text, font=FONT, bg=BACKGROUND_COLOR)
@@ -44,8 +44,8 @@ class Options:
         delete_button = tk.Button(self.__window, text="Delete", font=FONT, command=lambda: self.delete(to_delete))
         delete_button.grid(row=row, column=column, columnspan=columnspan, sticky=tk.W+tk.E)
         
-    def update_name(self, *args):
-        self.__to_configure.set_name(self.__entry_name_text.get())
+    def set_name(self, name):
+        self.__to_configure.set_name(name)
         
     def move(self, up):
         pass
@@ -184,10 +184,12 @@ class OptionsConnection(Options):
         self.__connection = connection
         self.__is_external = tk.BooleanVar()
         
+        self.__is_external.set(connection.is_external())
+        
         self.__external_toggle = tk.Checkbutton(self.get_window(), text="External connection", font=FONT, variable=self.__is_external, command=self.set_is_external)
         self.__external_toggle.grid(row=0, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
         
         self.add_delete_button(1, 0, 1, self.__connection)
         
     def set_is_external(self):
-        self.__connection.set_is_external(self.__is_external.get())
+        self.__connection.set_external(self.__is_external.get())

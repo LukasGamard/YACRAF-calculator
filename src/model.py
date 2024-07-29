@@ -244,10 +244,18 @@ class Model:
     def delete_view(self, view_to_delete):
         view_to_delete.delete()
         
+        # Remove button to change to the deleted view from all other views
         for view in self.__configuration_views + self.__setup_views:
             if view != view_to_delete:
                 view.remove_change_view_button(view_to_delete)
                 
+        # Remove reference to button to convert each configuration class to a setup class from each configuration class
+        for configuration_view in self.__configuration_views:
+            if configuration_view != view_to_delete:
+                for configuration_class_gui in configuration_view.get_configuration_classes_gui():
+                    configuration_class_gui.remove_to_setup_button(view_to_delete)
+                    
+        # Remove reference to view
         if view_to_delete in self.__configuration_views:
             self.__configuration_views.remove(view_to_delete)
             

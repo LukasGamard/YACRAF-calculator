@@ -18,13 +18,17 @@ class GUISetupClass(GUIClass):
         
         configuration_class_gui.add_setup_class_gui(self)
         
-        for configuration_attribute_gui, setup_attribute in zip(self.__configuration_class_gui.get_configuration_attributes_gui(), self.__setup_class.get_setup_attributes()):
-            self.convert_to_attribute_gui(configuration_attribute_gui, setup_attribute)
-            
+        for setup_attribute, configuration_attribute_gui in zip(self.__setup_class.get_setup_attributes(), self.__configuration_class_gui.get_configuration_attributes_gui()):
+            if not configuration_attribute_gui.is_hidden():
+                self.create_setup_attribute_gui(setup_attribute, configuration_attribute_gui)
+                
         self.update_text()
         
     def right_pressed(self, event):
-        OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
+        self.open_options()
+        
+    def open_options(self):
+        return OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -79,17 +83,30 @@ class GUISetupClass(GUIClass):
                     
         return False, ""
         
-    def create_setup_attribute(self, configuration_attribute_gui):
-        setup_attribute = self.__setup_class.create_setup_attribute(configuration_attribute_gui.get_configuration_attribute())
-        self.convert_to_attribute_gui(configuration_attribute_gui, setup_attribute)
+    def create_setup_attribute_gui(self, setup_attribute, configuration_attribute_gui):
+        """
+        Creates and adds a GUI version of a setup attribute
+        """
+        setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, self, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
         
-    def convert_to_attribute_gui(self, configuration_attribute_gui, setup_attribute):
-        if not configuration_attribute_gui.is_hidden():
-            setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, self, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
+        self.__setup_attributes_gui.append(setup_attribute_gui)
+        self.add_attached_block(setup_attribute_gui)
+        
+        return setup_attribute_gui
+        
+    def update_setup_attribute_gui_order(self):
+        # Map each setup attribute (in their current order) to an index value to be sorted according to
+        index_map = {value: index for index, value in enumerate(self.__setup_class.get_setup_attributes())}
+        
+        sorted_setup_attributes_gui = sorted(self.__setup_attributes_gui, key=lambda attribute_gui: index_map[attribute_gui.get_setup_attribute()])
+        
+        # Move position of GUI blocks
+        for i, setup_attribute_gui in enumerate(sorted_setup_attributes_gui):
+            steps_moved = i - self.__setup_attributes_gui.index(setup_attribute_gui)
+            setup_attribute_gui.move_block(0, steps_moved)
             
-            self.__setup_attributes_gui.append(setup_attribute_gui)
-            self.add_attached_block(setup_attribute_gui)
-            
+        self.__setup_attributes_gui = sorted_setup_attributes_gui
+        
     def get_setup_class(self):
         return self.__setup_class
         
@@ -99,6 +116,7 @@ class GUISetupClass(GUIClass):
     def remove_setup_attribute_gui(self, setup_attribute_gui_to_remove):
         index_first_move_up = self.__setup_attributes_gui.index(setup_attribute_gui_to_remove)
         self.__setup_attributes_gui.remove(setup_attribute_gui_to_remove)
+        self.remove_attached_block(setup_attribute_gui_to_remove)
         
         for setup_attribute_gui in self.__setup_attributes_gui[index_first_move_up:]:
             setup_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
@@ -125,13 +143,14 @@ class GUISetupClass(GUIClass):
             
         self.__script_marker_indicators = []
         
-    def update_value_input_types(self, check_linked=True):
-        for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.update_value_input_type()
-            
-        if self.get_linked_group_number() != None and check_linked:
+    def update_value_input_types(self, *, specific_index=None, check_linked=True):
+        for i, setup_attribute_gui in enumerate(self.__setup_attributes_gui):
+            if specific_index == None or i == specific_index:
+                setup_attribute_gui.update_value_input_type()
+                
+        if self.is_linked() and check_linked:
             for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
-                linked_setup_class_gui.update_value_input_types(False)
+                linked_setup_class_gui.update_value_input_types(specific_index=specific_index, check_linked=False)
                 
     def calculate_values(self):
         self.__setup_class.calculate_values()
@@ -158,9 +177,6 @@ class GUISetupClass(GUIClass):
     def update_text(self):
         self.set_text(f"{self.__configuration_class_gui.get_name()}: {self.__setup_class.get_instance_name()}")
         
-    def remove_to_setup_button(self, view):
-        self.__configuration_class_gui.remove_to_setup_button(view)
-        
     def delete(self):
         super().delete()
         self.__configuration_class_gui.remove_setup_class_gui(self)
@@ -186,7 +202,7 @@ class GUISetupAttribute(GUIModelingBlock):
         actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
-        super().__init__(model, view, configuration_attribute_gui.get_text(), x, y, width, height, ATTRIBUTE_COLOR, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
+        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
         self.__entry_value = None
         self.__entry_value_window = None
         
@@ -194,9 +210,8 @@ class GUISetupAttribute(GUIModelingBlock):
         self.__entry_text.set("Value")
         
         configuration_attribute_gui.add_setup_attribute_gui(self)
-        # self.add_attached_block(self.__value_distribution)
         
-        self.switch_to_value_entry()
+        self.update_value_input_type()
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -223,7 +238,7 @@ class GUISetupAttribute(GUIModelingBlock):
             
     def update_value_input_type(self):
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
-        
+        print(has_currently_connected_inputs)
         if has_currently_connected_inputs:
             self.switch_to_value_label()
         else:
@@ -235,6 +250,7 @@ class GUISetupAttribute(GUIModelingBlock):
             self.__entry_value_window = None
             self.__entry_value = None
             
+            self.__setup_attribute.clear_value()
             self.set_displayed_value("-")
             
     def switch_to_value_entry(self):
@@ -246,6 +262,7 @@ class GUISetupAttribute(GUIModelingBlock):
             self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
             self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), window=self.__entry_value, anchor="nw", width=actual_width, height=actual_height)
             
+            self.__setup_attribute.clear_value()
             self.set_displayed_value("Value")
             
     def get_entry_size(self):
@@ -255,9 +272,17 @@ class GUISetupAttribute(GUIModelingBlock):
         
         return width, height
         
+    def get_setup_attribute(self):
+        return self.__setup_attribute
+        
     def add_entered_value_to_attribute(self):
         if self.__entry_value != None:
             self.__setup_attribute.set_value(self.__entry_text.get())
+            
+    """
+    def clear_setup_attribute_value(self):
+        self.__setup_attribute.clear_value()
+    """
             
     def set_displayed_value(self, value, color=None):
         if color == None:
@@ -282,8 +307,10 @@ class GUISetupAttribute(GUIModelingBlock):
         else:
             self.set_displayed_value(self.__setup_attribute.get_value())
             
+    """
     def set_override_value(self, override_value):
         self.__setup_attribute.set_override_value(override_value)
+    """
         
     def get_current_value(self):
         if self.__setup_attribute.has_override_value():
@@ -305,8 +332,8 @@ class GUISetupAttribute(GUIModelingBlock):
     def set_name(self, name):
         self.__setup_attribute.set_name(name)
         
-    def is_hidden(self):
-        return self.__configuration_attribute_gui.is_hidden()
+    # def is_hidden(self):
+        # return self.__configuration_attribute_gui.is_hidden()
         
     def delete(self):
         super().delete()
@@ -315,7 +342,7 @@ class GUISetupAttribute(GUIModelingBlock):
         
         if self.__entry_value != None:
             self.get_view().get_canvas().delete(self.__entry_value_window)
-        
+            
     def save_state(self):
         self.add_entered_value_to_attribute()
         
@@ -328,7 +355,7 @@ class GUIConnectionTriangle(GUIBlock):
         
         super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
         self.__connection = None
-        self.__attached_class_gui = None
+        self.__attached_setup_class_gui = None
         
         self.__is_deleted = False
         
@@ -336,7 +363,7 @@ class GUIConnectionTriangle(GUIBlock):
         super().left_pressed(event)
         
         # Disconnect from class
-        if self.__attached_class_gui != None:
+        if self.__attached_setup_class_gui != None:
             self.attempt_to_detach_from_class()
             
     def left_released(self, event):
@@ -361,12 +388,19 @@ class GUIConnectionTriangle(GUIBlock):
             if is_adjacent:
                 setup_class_gui.add_connection(self.__connection)
                 setup_class_gui.add_attached_block(self)
-                self.__attached_class_gui = setup_class_gui
-                self.__connection.attempt_to_connect_both_classes()
+                self.__attached_setup_class_gui = setup_class_gui
                 
                 self.__connection.update_direction(self, direction)
                 self.rotate_triangle(direction)
-                return
+                
+                start_setup_class = self.__connection.get_start_setup_class()
+                end_setup_class = self.__connection.get_end_setup_class()
+                
+                if start_setup_class != None and end_setup_class != None:
+                    end_setup_class.add_input_setup_class(start_setup_class)
+                    self.__connection.get_end_setup_class_gui().update_value_input_types()
+                    
+                break
                 
     def rotate_triangle(self, new_direction):
         if self.__is_end_block:
@@ -379,26 +413,30 @@ class GUIConnectionTriangle(GUIBlock):
     def add_connection(self, connection):
         self.__connection = connection
         
-    def get_attached_class(self):
-        return self.__attached_class_gui
+    def get_attached_setup_class_gui(self):
+        return self.__attached_setup_class_gui
         
     def is_attached(self):
-        return self.__attached_class_gui != None
-        
-    def is_attached(self):
-        return self.__attached_class_gui != None
+        return self.__attached_setup_class_gui != None
         
     def attempt_to_detach_from_class(self):
-        if self.__attached_class_gui != None:
-            self.__connection.attempt_to_disconnect_both_classes()
-            self.__attached_class_gui.remove_connection(self.__connection)
-            self.__attached_class_gui.remove_attached_block(self)
-            self.__attached_class_gui = None
+        if self.__attached_setup_class_gui != None:
+            end_setup_class = self.__connection.get_end_setup_class()
+            
+            if end_setup_class != None:
+                end_setup_class.remove_input_setup_class(self.__connection.get_start_setup_class())
+                
+            self.__attached_setup_class_gui.remove_connection(self.__connection)
+            self.__attached_setup_class_gui.remove_attached_block(self)
+            
+            if self.__connection.get_end_setup_class_gui() != None:
+                self.__connection.get_end_setup_class_gui().update_value_input_types()
+            
+            self.__attached_setup_class_gui = None
             
     def delete(self):
         if not self.__is_deleted:
             self.__is_deleted = True
-            
             super().delete()
             self.attempt_to_detach_from_class()
             

@@ -28,16 +28,12 @@ class GUIConnection:
         
         self.__is_external = is_external
         
-        self.attempt_to_add_connection_to_blocks()
+        start_block.add_connection(self)
         
-    """
-    def is_start_block(self, block):
-        return self.__start_block == block
+        if end_block != None:
+            end_block.add_connection(self)
+            self.create_new_lines()
         
-    def get_start_block(self):
-        return self.__start_block
-    """
-    
     def get_start_block(self):
         return self.__start_block
         
@@ -54,14 +50,9 @@ class GUIConnection:
         self.__end_block = block
         self.__end_direction = direction
         
-        self.attempt_to_add_connection_to_blocks()
+        self.__end_block.add_connection(self)
         
-    def attempt_to_add_connection_to_blocks(self):
-        if self.__start_block != None and self.__end_block != None:
-            self.__start_block.add_connection(self)
-            self.__end_block.add_connection(self)
-            
-            self.create_new_lines()
+        self.create_new_lines()
         
     def update_direction(self, affected_block, new_direction):
         if affected_block == self.__start_block:
@@ -357,9 +348,9 @@ class GUIConnection:
     def is_external(self):
         return self.__is_external
         
-    def set_is_external(self, is_external):
+    def set_external(self, is_external):
         self.__is_external = is_external
-        self.__end_block.set_input_attribute(self.__start_block.get_configuration_attribute(), not is_external)
+        self.__end_block.get_attached_configuration_attribute_gui().get_configuration_attribute().add_input_configuration_attribute(self.__start_block.get_configuration_attribute(), not is_external)
         
         self.create_new_lines()
         
@@ -367,10 +358,15 @@ class GUIConnection:
         return True
         
     def delete(self):
-        for block in [self.__start_block, self.__end_block]:
-            if block != None:
-                block.remove_connection(self)
+        self.__start_block.remove_connection(self)
                 
+        if self.__end_block != None:
+            self.__end_block.remove_connection(self)
+            attached_configuration_attribute_gui = self.__end_block.get_attached_configuration_attribute_gui()
+            
+            if attached_configuration_attribute_gui != None:
+                attached_configuration_attribute_gui.get_configuration_class_gui().update_value_input_types()
+            
         self.remove_lines()
         
     def save_state(self):
@@ -384,22 +380,11 @@ class GUIConnectionWithBlocks(GUIConnection):
         super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
         self.__view = view
         
-        self.attempt_to_add_connection_to_blocks()
-        self.create_new_lines()
-        
         self.__is_deleted = False
         
-        # self.__start_block.snap_to_grid()
-        # self.__end_block.snap_to_grid()
+        self.create_new_lines()
         
     """
-    def get_other_block(self, block):
-        if block == self.__start_block.get_attached_class():
-            return self.__end_block.get_attached_class()
-            
-        return self.__start_block.get_attached_class()
-    """
-    
     def attempt_to_connect_both_classes(self):
         start_class_gui = self.__start_block.get_attached_class()
         end_class_gui = self.__end_block.get_attached_class()
@@ -415,7 +400,27 @@ class GUIConnectionWithBlocks(GUIConnection):
         if start_class_gui != None and end_class_gui != None:
             end_class_gui.get_setup_class().remove_input_class(start_class_gui.get_setup_class())
             end_class_gui.update_value_input_types()
+    """
+    
+    def get_end_setup_class_gui(self):
+        return self.__end_block.get_attached_setup_class_gui()
+    
+    def get_start_setup_class(self):
+        start_attached_setup_class_gui = self.__start_block.get_attached_setup_class_gui()
+        
+        if start_attached_setup_class_gui == None:
+            return None
+        
+        return start_attached_setup_class_gui.get_setup_class()
+        
+    def get_end_setup_class(self):
+        end_attached_setup_class_gui = self.__end_block.get_attached_setup_class_gui()
+        
+        if end_attached_setup_class_gui == None:
+            return None
             
+        return end_attached_setup_class_gui.get_setup_class()
+    
     def move_and_place_blocks(self, new_start_x, new_start_y, new_end_x, new_end_y):
         self.__start_block.move_block(new_start_x - GUI_BLOCK_START_COORDINATES[0][0], new_start_y - GUI_BLOCK_START_COORDINATES[0][1])
         self.__start_block.put_down_block()
@@ -447,6 +452,6 @@ class GUIConnectionWithBlocks(GUIConnection):
             
             self.__start_block.delete()
             self.__end_block.delete()
-        
+            
     def save_state(self):
         return {"start_block": self.__start_block.save_state(), "end_block": self.__end_block.save_state()}
