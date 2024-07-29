@@ -158,13 +158,12 @@ class Model:
     def get_matching_setup_attributes_gui(self, *, class_configuration_name=None, class_instance_name=None, attribute_name=None):
         matching_setup_attributes_gui = {}
         
-        for matching_setup_class_gui, current_class_names in self.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name).items():
+        for matching_setup_class_gui in self.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
             for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
                 if not setup_attribute_gui.is_hidden():
                     if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
-                        current_class_configuration_name, current_class_instance_name = current_class_names
-                        matching_setup_attributes_gui[setup_attribute_gui] = (current_class_configuration_name, current_class_instance_name, setup_attribute_gui.get_name())
-                    
+                        matching_setup_attributes_gui.append(setup_attribute_gui)
+                        
         return matching_setup_attributes_gui
         
     def get_root(self):

@@ -462,12 +462,12 @@ class SetupView(View):
             setup_class_gui.reset_override_value()
             
     def get_matching_setup_classes_gui(self, *, class_configuration_name=None, class_instance_name=None):
-        matching_setup_classes_gui = {}
+        matching_setup_classes_gui = []
         
         for setup_class_gui in self.__setup_classes_gui:
             if class_configuration_name == None or setup_class_gui.get_configuration_name() == class_configuration_name:
                 if class_instance_name == None or setup_class_gui.get_name() == class_instance_name:
-                    matching_setup_classes_gui[setup_class_gui] = (setup_class_gui.get_configuration_name(), setup_class_gui.get_name())
+                    matching_setup_classes_gui.append(setup_class_gui)
                     
         return matching_setup_classes_gui
         
