@@ -5,16 +5,21 @@ def check_input_value_types(symbol_calculation_type, input_attributes):
     """
     Checks that all the value types of all input attributes are allowed for the specific mathematical operation (calculation type)
     """
+    if symbol_calculation_type == None:
+        print("Error: Found calculation type {symbol_calculation_type}")
+        return False
     
     # Allowed input value types when sampling triangle distributions
     if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
         # Need to be exactly two input attributes
         if len(input_attributes) != 2:
+            print("Error: Not exactly 2 connected input attributes to input block with calculation type {symbol_calculation_type}")
             return False
             
         # All input values types must be triangle distributions
         for input_attribute in input_attributes:
             if input_attribute.get_symbol_value_type() != SYMBOL_VALUE_TYPE_TRIANGLE:
+                print("Error: All connected input attributes did not have value type {input_attribute.get_symbol_value_type()} for calculation type {symbol_calculation_type}")
                 return False
                 
     # Check that all input attributes are of the same value type
@@ -22,6 +27,7 @@ def check_input_value_types(symbol_calculation_type, input_attributes):
     
     for i in range(1, len(input_attributes_list)):
         if input_attributes_list[i].get_symbol_value_type() != input_attributes_list[i-1].get_symbol_value_type():
+            print("Error: All connected input attributes did not have the same value type for input block with calculation type {symbol_calculation_type}")
             return False
             
     return True

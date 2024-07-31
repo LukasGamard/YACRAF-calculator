@@ -67,10 +67,13 @@ class Model:
             
         linked_configuration_classes_gui = self.__linked_configuration_groups_per_number[linked_group_number].copy()
         linked_configuration_classes_gui.remove(configuration_class_gui)
-        
+            
         return linked_configuration_classes_gui
         
     def get_linked_configuration_attributes_gui(self, configuration_attribute_gui):
+        if configuration_attribute_gui.get_configuration_class_gui().get_linked_group_number() == None:
+            return []
+            
         linked_configuration_attributes_gui = []
         attribute_index = configuration_attribute_gui.get_configuration_class_gui().get_configuration_attributes_gui().index(configuration_attribute_gui)
         

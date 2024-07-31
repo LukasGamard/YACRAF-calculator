@@ -12,7 +12,7 @@ SCRIPTS_PATH = "scripts"
 
 SYMBOL_VALUE_TYPE_NUMBER = "N"
 SYMBOL_VALUE_TYPE_TRIANGLE = "T"
-ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)"), (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)")]
+ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [("", "Simple text (no calculations)"), (SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)"), (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)")]
 
 SYMBOL_CALCULATION_TYPE_MEAN = "M"
 SYMBOL_CALCULATION_TYPE_AND = "&"

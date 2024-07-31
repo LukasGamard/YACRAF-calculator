@@ -69,7 +69,6 @@ class ConfigurationAttribute:
         
     def set_symbol_calculation_type(self, symbol_calculation_type):
         self.__symbol_calculation_type = symbol_calculation_type
-        print(f"SET: {self.__symbol_calculation_type}")
         
     def get_input_configuration_attributes(self):
         return self.__input_configuration_attributes

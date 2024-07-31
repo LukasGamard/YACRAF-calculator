@@ -46,6 +46,8 @@ class GUIConfigurationClass(GUIClass):
         self.__configuration_attributes_gui.append(configuration_attribute_gui)
         self.add_attached_block(configuration_attribute_gui)
         
+        configuration_attribute_gui.update_text()
+        
         self.__add_button.move_block(0, ATTRIBUTE_HEIGHT)
         
         # Create GUI setup attributes
@@ -189,8 +191,6 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
         self.__setup_attributes_gui = []
         
-        self.update_text()
-        
     def left_pressed(self, event):
         held_connection = self.get_view().get_held_connection()
         
@@ -241,8 +241,10 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.remove_attached_block(self.__configuration_input)
         self.__configuration_input = None
         
-        self.__configuration_attribute.set_symbol_calculation_type(None)
         self.update_text()
+        
+    def has_configuration_input(self):
+        return self.__configuration_input != None
         
     """
     def get_configuration_input(self):
@@ -301,8 +303,9 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             linked_configuration_attribute_gui.update_text()
             
     def set_calculation_type(self, symbol_calculation_type, update_linked=True):
-        self.__configuration_attribute.set_symbol_calculation_type(symbol_calculation_type)
-        
+        if update_linked:
+            self.__configuration_attribute.set_symbol_calculation_type(symbol_calculation_type)
+            
         if self.__configuration_input != None:
             self.__configuration_input.update_symbol_calculation_type()
         
@@ -310,9 +313,14 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             for linked_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self):
                 linked_attribute_gui.set_calculation_type(symbol_calculation_type, False)
                 
+        self.update_text()
+        
+    def reset_calculation_type(self):
+        self.set_calculation_type(None)
+        
     def get_attribute_text(self):
         text = ""
-        is_bold = self.__configuration_input != None
+        is_bold = self.__configuration_attribute.get_symbol_calculation_type() != None
         
         if self.__configuration_attribute.get_symbol_value_type() != None:
             text = f"{self.__configuration_attribute.get_name()} ({self.__configuration_attribute.get_symbol_value_type()})"
@@ -379,6 +387,7 @@ class GUIConfigurationInput(GUIModelingBlock):
             if self.__attached_configuration_attribute_gui != None:
                 self.__attached_configuration_attribute_gui.get_configuration_attribute().remove_all_input_configuration_attributes()
                 self.__attached_configuration_attribute_gui.remove_configuration_input()
+                self.__attached_configuration_attribute_gui.reset_calculation_type()
                 self.__attached_configuration_attribute_gui.update_value_input_type_setup_attributes_gui()
                 self.__attached_configuration_attribute_gui = None
                 
@@ -411,16 +420,19 @@ class GUIConfigurationInput(GUIModelingBlock):
                     self.__attached_configuration_attribute_gui = configuration_attribute_gui
                     self.__attached_configuration_attribute_gui.set_configuration_input(self)
                     
+                    # Update calculation type of input block but not the attribute
+                    if self.__attached_configuration_attribute_gui.get_configuration_class_gui().is_linked() and self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != None:
+                        self.update_symbol_calculation_type()
+                        
+                    # Updated calculation type of attribute according to the input block
+                    else:
+                        self.__attached_configuration_attribute_gui.set_calculation_type(self.__symbol_calculation_type)
+                        
                     for connection in self.__connections:
                         self.attempt_to_add_connection_to_attribute(connection)
                         
                         # If changing side of input block, the connections should also change side
                         connection.update_direction(self, direction_out_from_block)
-                        
-                    if self.__attached_configuration_attribute_gui.get_configuration_class_gui().is_linked():
-                        self.update_symbol_calculation_type()
-                    else:
-                        self.__attached_configuration_attribute_gui.set_calculation_type(self.__symbol_calculation_type)
                         
                     self.__attached_configuration_attribute_gui.update_value_input_type_setup_attributes_gui()
                     break

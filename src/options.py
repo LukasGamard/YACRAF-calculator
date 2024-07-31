@@ -103,7 +103,12 @@ class OptionsConfigurationAttribute(Options):
         self.__value_type = tk.StringVar()
         self.__is_hidden = tk.BooleanVar()
         
-        self.__value_type.set(configuration_attribute_gui.get_configuration_attribute().get_symbol_value_type())
+        symbol_value_type = configuration_attribute_gui.get_configuration_attribute().get_symbol_value_type()
+        
+        if symbol_value_type == None:
+            symbol_value_type = ""
+            
+        self.__value_type.set(symbol_value_type)
         self.__is_hidden.set(configuration_attribute_gui.is_hidden())
         
         self.add_name_entry("Name:")
@@ -117,7 +122,7 @@ class OptionsConfigurationAttribute(Options):
             radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__value_type, value=value_type_symbol, command=self.set_value_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_ATTRIBUTE_WIDTH, anchor="w")
             radio_button.grid(row=4+i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
-        row_after_radio_buttons = 4 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
+        row_after_radio_buttons = 5 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
         self.add_label(row_after_radio_buttons, 0, 2, "")
         
         self.__hidden_toggle = tk.Checkbutton(self.get_window(), text="Hide", font=FONT, variable=self.__is_hidden, command=self.set_is_hidden)
@@ -129,7 +134,12 @@ class OptionsConfigurationAttribute(Options):
         self.__configuration_class_gui.swap_attribute_places(self.__configuration_attribute_gui, up)
         
     def set_value_type(self):
-        self.__configuration_attribute_gui.set_value_type(self.__value_type.get())
+        symbol_value_type = self.__value_type.get()
+        
+        if symbol_value_type == "":
+            symbol_value_type = None
+            
+        self.__configuration_attribute_gui.set_value_type(symbol_value_type)
         
     def set_is_hidden(self):
         self.__configuration_attribute_gui.set_hidden(self.__is_hidden.get())
