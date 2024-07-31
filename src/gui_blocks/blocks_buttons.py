@@ -22,7 +22,6 @@ class GUIBlockButton(GUIBlock):
         pass
         
     def set_text(self, text):
-        self.__text = text
         self.get_canvas().itemconfig(self.__label, text=text)
         
     def delete(self):
@@ -69,8 +68,8 @@ class GUIChangeViewButton(GUIBlockButton):
         self.get_model().change_view(self.__view_to_change_to)
         
     def right_pressed(self, event):
-        OptionsView(self.get_model(), self.__view_to_change_to)
-
+        self.__view_to_change_to.open_options()
+        
 class GUIAddConfigurationClassButton(GUIBlockButton):
     def __init__(self, model, view, x, y):
         super().__init__(model, view, "Add class", x, y, ADD_CLASS_WIDTH, ADD_CLASS_HEIGHT, ADD_CLASS_COLOR)
@@ -122,7 +121,7 @@ class GUIRunScriptButton(GUIBlockButton):
         
         if not is_clear_button:
             # Import the module of the script
-            script_path = os.path.join(SCRIPTS_PATH, f"{script_name}.py")
+            script_path = os.path.join(BASE_PATH, SCRIPTS_PATH, f"{script_name}.py")
             spec = importlib.util.spec_from_file_location(script_name, script_path)
             self.__script_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.__script_module)

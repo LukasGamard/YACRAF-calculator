@@ -235,11 +235,14 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_input = configuration_input
         self.add_attached_block(configuration_input)
         
+        self.update_text()
+        
     def remove_configuration_input(self):
         self.remove_attached_block(self.__configuration_input)
         self.__configuration_input = None
         
         self.__configuration_attribute.set_symbol_calculation_type(None)
+        self.update_text()
         
     """
     def get_configuration_input(self):
@@ -306,17 +309,25 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         if update_linked:
             for linked_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self):
                 linked_attribute_gui.set_calculation_type(symbol_calculation_type, False)
-            
-    def update_text(self):
+                
+    def get_attribute_text(self):
+        text = ""
+        is_bold = self.__configuration_input != None
+        
         if self.__configuration_attribute.get_symbol_value_type() != None:
             text = f"{self.__configuration_attribute.get_name()} ({self.__configuration_attribute.get_symbol_value_type()})"
         else:
             text = f"{self.__configuration_attribute.get_name()}"
+            
+        return text, is_bold
         
-        self.set_text(text)
+    def update_text(self):
+        text, is_bold = self.get_attribute_text()
+        
+        self.set_text(text, is_bold)
         
         for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.set_text(text)
+            setup_attribute_gui.update_text()
             
     def update_value_input_type_setup_attributes_gui(self):
         attribute_index = self.__configuration_class_gui.get_configuration_attributes_gui().index(self)
@@ -435,7 +446,12 @@ class GUIConfigurationInput(GUIModelingBlock):
     def update_symbol_calculation_type(self):
         if self.__attached_configuration_attribute_gui != None:
             self.__symbol_calculation_type = self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type()
-            self.set_text(self.__symbol_calculation_type)
+            text = self.__symbol_calculation_type
+            
+            if text == None:
+                text = "?"
+                
+            self.set_text(text)
             
     def attempt_to_add_connection_to_attribute(self, connection):
         if self.__attached_configuration_attribute_gui != None:

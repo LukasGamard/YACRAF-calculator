@@ -198,11 +198,12 @@ class GUISetupAttribute(GUIModelingBlock):
         
         width = ATTRIBUTE_WIDTH * SETUP_WIDTH_MULTIPLIER
         height = ATTRIBUTE_HEIGHT
+        text_width = ATTRIBUTE_WIDTH
         
         actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
-        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
+        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
         self.__entry_value = None
         self.__entry_value_window = None
         
@@ -211,6 +212,7 @@ class GUISetupAttribute(GUIModelingBlock):
         
         configuration_attribute_gui.add_setup_attribute_gui(self)
         
+        self.update_text()
         self.update_value_input_type()
         
     def move_block(self, move_x, move_y):
@@ -228,11 +230,10 @@ class GUISetupAttribute(GUIModelingBlock):
         super().scale(last_length_unit)
         
         if self.__entry_value != None:
-            font_size = self.get_view().get_font_size()
             actual_width, actual_height = self.get_entry_size()
             actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), self.get_view().get_canvas().coords(self.__entry_value_window), last_length_unit)
             
-            self.__entry_value.config(font=(FONT[0], font_size))
+            self.__entry_value.config(font=self.get_view().get_updated_font())
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
             self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
@@ -286,7 +287,7 @@ class GUISetupAttribute(GUIModelingBlock):
             
     def set_displayed_value(self, value, color=None):
         if color == None:
-            color = self.get_default_text_color()
+            color = TEXT_COLOR
             
         if value == None:
             value = "ERROR"
@@ -325,15 +326,13 @@ class GUISetupAttribute(GUIModelingBlock):
             return True
             
         return False
-            
-    def get_name(self):
-        return self.__setup_attribute.get_name()
-    
-    def set_name(self, name):
-        self.__setup_attribute.set_name(name)
-        
+                
     # def is_hidden(self):
         # return self.__configuration_attribute_gui.is_hidden()
+        
+    def update_text(self):
+        text, is_bold = self.__configuration_attribute_gui.get_attribute_text()
+        self.set_text(text, is_bold)
         
     def delete(self):
         super().delete()

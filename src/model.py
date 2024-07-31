@@ -4,7 +4,7 @@ from connection_gui import GUIConnection
 from config import *
 
 class Model:
-    def __init__(self, root, new_save):
+    def __init__(self, root, new_save, *, num_configuration_views=1, num_setup_views=3):
         self.__root = root
         self.__configuration_views = []
         self.__setup_views = []
@@ -19,33 +19,38 @@ class Model:
         
         # Create new views
         if new_save:
-            self.create_view(True, "Configuration")
-            
-            for i in range(3):
+            for i in range(num_configuration_views):
+                self.create_view(True, "Configuration")
+                
+            for i in range(num_setup_views):
                 self.create_view(False, f"Setup {i+1}")
-            
+                
         # Restore saved views
         else:
-            with open(FILE_PATHS_SAVES_PATH, "r") as file_with_paths:
+            with open(f"{BASE_PATH}/{FILE_PATHS_SAVES_PATH}", "r") as file_with_paths:
                 mapping_configuration_class_gui = {}
                 
                 for line in file_with_paths:
-                    view_type, file_path = line.strip().split(",")
-                    _, view_name = os.path.split(file_path) # Get last element in path
+                    file_path = line.strip()
+                    view_directory_path, view_name = os.path.split(file_path)
                     view_name = view_name.replace(".pickle", "")
                     
-                    if view_type == "configuration":
+                    if view_directory_path == CONFIGURATION_SAVES_PATH:
                         configuration_view = self.create_view(True, view_name)
                         mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
                         
-                    elif view_type == "setup":
+                    elif view_directory_path == SETUP_SAVES_PATH:
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
                         
                 self.calculate_values()
                 
-        self.change_view(self.__configuration_views[0])
-        
+        if len(self.__configuration_views) > 0:
+            self.change_view(self.__configuration_views[0])
+            
+        elif len(self.__setup_views) > 0:
+            self.change_view(self.__setup_views[0])
+            
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
         for existing_setup_view in self.__setup_views:
             existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
@@ -312,18 +317,18 @@ class Model:
         setup_view_names = set()
         
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
-        with open(FILE_PATHS_SAVES_PATH, "w") as file_with_paths:
+        with open(f"{BASE_PATH}/{FILE_PATHS_SAVES_PATH}", "w") as file_with_paths:
             # Need to store configuration views first as they need to be restored before setup views so that they can use their configurations
             for configuration_view in self.__configuration_views:
                 self.update_duplicate_view_name(configuration_view, configuration_view_names)
                 configuration_view_names.add(configuration_view.get_name())
                 
                 file_path = configuration_view.save()
-                file_with_paths.write(f"configuration,{file_path}\n")
+                file_with_paths.write(f"{file_path}\n")
                 
             for setup_view in self.__setup_views:
                 self.update_duplicate_view_name(setup_view, setup_view_names)
                 setup_view_names.add(setup_view.get_name())
                 
                 file_path = setup_view.save()
-                file_with_paths.write(f"setup,{file_path}\n")
+                file_with_paths.write(f"{file_path}\n")

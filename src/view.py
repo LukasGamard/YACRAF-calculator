@@ -6,6 +6,7 @@ from blocks_configuration import GUIConfigurationClass, GUIConfigurationInput
 from blocks_setup import GUISetupClass, GUIConnectionTriangle
 from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton, GUIRunScriptButton
 from connection_gui import GUIConnection, GUIConnectionWithBlocks
+from options import OptionsView
 from helper_functions import convert_actual_coordinate_to_grid, delete_all
 from config import *
 
@@ -25,6 +26,7 @@ class View(tk.Frame):
         self.__grid_offset = (0, 0) # How much items are offset from the grid in the range [0, 1) due to panning/zooming
         
         self.__canvas = tk.Canvas(self, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg=BACKGROUND_COLOR)
+        self.__canvas_size = (CANVAS_WIDTH, CANVAS_HEIGHT)
         self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_CONFIGURATION_START_POSITION[1], True)
         self.__add_change_setup_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_SETUP_START_POSITION[1], False)
         self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
@@ -39,7 +41,9 @@ class View(tk.Frame):
         self.__canvas.bind(MOUSE_WHEEL_DOWN, self.zoom_out)
         self.__canvas.bind(MOUSE_WHEEL, lambda event: self.zoom_in(event) if event.delta > 0 else self.zoom_out(event))
         
-        self.__canvas.pack()
+        self.__canvas.bind("<Configure>", self.on_resize)
+        
+        self.__canvas.pack(expand=True, fill="both")
         
     def pan_start(self, event):
         self.__is_panning = len(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y))) == 0
@@ -126,8 +130,46 @@ class View(tk.Frame):
             
         self.__is_zooming = False
         
-    def get_font_size(self):
-        return int(FONT[1] * self.get_length_unit() / LENGTH_UNIT)
+    def on_resize(self, event):
+        self.__canvas.config(width=event.width, height=event.height)
+        
+        actual_move_x = event.width - self.__canvas_size[0]
+        actual_move_y = event.height - self.__canvas_size[1]
+        move_x, move_y = convert_actual_coordinate_to_grid(self, actual_move_x, actual_move_y)
+        
+        self.__canvas_size = (event.width, event.height)
+        
+        for item_to_move_x in list(self.__configuration_change_view_buttons.values()) + list(self.__setup_change_view_buttons.values()) + [self.__add_change_configuration_view_button, self.__add_change_setup_view_button]:
+            item_to_move_x.move_block(move_x, 0)
+            
+        self.__save_button.move_block(0, move_y)
+        
+        return move_x, move_y
+            
+    def open_options(self):
+        return OptionsView(self.get_model(), self)
+        
+    def get_updated_font(self, label=None):
+        new_font_size = int(FONT[1] * self.get_length_unit() / LENGTH_UNIT + 0.5)
+        
+        if new_font_size < 1:
+            new_font_size = 1
+        
+        if label == None:
+            return (FONT[0], new_font_size)
+            
+        current_font = self.__canvas.itemcget(label, "font").split()
+        
+        if len(current_font) == 2:
+            updated_font = (current_font[0], new_font_size)
+            
+        elif len(current_font) == 3:
+            updated_font = (current_font[0], new_font_size, current_font[2])
+            
+        else:
+            print(f"Error: Found font {current_font}")
+            
+        return updated_font
         
     def get_model(self):
         return self.__model
@@ -308,7 +350,7 @@ class ConfigurationView(View):
             
         # try:
         if True:
-            with open(file_path, "rb") as file_pickle:
+            with open(f"{BASE_PATH}/{file_path}", "rb") as file_pickle:
                 grid_offset, saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 
@@ -395,7 +437,7 @@ class SetupView(View):
         
         self.__run_script_buttons = []
         
-        for file_name_full in os.listdir(SCRIPTS_PATH):
+        for file_name_full in os.listdir(f"{BASE_PATH}/{SCRIPTS_PATH}"):
             file_name = file_name_full.replace(".py", "")
             
             if file_name not in ("SCRIPT_TEMPLATE", "__pycache__"):
@@ -405,6 +447,15 @@ class SetupView(View):
                 run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
                 self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
                 
+    def on_resize(self, event):
+        move_x, move_y = super().on_resize(event)
+        
+        self.__add_connection_button.move_block(move_x/2, 0)
+        self.__calculate_value_button.move_block(move_x/2, 0)
+        
+        for run_script_button in self.__run_script_buttons:
+            run_script_button.move_block(move_x, move_y)
+            
     def create_connection_with_blocks(self):
         connection_with_blocks = GUIConnectionWithBlocks(self.get_model(), self)
         self.__connections_with_blocks.append(connection_with_blocks)
@@ -506,7 +557,7 @@ class SetupView(View):
             
         # try:
         if True:
-            with open(file_path, "rb") as file_pickle:
+            with open(f"{BASE_PATH}/{file_path}", "rb") as file_pickle:
                 grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 

@@ -1,11 +1,12 @@
 import tkinter as tk
+import tkinter.font as tkfont
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, delete_all
 from options import OptionsConnection
 from config import *
 
 class GUIBlock:
-    def __init__(self, model, view, pressable_items, x, y, width, height, *, bind_left=None, bind_right=None):
+    def __init__(self, model, view, pressable_items, x, y, width, height, *, text_width=None, bind_left=None, bind_right=None):
         self.__model = model
         self.__view = view
         self.__pressable_items = pressable_items
@@ -13,6 +14,11 @@ class GUIBlock:
         self.__y = y
         self.__width = width
         self.__height = height
+        
+        if text_width == None:
+            self.__text_width = width
+        else:
+            self.__text_width = text_width
         
         self.__draggable = bind_left == MOUSE_DRAG
         self.__picked_up = False
@@ -30,6 +36,8 @@ class GUIBlock:
                 view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
         self.__is_deleted = False
+        
+        GUIBlock.scale(self, view.get_length_unit())
         
     def left_pressed(self, event):
         # Pick up block
@@ -74,9 +82,7 @@ class GUIBlock:
             elif item_type == "text":
                 x, y = adjusted_actual_coordinates
                 self.__view.get_canvas().coords(pressable_item, x, y)
-                
-                font_size = self.__view.get_font_size()
-                self.__view.get_canvas().itemconfig(pressable_item, font=(FONT[0], font_size))
+                self.__view.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(pressable_item))
             
     def snap_to_grid(self):
         move_x, move_y = distance_to_closest_grid_intersection(self.__view, self.__x, self.__y)
@@ -113,6 +119,9 @@ class GUIBlock:
     def get_height(self):
         return self.__height
         
+    def get_text_width(self):
+        return self.__text_width
+        
     def get_direction(self, mouse_x, mouse_y):
         direction = "RIGHT"
         actual_mid_x = convert_grid_coordinate_to_actual(self.__view, self.get_x()+self.get_width()//2, 0)[0]
@@ -135,7 +144,7 @@ class GUIBlock:
         return {"x": self.__x, "y": self.__y}
         
 class GUIModelingBlock(GUIBlock):
-    def __init__(self, model, view, text, x, y, width, height, fill_color, *, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None):
+    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None):
         canvas = view.get_canvas()
         actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
         actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
@@ -146,7 +155,7 @@ class GUIModelingBlock(GUIBlock):
             label_text_x = x + width / 2
             
         actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, label_text_x, y+height/2)
-        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT)
+        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT, justify="center")
         self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
         
         pressable_items = [self.__rect, self.__label_text]
@@ -157,7 +166,7 @@ class GUIModelingBlock(GUIBlock):
                 
             pressable_items += additional_pressable_items
             
-        super().__init__(model, view, pressable_items, x, y, width, height, bind_left=bind_left, bind_right=bind_right)
+        super().__init__(model, view, pressable_items, x, y, width, height, text_width=text_width, bind_left=bind_left, bind_right=bind_right)
         self.__text = text
         self.__attached_blocks = []
         
@@ -193,10 +202,43 @@ class GUIModelingBlock(GUIBlock):
     def get_text(self):
         return self.__text
         
-    def set_text(self, text, space_from_end_to_break=1):
-        self.__text = text
-        self.get_canvas().itemconfig(self.__label_text, text=text)
+    def set_text(self, text, is_bold=False):        
+        font = self.get_view().get_updated_font(self.__label_text)
+        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.get_view(), self.get_text_width(), 0)[0] - 2 * OUTLINE_WIDTH
         
+        if is_bold:
+            font = (font[0], font[1], "bold")
+            actual_text_width = tkfont.Font(family=font[0], size=font[1], weight=font[2]).measure(text)
+        else:
+            font = (font[0], font[1])
+            actual_text_width = tkfont.Font(family=font[0], size=font[1]).measure(text)
+            
+        # Should add line break and lower font size
+        if actual_text_width >= actual_maximum_text_width:
+            if is_bold:
+                font = (font[0], font[1]-FONT_DECREASE_LINE_BREAK, "bold")
+            else:
+                font = (font[0], font[1]-FONT_DECREASE_LINE_BREAK)
+                
+            # Find the space that is closest to the middle and line break there
+            words = text.split()
+            mid_index = len(text) // 2
+            current_number_of_characters = 0
+            
+            for i, word in enumerate(words):
+                current_number_of_characters += len(word) + 1
+                
+                if current_number_of_characters >= mid_index:
+                    if current_number_of_characters - mid_index < len(word) // 2:
+                        text = " ".join(words[:i+1]) + "\n" + " ".join(words[i+1:])
+                    else:
+                        text = " ".join(words[:i]) + "\n" + " ".join(words[i:])
+                        
+                    break
+                    
+        self.__text = text
+        self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
+         
     def get_default_text_color(self):
         return self.__default_text_color
             
@@ -315,11 +357,10 @@ class NumberIndicator:
     def scale(self, last_length_unit):
         circle_x1, circle_y1, circle_x2, circle_y2 = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(self.__circle), last_length_unit)
         label_x, label_y = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(self.__label), last_length_unit)
-        font_size = self.__view.get_font_size()
         
         self.__view.get_canvas().coords(self.__circle, circle_x1, circle_y1, circle_x2, circle_y2)
         self.__view.get_canvas().coords(self.__label, label_x, label_y)
-        self.__view.get_canvas().itemconfig(self.__label, font=(FONT[0], font_size))
+        self.__view.get_canvas().itemconfig(self.__label, font=self.__view.get_updated_font(self.__label))
             
     def create(self, text):
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
