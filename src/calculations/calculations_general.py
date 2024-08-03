@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 from config import *
         
 def check_input_value_types(symbol_calculation_type, input_attributes):
@@ -6,97 +7,129 @@ def check_input_value_types(symbol_calculation_type, input_attributes):
     Checks that all the value types of all input attributes are allowed for the specific mathematical operation (calculation type)
     """
     if symbol_calculation_type == None:
-        print("Error: Found calculation type {symbol_calculation_type}")
+        print(f"Error: Found calculation type {symbol_calculation_type}")
         return False
     
     # Allowed input value types when sampling triangle distributions
     if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
         # Need to be exactly two input attributes
-        if len(input_attributes) != 2:
-            print("Error: Not exactly 2 connected input attributes to input block with calculation type {symbol_calculation_type}")
+        if len(input_attributes) > 2:
+            print(f"Error: More than 2 connected input attributes to input block with calculation type {symbol_calculation_type}")
             return False
             
         # All input values types must be triangle distributions
         for input_attribute in input_attributes:
             if input_attribute.get_symbol_value_type() != SYMBOL_VALUE_TYPE_TRIANGLE:
-                print("Error: All connected input attributes did not have value type {input_attribute.get_symbol_value_type()} for calculation type {symbol_calculation_type}")
+                print(f"Error: All connected input attributes did not have value type {input_attribute.get_symbol_value_type()} for calculation type {symbol_calculation_type}")
                 return False
                 
     # Check that all input attributes are of the same value type
-    input_attributes_list = list(input_attributes)
-    
-    for i in range(1, len(input_attributes_list)):
-        if input_attributes_list[i].get_symbol_value_type() != input_attributes_list[i-1].get_symbol_value_type():
-            print("Error: All connected input attributes did not have the same value type for input block with calculation type {symbol_calculation_type}")
+    for i in range(1, len(input_attributes)):
+        if input_attributes[i].get_symbol_value_type() != input_attributes[i-1].get_symbol_value_type():
+            print(f"Error: All connected input attributes did not have the same value type for input block with calculation type {symbol_calculation_type}")
             return False
             
     return True
     
-def extract_input_values(input_attributes):
+def find_configuration_attribute_index(input_configuration_attributes, input_setup_attribute):
+    for i, input_configuration_attribute in enumerate(input_configuration_attributes):
+        if input_setup_attribute.has_configuration_attribute(input_configuration_attribute):
+            return i
+            
+    return None
+    
+def apply_input_scalars(input_value, configuration_input_scalar=None, setup_input_scalars=None):
+    if configuration_input_scalar != None:
+        input_value *= configuration_input_scalar
+        
+    if setup_input_scalars != None:
+        if len(setup_input_scalars) == 1 or (len(setup_input_scalars) == 3 and len(input_value) == 3):
+            input_value *= setup_input_scalars
+            
+    return input_value
+    
+def extract_input_values(symbol_calculation_type, input_configuration_attributes, input_setup_attributes, configuration_input_scalar=None, setup_input_scalars_per_attribute=None):
     input_values = []
     input_symbol_value_type = ""
     
-    for input_attribute in input_attributes:
-        input_symbol_value_type = input_attribute.get_symbol_value_type()
+    # Sampling of triangle distribution need exactly two inputs, set default inputs
+    if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
+        input_values = [np.array([0, 0, 0]), np.array([0, 0, 0])]
+              
+    for i, input_setup_attribute in enumerate(input_setup_attributes):
+        input_symbol_value_type = input_setup_attribute.get_symbol_value_type()
+        setup_input_scalars = setup_input_scalars_per_attribute[i]
         
-        if input_attribute.has_override_value():
-            input_value = input_attribute.get_override_value()
+        # Get currently active value
+        if input_setup_attribute.has_override_value():
+            input_value = input_setup_attribute.get_override_value()
         else:
-            input_value = input_attribute.get_value()
-            
+            input_value = input_setup_attribute.get_value()
+                    
+        # There is a currently active value
         if input_value != None:
             if input_symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
                 try:
                     input_value_int = float(str(input_value).strip())
                     
                 except:
-                    print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
+                    print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                input_values.append(np.array([input_value_int]))
+                input_values.append(apply_input_scalars(np.array([input_value_int]), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars))
                 
             elif input_symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
                 try:
                     current_input_values = [float(value.strip()) for value in input_value.split("/")]
                     
                 except:
-                    print(f"Error: Could not cast the elements of {input_values} to float for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
+                    print(f"Error: Could not cast the elements of {input_values} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
+                # Need to be exactly three values for triangle distribution
                 if len(current_input_values) != 3:
-                    print(f"Error: Not three values in {input_value} for {input_symbol_value_type} at attribute {input_attribute.get_name()}")
+                    print(f"Error: Not three values in {input_value} for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                input_values.append(np.array(current_input_values))
+                current_input_values = apply_input_scalars(np.array(current_input_values), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars)
                 
+                # Find and replace default input
+                if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
+                    input_values[find_configuration_attribute_index(input_configuration_attributes, input_setup_attribute)] = current_input_values
+                else:
+                    input_values.append(current_input_values)
             else:
-                print(f"Error: Did not recognize the value type {input_symbol_value_type} at attribute {input_attribute.get_name()}")
+                print(f"Error: Did not recognize the value type {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                 return None
-            
+                                   
     return input_values
     
-def combine_values(symbol_calculation_type, symbol_value_type, input_attributes):
-    if not check_input_value_types(symbol_calculation_type, input_attributes):
+def combine_values(symbol_calculation_type, symbol_value_type, input_configuration_attributes, input_setup_attributes, *, configuration_input_scalar=None, setup_input_scalars_per_attribute=None):
+    if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_QUALITATIVE:
+        return None
+        
+    if not check_input_value_types(symbol_calculation_type, input_setup_attributes):
         print("Error: Incorrect input")
         return None
         
-    input_values = extract_input_values(input_attributes)
+    input_values = extract_input_values(symbol_calculation_type, input_configuration_attributes, input_setup_attributes, configuration_input_scalar=configuration_input_scalar, setup_input_scalars_per_attribute=setup_input_scalars_per_attribute)
     
     if input_values == None:
         print("Error: Could not extract input values")
         return None
-        
+          
     # Default values if no inputs
     if len(input_values) == 0:
-        if symbol_calculation_type in (SYMBOL_CALCULATION_TYPE_MEAN, SYMBOL_CALCULATION_TYPE_AND, SYMBOL_CALCULATION_TYPE_OR):
+        if symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
             output_values = [0]
             
-        elif symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
+        elif symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
             output_values = [0, 0, 0]
             
         else:
             print(f"Error: Did not recognized calculation type {symbol_calculation_type}")
             return None
+            
     else:
         # Mean calculation
         if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_MEAN:
@@ -117,11 +150,18 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_attributes)
         # Comparing samples from two triangle distributions
         elif symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
             sampled_values = []
+            small_float_value = 1e-10
             
             for input_value in input_values:
-                sampled_values.append(np.random.triangular(input_value[0], input_value[1], input_value[2], SAMPLES_TRIANGLE_DISTRIBUTION))
+                a, b, c = input_value
                 
-            output_values = str(float(np.sum(sampled_values[0] > sampled_values[1])) / SAMPLES_TRIANGLE_DISTRIBUTION)
+                if a == b == c:
+                    a -= small_float_value
+                    c += small_float_value
+                    
+                sampled_values.append(np.random.triangular(a, b, c, SAMPLES_TRIANGLE_DISTRIBUTION))
+                
+            output_values = [np.array(np.sum(sampled_values[0] > sampled_values[1]) / SAMPLES_TRIANGLE_DISTRIBUTION)]
             
         else:
             print(f"Error: Did not recognized calculation type {symbol_calculation_type}")
@@ -129,10 +169,10 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_attributes)
             
     # Format output
     if symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
-        output_values = str(float(output_values[0]))
+        output_values = str(round(float(output_values[0]), 3))
         
     elif symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
-        output_values = " / ".join([str(float(output_value)) for output_value in output_values])
+        output_values = " / ".join([str(round(float(output_value), 3)) for output_value in output_values])
         
     else:
         print(f"Error: Did not recognized value type {symbol_value_type}")

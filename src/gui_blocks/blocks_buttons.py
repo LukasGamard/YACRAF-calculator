@@ -1,32 +1,26 @@
 import os
 import importlib.util
 from helper_functions import convert_grid_coordinate_to_actual
-from blocks_general import GUIBlock
+from blocks_general import GUIModelingBlock
 from options import OptionsView
 from script_interface import ScriptInterface
 from config import *
 
-class GUIBlockButton(GUIBlock):
-    def __init__(self, model, view, text, x, y, width, height, fill_color, bind_right=None):
-        canvas = view.get_canvas()
-        actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
-        actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
-        actual_label_x, actual_label_y = convert_grid_coordinate_to_actual(view, x+width/2, y+height/2)
-        
-        self.__rect = canvas.create_rectangle(actual_rect_x1, actual_rect_y1, actual_rect_x2, actual_rect_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=fill_color)
-        self.__label = canvas.create_text(actual_label_x, actual_label_y, text=text, font=FONT)
-        
-        super().__init__(model, view, [self.__rect, self.__label], x, y, width, height, bind_left=MOUSE_PRESS, bind_right=bind_right)
+class GUIBlockButton(GUIModelingBlock):
+    def __init__(self, model, view, text, x, y, width, height, fill_color):
+        super().__init__(model, view, text, x, y, width, height, fill_color, bind_left=MOUSE_PRESS)
         
     def left_pressed(self, event):
         pass
         
+    """
     def set_text(self, text):
         self.get_canvas().itemconfig(self.__label, text=text)
         
     def delete(self):
         self.get_canvas().delete(self.__rect)
         self.get_canvas().delete(self.__label)
+    """
         
 class GUIAddAttributeButton(GUIBlockButton):
     def __init__(self, model, view, x, y, configuration_class_gui):
@@ -61,14 +55,11 @@ class GUIChangeViewButton(GUIBlockButton):
         else:
             color = CHANGE_VIEW_COLOR
             
-        super().__init__(model, view, view_name, x, y, CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT, color, MOUSE_PRESS)
+        super().__init__(model, view, view_name, x, y, CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT, color)
         self.__view_to_change_to = view_to_change_to
         
     def left_pressed(self, event):
         self.get_model().change_view(self.__view_to_change_to)
-        
-    def right_pressed(self, event):
-        self.__view_to_change_to.open_options()
         
 class GUIAddConfigurationClassButton(GUIBlockButton):
     def __init__(self, model, view, x, y):
@@ -79,7 +70,7 @@ class GUIAddConfigurationClassButton(GUIBlockButton):
         
 class GUIAddToSetupButton(GUIBlockButton):
     def __init__(self, model, view, x, y, configuration_class_gui):
-        super().__init__(model, view, f"Add {configuration_class_gui.get_name()}", x, y, ADD_TO_SETUP_WIDTH, ADD_TO_SETUP_HEIGHT, ADD_TO_SETUP_COLOR)
+        super().__init__(model, view, configuration_class_gui.get_name(), x, y, ADD_TO_SETUP_WIDTH, ADD_TO_SETUP_HEIGHT, ADD_TO_SETUP_COLOR)
         self.__configuration_class_gui = configuration_class_gui
         
         configuration_class_gui.add_to_setup_button(view, self)

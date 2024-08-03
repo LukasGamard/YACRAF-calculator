@@ -1,12 +1,11 @@
 import tkinter as tk
 import tkinter.font as tkfont
 import numpy as np
-from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, delete_all
-from options import OptionsConnection
+from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, get_max_directions_movement, delete_all
 from config import *
 
 class GUIBlock:
-    def __init__(self, model, view, pressable_items, x, y, width, height, *, text_width=None, bind_left=None, bind_right=None):
+    def __init__(self, model, view, pressable_items, x, y, width, height, *, bind_left=None, bind_right=None):
         self.__model = model
         self.__view = view
         self.__pressable_items = pressable_items
@@ -14,11 +13,8 @@ class GUIBlock:
         self.__y = y
         self.__width = width
         self.__height = height
-        
-        if text_width == None:
-            self.__text_width = width
-        else:
-            self.__text_width = text_width
+        self.__has_line_break_text = False
+        self.__shapes_highlight = []
         
         self.__draggable = bind_left == MOUSE_DRAG
         self.__picked_up = False
@@ -35,28 +31,56 @@ class GUIBlock:
             if bind_right == MOUSE_PRESS:
                 view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
+        self.__has_moved = False
         self.__is_deleted = False
         
         GUIBlock.scale(self, view.get_length_unit())
         
     def left_pressed(self, event):
+        self.__view.select_item(self)
+        
         # Pick up block
         if self.__draggable:
             self.__pick_up_actual_coordinate = (event.x, event.y)
             self.__picked_up = True
             
-    def left_dragged(self, event):
+    def left_dragged(self, event, *, max_positive_move_x=None, max_negative_move_x=None, max_positive_move_y=None, max_negative_move_y=None, single_direction=False):
         if self.__picked_up:
+            self.__has_moved = True
             move_x, move_y = convert_actual_coordinate_to_grid(self.__view, event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1])
             
+            if max_positive_move_x != None and move_x > max_positive_move_x:
+                move_x = max_positive_move_x
+                
+            elif max_negative_move_x != None and move_x < max_negative_move_x:
+                move_x = max_negative_move_x
+                
+            if max_positive_move_y != None and move_y > max_positive_move_y:
+                move_y = max_positive_move_y
+                
+            elif max_negative_move_y != None and move_y < max_negative_move_y:
+                move_y = max_negative_move_y
+                
+            if single_direction:
+                if abs(move_x) >= abs(move_y):
+                    move_y = 0
+                else:
+                    move_x = 0
+                    
             self.move_block(move_x, move_y)
             
             self.__pick_up_actual_coordinate = (event.x, event.y)
             
+            return move_x, move_y
+            
+        return 0, 0
+        
     def left_released(self, event):
         # Put down block
         if self.__picked_up:
-            self.snap_to_grid()
+            if self.__has_moved:
+                self.snap_to_grid()
+                
             self.__picked_up = False
             
             return True
@@ -82,7 +106,56 @@ class GUIBlock:
             elif item_type == "text":
                 x, y = adjusted_actual_coordinates
                 self.__view.get_canvas().coords(pressable_item, x, y)
-                self.__view.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(pressable_item))
+                self.__view.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(label=pressable_item, has_line_break=self.__has_line_break_text))
+                
+    def highlight(self, color):
+        GUIBlock.unhighlight(self)
+        
+        for pressable_item in self.__pressable_items:
+            item_type = self.__view.get_canvas().type(pressable_item)
+            actual_coordinates = self.__view.get_canvas().coords(pressable_item)
+            
+            if item_type == "rectangle":
+                x1, y1, x2, y2 = actual_coordinates
+                rect = self.__view.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, y1-HIGHLIGHT_BORDER_WIDTH, x2+HIGHLIGHT_BORDER_WIDTH, y2+HIGHLIGHT_BORDER_WIDTH, width=0, fill=color)
+                
+                self.__view.get_canvas().tag_lower(rect)
+                self.__shapes_highlight.append(rect)
+                
+            elif item_type == "polygon":
+                actual_coordinate_pairs = list(zip(actual_coordinates[0::2], actual_coordinates[1::2]))
+                actual_center_x = sum(x for x, y in actual_coordinate_pairs) / 3
+                actual_center_y = sum(y for x, y in actual_coordinate_pairs) / 3
+                
+                new_actual_coordinate_pairs = []
+                
+                for x, y in actual_coordinate_pairs:
+                    vector_from_center = (x - actual_center_x, y - actual_center_y)
+                    magnitude = (vector_from_center[0] ** 2 + vector_from_center[1] ** 2) ** 0.5
+                    
+                    for vector_value, old_actual_value in zip(vector_from_center, (x, y)):
+                        new_actual_coordinate_pairs.append(old_actual_value + (vector_value / magnitude) * HIGHLIGHT_BORDER_WIDTH * 2)
+                        
+                x1, y1, x2, y2, x3, y3 = new_actual_coordinate_pairs
+                triangle = self.__view.get_canvas().create_polygon(x1, y1, x2, y2, x3, y3, width=0, fill=color)
+                
+                self.__view.get_canvas().tag_lower(triangle)
+                self.__shapes_highlight.append(triangle)
+                
+    def unhighlight(self):
+        for shape_highlight in self.__shapes_highlight:
+            self.__view.get_canvas().delete(shape_highlight)
+            
+        self.__shapes_highlight.clear()
+        
+    def update_highlight(self, color):
+        if len(self.__shapes_highlight) > 0:
+            self.unhighlight()
+            self.highlight(color)
+            
+    def raise_to_top(self):
+        for pressable_item in self.__pressable_items:
+            self.__view.get_canvas().tag_raise(pressable_item)
             
     def snap_to_grid(self):
         move_x, move_y = distance_to_closest_grid_intersection(self.__view, self.__x, self.__y)
@@ -91,10 +164,14 @@ class GUIBlock:
         
     def move_block(self, move_x, move_y):
         if move_x != 0 or move_y != 0:
-            for pressable_item in self.__pressable_items:
-                move_actual_x, move_actual_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
-                self.get_canvas().move(pressable_item, move_actual_x, move_actual_y)
+            move_actual_x, move_actual_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
             
+            for pressable_item in self.__pressable_items:
+                self.get_canvas().move(pressable_item, move_actual_x, move_actual_y)
+                
+            for shape_highlight in self.__shapes_highlight:
+                self.get_canvas().move(shape_highlight, move_actual_x, move_actual_y)
+                
             self.__x = round(self.__x + move_x, 3)
             self.__y = round(self.__y + move_y, 3)
             
@@ -119,6 +196,12 @@ class GUIBlock:
     def get_height(self):
         return self.__height
         
+    def has_line_break_text(self):
+        return self.__has_line_break_text
+        
+    def set_line_break_text(self, has_line_break_text):
+        self.__has_line_break_text = has_line_break_text
+        
     def get_text_width(self):
         return self.__text_width
         
@@ -136,10 +219,13 @@ class GUIBlock:
         
     def delete(self):
         self.__is_deleted = True
+        self.get_view().unselect_item(self)
         
         for pressable_items in self.__pressable_items:
             self.get_canvas().delete(pressable_items)
             
+        GUIBlock.unhighlight(self)
+        
     def save_state(self):
         return {"x": self.__x, "y": self.__y}
         
@@ -166,10 +252,17 @@ class GUIModelingBlock(GUIBlock):
                 
             pressable_items += additional_pressable_items
             
-        super().__init__(model, view, pressable_items, x, y, width, height, text_width=text_width, bind_left=bind_left, bind_right=bind_right)
+        super().__init__(model, view, pressable_items, x, y, width, height, bind_left=bind_left, bind_right=bind_right)
         self.__text = text
         self.__attached_blocks = []
         
+        if text_width != None:
+            self.__text_width = text_width
+        else:
+            self.__text_width = width
+            
+        self.set_text(text)
+            
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
@@ -182,6 +275,18 @@ class GUIModelingBlock(GUIBlock):
         
         for attached_block in self.__attached_blocks:
             attached_block.scale(last_length_unit)
+            
+    def highlight(self, color):
+        super().highlight(color)
+        
+        for attached_block in self.__attached_blocks:
+            attached_block.highlight(color)
+            
+    def unhighlight(self):
+        super().unhighlight()
+        
+        for attached_block in self.__attached_blocks:
+            attached_block.unhighlight()
             
     def is_adjacent(self, coordinates):
         for coordinate in coordinates:
@@ -202,9 +307,9 @@ class GUIModelingBlock(GUIBlock):
     def get_text(self):
         return self.__text
         
-    def set_text(self, text, is_bold=False):        
-        font = self.get_view().get_updated_font(self.__label_text)
-        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.get_view(), self.get_text_width(), 0)[0] - 2 * OUTLINE_WIDTH
+    def set_text(self, text, is_bold=False):
+        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.get_view(), self.__text_width, 0)[0] - 2 * OUTLINE_WIDTH
+        font = self.get_view().get_updated_font(label=self.__label_text)
         
         if is_bold:
             font = (font[0], font[1], "bold")
@@ -215,11 +320,8 @@ class GUIModelingBlock(GUIBlock):
             
         # Should add line break and lower font size
         if actual_text_width >= actual_maximum_text_width:
-            if is_bold:
-                font = (font[0], font[1]-FONT_DECREASE_LINE_BREAK, "bold")
-            else:
-                font = (font[0], font[1]-FONT_DECREASE_LINE_BREAK)
-                
+            self.set_line_break_text(True)
+            
             # Find the space that is closest to the middle and line break there
             words = text.split()
             mid_index = len(text) // 2
@@ -236,6 +338,16 @@ class GUIModelingBlock(GUIBlock):
                         
                     break
                     
+        else:
+            self.set_line_break_text(False)
+            
+        font = self.get_view().get_updated_font(label=self.__label_text, has_line_break=self.has_line_break_text())
+        
+        if is_bold:
+            font = (font[0], font[1], "bold")
+        else:
+            font = (font[0], font[1])
+            
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
          
@@ -252,13 +364,12 @@ class GUIModelingBlock(GUIBlock):
         return block in self.__attached_blocks
         
     def delete(self):
+        delete_all(self.__attached_blocks)
         super().delete()
         
-        delete_all(self.__attached_blocks)
-            
 class GUIClass(GUIModelingBlock):
     def __init__(self, model, view, text, x, y, width, height, is_configuration_class, linked_group_number=None):
-        super().__init__(model, view, text, x, y, width, height, CLASS_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+        super().__init__(model, view, text, x, y, width, height, CLASS_COLOR, bind_left=MOUSE_DRAG)
         self.__is_configuration_class = is_configuration_class
         self.__linked_group_number = linked_group_number
         self.__linked_group_indicator = None
@@ -306,7 +417,7 @@ class GUIClass(GUIModelingBlock):
         if self.__linked_group_number != None:
             self.__linked_group_indicator.remove()
             self.get_model().remove_class_gui_from_linked_group(self, self.__is_configuration_class)
-            
+                    
     def save_state(self):
         return super().save_state() | {"linked_group_number": self.__linked_group_number}
         
@@ -316,25 +427,31 @@ class GUIConnectionCorner(GUIBlock):
         actual_width, actual_height = convert_grid_coordinate_to_actual(view, CORNER_WIDTH, CORNER_HEIGHT)
         self.__rect = view.get_canvas().create_rectangle(actual_x, actual_y, actual_x+actual_width, actual_y+actual_height, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CORNER_COLOR)
         
-        super().__init__(model, view, [self.__rect], x, y, CORNER_WIDTH, CORNER_HEIGHT, bind_left=None, bind_right=MOUSE_PRESS)
+        super().__init__(model, view, [self.__rect], x, y, CORNER_WIDTH, CORNER_HEIGHT, bind_left=MOUSE_DRAG)
         self.__connection = connection
         
-    """
-    def left_pressed(self, event):
-        pass
-        if self.is_picked_up():
-            self.get_view().set_moving_connection_corner(self)
-        else:
-            self.get_view().reset_moving_connection_corner()
-    """
-    
-    def right_pressed(self, event):
-        if self.__connection.has_options():
-            OptionsConnection(self.get_model().get_root(), self.__connection)
+    def left_dragged(self, event):
+        allowed_movement_directions = self.__connection.allowed_corner_movement_directions(self)
+        max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y = get_max_directions_movement(allowed_movement_directions)
+        
+        move_x, move_y = super().left_dragged(event, max_positive_move_x=max_positive_move_x, max_negative_move_x=max_negative_move_x, max_positive_move_y=max_positive_move_y, max_negative_move_y=max_negative_move_y)
+        
+        for adjacent_corner in self.__connection.get_adjacent_corners(self):
+            adjacent_corner.move_block(move_x, move_y)
             
-        else:
-            self.__connection.delete()
+        self.__connection.adjust_lines_to_dragged_corners()
+        
+    def left_released(self, event):
+        super().left_released(event)
+        
+        for adjacent_corner in self.__connection.get_adjacent_corners(self):
+            adjacent_corner.snap_to_grid()
             
+        self.__connection.adjust_lines_to_dragged_corners()
+        
+    def open_options(self):
+        self.__connection.open_options()
+        
 class NumberIndicator:
     def __init__(self, view, x, y, radius, color, outline_width, text):
         self.__view = view
@@ -360,8 +477,15 @@ class NumberIndicator:
         
         self.__view.get_canvas().coords(self.__circle, circle_x1, circle_y1, circle_x2, circle_y2)
         self.__view.get_canvas().coords(self.__label, label_x, label_y)
-        self.__view.get_canvas().itemconfig(self.__label, font=self.__view.get_updated_font(self.__label))
+        self.__view.get_canvas().itemconfig(self.__label, font=self.__view.get_updated_font(label=self.__label))
+        
+    def raise_to_top(self):
+        for item in (self.__circle, self.__label):
+            self.__view.get_canvas().tag_raise(item)
             
+    def get_x(self):
+        return self.__x
+        
     def create(self, text):
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
         actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)

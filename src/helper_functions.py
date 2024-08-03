@@ -83,6 +83,23 @@ def get_triangle_coordinates(view, x, y, direction):
         
     return actual_coordinates
     
+def get_max_directions_movement(allowed_movement_directions):
+    max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y = [None] * 4
+    
+    if "RIGHT" not in allowed_movement_directions:
+        max_positive_move_x = 0
+        
+    if "LEFT" not in allowed_movement_directions:
+        max_negative_move_x = 0
+        
+    if "DOWN" not in allowed_movement_directions:
+        max_positive_move_y = 0
+        
+    if "UP" not in allowed_movement_directions:
+        max_negative_move_y = 0
+        
+    return max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y
+    
 def delete_all(to_delete_list):
     for i in range(len(to_delete_list)-1, -1, -1):
         to_delete_list[i].delete()

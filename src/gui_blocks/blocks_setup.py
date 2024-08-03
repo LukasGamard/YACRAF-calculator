@@ -1,6 +1,6 @@
 import tkinter as tk
 import numpy as np
-from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates
+from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates, get_max_directions_movement
 from blocks_general import GUIBlock, GUIModelingBlock, GUIClass, NumberIndicator
 from options import OptionsSetupClass
 from config import *
@@ -107,6 +107,23 @@ class GUISetupClass(GUIClass):
             
         self.__setup_attributes_gui = sorted_setup_attributes_gui
         
+    def get_connected_setup_attributes_gui(self, setup_attribute):
+        connected_setup_attributes_gui = []
+        
+        for connected_setup_attribute in setup_attribute.get_connected_setup_attributes():
+            for connected_setup_class_gui in self.get_connected_setup_classes_gui() + [self]:
+                if connected_setup_attribute.has_setup_class(connected_setup_class_gui.get_setup_class()):
+                    if not connected_setup_attribute.is_hidden():
+                        attribute_index = connected_setup_attribute.get_attribute_index()
+                        connected_setup_attribute_gui = connected_setup_class_gui.get_setup_attributes_gui()[attribute_index]
+                        
+                        connected_setup_attributes_gui.append(connected_setup_attribute_gui)
+                        
+                    else:
+                        connected_setup_attributes_gui += connected_setup_class_gui.get_connected_setup_attributes_gui(connected_setup_attribute)
+                        
+        return connected_setup_attributes_gui
+        
     def get_setup_class(self):
         return self.__setup_class
         
@@ -127,11 +144,26 @@ class GUISetupClass(GUIClass):
     def remove_connection(self, connection):
         if connection in self.__connections:
             self.__connections.remove(connection)
-                 
-    def create_script_marker_indicator(self, text, color):
+            
+    def get_connected_setup_classes_gui(self):
+        connected_setup_classes_gui = []
+        
+        for connection in self.__connections:
+            setup_class_gui = connection.get_start_setup_class_gui()
+            
+            if setup_class_gui not in (None, self):
+                connected_setup_classes_gui.append(setup_class_gui)
+                
+        return connected_setup_classes_gui
+        
+    def create_script_marker_indicator(self, text, color, update_linked=True):
         self.__script_marker_indicators.append(NumberIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
         
-    def reset_changes_by_script(self):
+        if update_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
+                linked_setup_class_gui.create_script_marker_indicator(text, color, False)
+                
+    def reset_changes_by_script(self, update_linked=True):
         for setup_attribute_gui in self.__setup_attributes_gui:
             did_reset = setup_attribute_gui.attempt_to_reset_override_value()
             
@@ -143,14 +175,18 @@ class GUISetupClass(GUIClass):
             
         self.__script_marker_indicators = []
         
-    def update_value_input_types(self, *, specific_index=None, check_linked=True):
+        if update_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
+                linked_setup_class_gui.reset_changes_by_script(text, color, False)
+                
+    def update_value_input_types(self, *, specific_attribute_index=None, update_linked=True):
         for i, setup_attribute_gui in enumerate(self.__setup_attributes_gui):
-            if specific_index == None or i == specific_index:
+            if specific_attribute_index == None or i == specific_attribute_index:
                 setup_attribute_gui.update_value_input_type()
                 
-        if self.is_linked() and check_linked:
+        if update_linked:
             for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
-                linked_setup_class_gui.update_value_input_types(specific_index=specific_index, check_linked=False)
+                linked_setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, update_linked=False)
                 
     def calculate_values(self):
         self.__setup_class.calculate_values()
@@ -179,6 +215,7 @@ class GUISetupClass(GUIClass):
         
     def delete(self):
         super().delete()
+        
         self.__configuration_class_gui.remove_setup_class_gui(self)
         self.get_view().remove_setup_class_gui(self)
         
@@ -203,7 +240,7 @@ class GUISetupAttribute(GUIModelingBlock):
         actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
-        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, label_text_x=x+width/4, additional_pressable_items=[self.__label_value])
+        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, label_text_x=x+width/4, additional_pressable_items=[self.__label_value], bind_left=MOUSE_PRESS)
         self.__entry_value = None
         self.__entry_value_window = None
         
@@ -214,6 +251,10 @@ class GUISetupAttribute(GUIModelingBlock):
         
         self.update_text()
         self.update_value_input_type()
+        
+    def left_pressed(self, event):
+        super().left_pressed(event)
+        self.set_input_attributes_highlight(True)
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -237,10 +278,22 @@ class GUISetupAttribute(GUIModelingBlock):
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
             self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
+    def unhighlight(self):
+        super().unhighlight()
+        self.set_input_attributes_highlight(False)
+            
+    def set_input_attributes_highlight(self, adding_color):
+        for connected_setup_attribute_gui in self.__setup_class_gui.get_connected_setup_attributes_gui(self.__setup_attribute):
+            if not self.get_view().is_selected_item(connected_setup_attribute_gui):
+                if adding_color:
+                    connected_setup_attribute_gui.highlight(HIGHLIGHT_INPUT_COLOR)
+                else:
+                    connected_setup_attribute_gui.unhighlight()
+                    
     def update_value_input_type(self):
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
-        print(has_currently_connected_inputs)
-        if has_currently_connected_inputs:
+        
+        if has_currently_connected_inputs and self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
             self.switch_to_value_label()
         else:
             self.switch_to_value_entry()
@@ -265,6 +318,11 @@ class GUISetupAttribute(GUIModelingBlock):
             
             self.__setup_attribute.clear_value()
             self.set_displayed_value("Value")
+            
+            # When starting the edit the entered value, unselect all blocks to avoid accidentally deleting them
+            self.__entry_value.bind("<FocusIn>", lambda event: self.get_view().unselect_all_items())
+            
+            self.get_canvas().tag_lower(self.__entry_value_window)
             
     def get_entry_size(self):
         width, height = convert_grid_coordinate_to_actual(self.get_view(), self.get_width()/2, self.get_height())
@@ -336,6 +394,7 @@ class GUISetupAttribute(GUIModelingBlock):
         
     def delete(self):
         super().delete()
+        
         self.__configuration_attribute_gui.remove_setup_attribute_gui(self)
         self.__setup_class_gui.remove_setup_attribute_gui(self)
         
@@ -352,7 +411,7 @@ class GUIConnectionTriangle(GUIBlock):
         self.__is_end_block = is_end_block
         self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction), width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CONNECTION_END_COLOR)
         
-        super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+        super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT, bind_left=MOUSE_DRAG)
         self.__connection = None
         self.__attached_setup_class_gui = None
         
@@ -368,9 +427,6 @@ class GUIConnectionTriangle(GUIBlock):
     def left_released(self, event):
         if super().left_released(event):
             self.put_down_block()
-            
-    def right_pressed(self, event):
-        self.delete()
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -378,6 +434,9 @@ class GUIConnectionTriangle(GUIBlock):
         # If panning or zooming, only the start block should move the lines
         if (not self.get_view().is_panning() and not self.get_view().is_zooming()) or not self.__is_end_block:
             self.__connection.move_lines(move_x, move_y)
+            
+    def open_options(self):
+        self.__connection.open_options()
             
     def put_down_block(self):
         for setup_class_gui in self.get_view().get_setup_classes_gui():
@@ -396,7 +455,7 @@ class GUIConnectionTriangle(GUIBlock):
                 end_setup_class = self.__connection.get_end_setup_class()
                 
                 if start_setup_class != None and end_setup_class != None:
-                    end_setup_class.add_input_setup_class(start_setup_class)
+                    end_setup_class.add_input_setup_class(start_setup_class, self.__connection.get_input_scalars())
                     self.__connection.get_end_setup_class_gui().update_value_input_types()
                     
                 break
@@ -408,6 +467,8 @@ class GUIConnectionTriangle(GUIBlock):
             
         new_coordinates = get_triangle_coordinates(self.get_view(), self.get_x(), self.get_y(), new_direction)
         self.get_view().get_canvas().coords(self.__triangle, new_coordinates)
+        
+        self.update_highlight(HIGHLIGHT_SELECTED_COLOR)
         
     def add_connection(self, connection):
         self.__connection = connection
@@ -430,13 +491,39 @@ class GUIConnectionTriangle(GUIBlock):
             
             if self.__connection.get_end_setup_class_gui() != None:
                 self.__connection.get_end_setup_class_gui().update_value_input_types()
-            
+                
             self.__attached_setup_class_gui = None
             
     def delete(self):
+        super().delete()
+        
         if not self.__is_deleted:
             self.__is_deleted = True
-            super().delete()
             self.attempt_to_detach_from_class()
             
             self.__connection.delete()
+            
+class GUIConnectionScalarsIndicator(GUIModelingBlock):
+    def __init__(self, model, view, connection):
+        self.__connection = connection
+        x, y = connection.get_scalars_indicator_start_coordinate()
+        
+        super().__init__(model, view, self.get_input_scalars_string(), x, y, INPUT_SCALARS_INDICATOR_WIDTH, INPUT_SCALARS_INDICATOR_HEIGHT, INPUT_SCALARS_INDICATOR_COLOR, bind_left=MOUSE_DRAG)
+        
+    def left_dragged(self, event):
+        allowed_movement_directions = self.__connection.allowed_scalars_indicator_movement_directions()
+        max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y = get_max_directions_movement(allowed_movement_directions)
+        
+        super().left_dragged(event, max_positive_move_x=max_positive_move_x, max_negative_move_x=max_negative_move_x, max_positive_move_y=max_positive_move_y, max_negative_move_y=max_negative_move_y, single_direction=True)
+        
+    def get_input_scalars_string(self):
+        return " / ".join([str(input_scalar) for input_scalar in self.__connection.get_input_scalars()])
+        
+    def update_displayed_input_scalars(self):
+        self.set_text(self.get_input_scalars_string())
+        
+    def delete(self, reset_input_scalars=True):
+        super().delete()
+        
+        if reset_input_scalars:
+            self.__connection.reset_input_scalars()

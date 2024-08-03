@@ -2,22 +2,19 @@ import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
 from blocks_general import GUIConnectionCorner, NumberIndicator
-from blocks_setup import GUIConnectionTriangle
+from blocks_setup import GUIConnectionTriangle, GUIConnectionScalarsIndicator
+from options import OptionsConnection, OptionsConnectionWithBlocks
 from config import *
 
 class GUIConnection:
-    def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, is_external=False):
+    def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False):
         self.__model = model
         self.__view = view
         
         self.__start_block = start_block
-        self.__start_x = 0
-        self.__start_y = 0
         self.__start_direction = start_direction
         
         self.__end_block = end_block
-        self.__end_x = 0
-        self.__end_y = 0
         self.__end_direction = end_direction
         
         self.__corners = []
@@ -33,7 +30,38 @@ class GUIConnection:
         if end_block != None:
             end_block.add_connection(self)
             self.create_new_lines()
+            
+        if corner_coordinates != None:
+            for i, corner in enumerate(self.__corners):
+                move_x = corner_coordinates[i][0] - corner.get_x()
+                move_y = corner_coordinates[i][1] - corner.get_y()
+                
+                corner.move_block(move_x, move_y)
+                
+            self.adjust_lines_to_dragged_corners()
+            
+    def scale(self, last_length_unit):
+        for line in self.__lines:
+            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(line), last_length_unit)
+            x1, y1, x2, y2 = adjusted_actual_coordinates
+            self.__view.get_canvas().coords(line, x1, y1, x2, y2)
+            
+        for corner in self.__corners:
+            corner.scale(last_length_unit)
+            
+        if self.__num_order_indicator != None:
+            self.__num_order_indicator.scale(last_length_unit)
+            
+    def raise_to_top(self):
+        for corner in self.__corners:
+            corner.raise_to_top()
         
+        if self.__num_order_indicator != None:
+            self.__num_order_indicator.raise_to_top()
+            
+    def open_options(self):
+        return OptionsConnection(self.__model.get_root(), self)
+            
     def get_start_block(self):
         return self.__start_block
         
@@ -63,7 +91,14 @@ class GUIConnection:
             
         self.create_new_lines()
         
-    def get_coordinates(self, block, direction):
+    def get_attached_grid_coordinate(self, is_start_block):
+        if is_start_block:
+            block = self.__start_block
+            direction = self.__start_direction
+        else:
+            block = self.__end_block
+            direction = self.__end_direction
+            
         x = block.get_x() + int(0.5 * block.get_width())
         y = block.get_y() + int(0.5 * block.get_height())
         
@@ -96,26 +131,73 @@ class GUIConnection:
         return actual_x, actual_y
         
     def create_new_lines(self, mouse_location=None):
-        corner_coordinates = self.create_corners(mouse_location)
-        self.create_lines_from_corners(corner_coordinates)
+        self.remove_corners()
+        self.remove_lines()
+        
+        start_x, start_y = self.get_attached_grid_coordinate(True)
+        
+        if mouse_location != None:
+            end_x, end_y = convert_actual_coordinate_to_grid(self.__view, mouse_location[0], mouse_location[1])
+            end_x -= 0.5
+            end_y -= 0.5
+            
+            if end_x > start_x:
+                self.__end_direction = "LEFT"
+                end_x -= 1
+                
+            else:
+                self.__end_direction = "RIGHT"
+                end_x += 1
+        else:
+            end_x, end_y = self.get_attached_grid_coordinate(False)
+            
+        corner_coordinates = self.create_corners(start_x, start_y, end_x, end_y)
         
         for corner_x, corner_y in corner_coordinates:
             self.__corners.append(GUIConnectionCorner(self.__model, self.__view, self, corner_x, corner_y))
-    
-        self.attempt_to_set_number()
+            
+        self.create_lines_from_corners(start_x, start_y, end_x, end_y)
         
-    def scale(self, last_length_unit):
-        for line in self.__lines:
-            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(line), last_length_unit)
-            x1, y1, x2, y2 = adjusted_actual_coordinates
-            self.__view.get_canvas().coords(line, x1, y1, x2, y2)
+    def adjust_lines_to_dragged_corners(self):
+        self.remove_lines()
+        
+        start_x, start_y = self.get_attached_grid_coordinate(True)
+        end_x, end_y = self.get_attached_grid_coordinate(False)
+        
+        self.create_lines_from_corners(start_x, start_y, end_x, end_y)
+        
+    def get_corners(self):
+        return self.__corners
+                
+    def get_adjacent_corners(self, corner):
+        corner_index = self.__corners.index(corner)
+        adjacent_corners = []
+        
+        # Previous corner
+        if corner_index > 0:
+            adjacent_corners.append(self.__corners[corner_index-1])
             
-        for corner in self.__corners:
-            corner.scale(last_length_unit)
+        # Next corner
+        if corner_index < len(self.__corners) - 1:
+            adjacent_corners.append(self.__corners[corner_index+1])
             
-        if self.__num_order_indicator != None:
-            self.__num_order_indicator.scale(last_length_unit)
-            
+        return adjacent_corners
+        
+    def allowed_corner_movement_directions(self, corner):
+        adjacent_corners = self.get_adjacent_corners(corner)
+        allowed_directions = set()
+        
+        for adjacent_corner in adjacent_corners:
+            # Adjacent corner is above or below
+            if adjacent_corner.get_x() == corner.get_x():
+                allowed_directions.update({"LEFT", "RIGHT"})
+                
+            # Adjacent corner is to the left or the right
+            elif adjacent_corner.get_y() == corner.get_y():
+                allowed_directions.update({"UP", "DOWN"})
+                
+        return list(allowed_directions)
+        
     def move_lines(self, move_x, move_y):
         # If currently panning or zooming, only move lines and corners
         if self.__view.is_panning() or self.__view.is_zooming():
@@ -126,36 +208,41 @@ class GUIConnection:
                 actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
                 self.__view.get_canvas().move(line, actual_move_x, actual_move_y)
                 
+            if self.__num_order_indicator != None:
+                self.__num_order_indicator.move(move_x, move_y)
+                
+            return True
+            
         # If not panning, need to create completely new lines and corners
         else:
             self.create_new_lines()
             
-        if self.__num_order_indicator != None:
-            self.__num_order_indicator.move(move_x, move_y)
+            return False
             
     def attempt_to_set_number(self):
         if self.__num_order != None:
-            num_order_x = self.__start_x
-            num_order_y = self.__start_y + self.__start_block.get_height() / 2
+            num_order_x, num_order_y = self.get_attached_grid_coordinate(True)
             
             if self.__start_direction == "LEFT":
                 num_order_x += 1
                 
+            num_order_y += 0.5
+            
             self.__num_order_indicator = NumberIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
             
     def attempt_to_remove_number(self):
         if self.__num_order_indicator != None:
             self.__num_order_indicator.remove()
             self.__num_order_indicator = None
+            
+    def create_lines_from_corners(self, start_x, start_y, end_x, end_y):
+        actual_coordinates = [self.get_actual_attached_coordinates(start_x, start_y, self.__start_direction)]
         
-    def create_lines_from_corners(self, corner_coordinates):
-        actual_coordinates = [self.get_actual_attached_coordinates(self.__start_x, self.__start_y, self.__start_direction)]
-        
-        for corner_x, corner_y in corner_coordinates:
-            actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(self.__view, corner_x+0.5, corner_y+0.5)
+        for corner in self.__corners:
+            actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(self.__view, corner.get_x()+0.5, corner.get_y()+0.5)
             actual_coordinates.append((actual_corner_x, actual_corner_y))
             
-        actual_coordinates.append(self.get_actual_attached_coordinates(self.__end_x, self.__end_y, self.__end_direction))
+        actual_coordinates.append(self.get_actual_attached_coordinates(end_x, end_y, self.__end_direction))
         
         for i in range(1, len(actual_coordinates)):
             from_x = actual_coordinates[i-1][0]
@@ -169,6 +256,9 @@ class GUIConnection:
                 line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH)
                 
             self.__lines.append(line)
+            
+        self.attempt_to_set_number()
+        self.raise_to_top()
             
     def convert_direction_to_vector(self, direction):
         if direction == "UP":
@@ -227,33 +317,12 @@ class GUIConnection:
             
         return (current_x, current_y, new_direction)
         
-    def create_corners(self, mouse_location=None):
-        self.remove_lines()
+    def create_corners(self, start_x, start_y, end_x, end_y):
         corners_from_start = []
         corners_from_end = []
         
-        self.__start_x, self.__start_y = self.get_coordinates(self.__start_block, self.__start_direction)
-        
-        if mouse_location == None:
-            self.__end_x, self.__end_y = self.get_coordinates(self.__end_block, self.__end_direction)
-            
-        else:
-            end_x, end_y = convert_actual_coordinate_to_grid(self.__view, mouse_location[0], mouse_location[1])
-            self.__end_x = end_x - 0.5
-            self.__end_y = end_y - 0.5
-            
-            if self.__end_x > self.__start_x:
-                self.__end_direction = "LEFT"
-                self.__end_x -= 1
-                
-            else:
-                self.__end_direction = "RIGHT"
-                self.__end_x += 1
-                
-        position_start = (self.__start_x, self.__start_y, self.__start_direction)
-        position_end = (self.__end_x, self.__end_y, self.__end_direction)
-        
-        # grid_offset_x, grid_offset_y = self.__view.get_grid_offset()
+        position_start = (start_x, start_y, self.__start_direction)
+        position_end = (end_x, end_y, self.__end_direction)
         
         while True:
             start_dot_product = self.positions_dot_product(position_start, position_end)
@@ -272,27 +341,10 @@ class GUIConnection:
                         corners_from_end.append((end_x, mid_y))
                         
                     else:
-                        mid_x = get_grid_mid_x(self.__view, (start_x + end_x) / 2)
-                        """
-                        mid_x = (start_x + end_x) / 2
-                        
-                        # So that the connection does not jump up one value close to the left border
-                        if mid_x <= 0.500000001:
-                            mid_x -= 1
-                        
-                        # print(f"{(start_x + end_x) / 2}")
-                        # print(grid_offset_x)
-                        
-                        # Account for the offset from panning
-                        if grid_offset_x >= 0.5:
-                            mid_x -= 1 - grid_offset_x
-                        else:
-                            mid_x += grid_offset_x
-                        """
-                            
+                        mid_x = get_grid_mid_x(self.__view, (start_x + end_x) / 2)                           
                         corners_from_start.append((mid_x, start_y))
                         corners_from_end.append((mid_x, end_y))
-                
+                        
                 # Intersecting
                 else:
                     if position_start[2] in ("DOWN", "UP"):
@@ -300,7 +352,7 @@ class GUIConnection:
                         
                     else:
                         corners_from_start.append((end_x, start_y))
-                
+                        
                 break
                 
             if start_dot_product <= end_dot_product:
@@ -318,17 +370,25 @@ class GUIConnection:
         
         return corners_from_start + corners_from_end
         
-    def remove_lines(self):
+    def remove_corners(self):
+        """
+        for i in range(len(self.__corners)-1, -1, -1):
+            if remove_manually_moved or not self.__corners[i].is_manually_moved():
+                self.__corners[i].delete()
+                self.__corners.pop(i)
+        """
         for corner in self.__corners:
             corner.delete()
             
+        self.__corners.clear()
+        
+    def remove_lines(self):
         for line in self.__lines:
             self.__view.get_canvas().delete(line)
             
         self.attempt_to_remove_number()
         
         self.__lines.clear()
-        self.__corners.clear()
         
     """
     def get_movable_items(self):
@@ -354,9 +414,6 @@ class GUIConnection:
         
         self.create_new_lines()
         
-    def has_options(self):
-        return True
-        
     def delete(self):
         self.__start_block.remove_connection(self)
                 
@@ -366,23 +423,32 @@ class GUIConnection:
             
             if attached_configuration_attribute_gui != None:
                 attached_configuration_attribute_gui.get_configuration_class_gui().update_value_input_types()
-            
+                
+        self.remove_corners()
         self.remove_lines()
         
     def save_state(self):
-        return {"start_block": str(self.__start_block), "start_direction": self.__start_direction, "end_direction": self.__end_direction, "is_external": self.__is_external}
+        saved_states = {"start_block": str(self.__start_block), "start_direction": self.__start_direction, "end_direction": self.__end_direction, "corner_coordinates": [], "is_external": self.__is_external}
+        
+        for corner in self.__corners:
+            saved_states["corner_coordinates"].append((corner.get_x(), corner.get_y()))
+            
+        return saved_states
                 
 class GUIConnectionWithBlocks(GUIConnection):
     def __init__(self, model, view):
         self.__start_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[0][0], GUI_BLOCK_START_COORDINATES[0][1], "RIGHT", False)
         self.__end_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[1][0], GUI_BLOCK_START_COORDINATES[1][1], "RIGHT", True)
         
-        super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
+        self.__model = model
         self.__view = view
+        self.__input_scalars = None
+        self.__input_scalars_indicator = None
+        super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
         
         self.__is_deleted = False
         
-        self.create_new_lines()
+        # self.create_new_lines()
         
     """
     def attempt_to_connect_both_classes(self):
@@ -401,6 +467,23 @@ class GUIConnectionWithBlocks(GUIConnection):
             end_class_gui.get_setup_class().remove_input_class(start_class_gui.get_setup_class())
             end_class_gui.update_value_input_types()
     """
+    
+    def create_new_lines(self):
+        super().create_new_lines()
+        
+        self.update_input_scalars_indicator()
+        
+    def move_lines(self, move_x, move_y):
+        only_moved = super().move_lines(move_x, move_y)
+        
+        if only_moved and self.__input_scalars_indicator != None:
+            self.__input_scalars_indicator.move_block(move_x, move_y)
+    
+    def open_options(self):
+        return OptionsConnectionWithBlocks(self.__model.get_root(), self)
+        
+    def get_start_setup_class_gui(self):
+        return self.__start_block.get_attached_setup_class_gui()
     
     def get_end_setup_class_gui(self):
         return self.__end_block.get_attached_setup_class_gui()
@@ -437,8 +520,79 @@ class GUIConnectionWithBlocks(GUIConnection):
                 
         return movable_items
         
-    def has_options(self):
-        return False
+    def get_input_scalars(self):
+        return self.__input_scalars
+        
+    def set_input_scalars(self, input_scalars):
+        self.__input_scalars = input_scalars
+        
+        start_setup_class_gui = self.get_start_setup_class_gui()
+        end_setup_class_gui = self.get_end_setup_class_gui()
+        
+        if start_setup_class_gui != None and end_setup_class_gui != None:
+            end_setup_class_gui.get_setup_class().set_input_setup_class_scalars(start_setup_class_gui.get_setup_class(), input_scalars)
+            
+        self.update_input_scalars_indicator()
+        
+    def reset_input_scalars(self):
+        self.set_input_scalars(None)
+        
+    def update_input_scalars_indicator(self):
+        if self.__input_scalars_indicator != None:
+            self.__input_scalars_indicator.delete(False)
+            
+        if self.__input_scalars != None:
+            if (len(self.__input_scalars) == 1 and self.__input_scalars[0] != DEFAULT_INPUT_SCALAR) or len(self.__input_scalars) == 3:
+                self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
+                
+    def get_scalars_indicator_start_coordinate(self):
+        corners = self.get_corners()
+        end_x, end_y = self.get_attached_grid_coordinate(False)
+        
+        if len(corners) > 0:
+            start_x, start_y = corners[-1].get_x(), corners[-1].get_y()
+            
+        else:
+            start_x, start_y = self.get_attached_grid_coordinate(True)
+            
+        indicator_x = abs(start_x + end_x) / 2
+        indicator_y = abs(start_y + end_y) / 2
+        
+        indicator_x -= INPUT_SCALARS_INDICATOR_WIDTH // 2
+        indicator_y -= INPUT_SCALARS_INDICATOR_HEIGHT // 2
+        
+        return indicator_x, indicator_y
+        
+    def allowed_scalars_indicator_movement_directions(self):
+        allowed_directions = []
+        indicator_pos = (self.__input_scalars_indicator.get_x()+self.__input_scalars_indicator.get_width()//2, self.__input_scalars_indicator.get_y()+self.__input_scalars_indicator.get_height()//2)
+        
+        start_x, start_y = self.get_attached_grid_coordinate(True)
+        end_x, end_y = self.get_attached_grid_coordinate(False)
+        corners = self.get_corners()
+        
+        coordinates = [(start_x, start_y)] + [(corner.get_x(), corner.get_y()) for corner in corners] + [(end_x, end_y)]
+        
+        for i in range(1, len(coordinates)):
+            first_pos, second_pos = coordinates[i-1], coordinates[i]
+            
+            # Vertically aligned
+            if indicator_pos[0] == first_pos[0] == second_pos[0]:
+                if indicator_pos[1] > min(first_pos[1], second_pos[1]):
+                    allowed_directions.append("UP")
+                    
+                if indicator_pos[1] < max(first_pos[1], second_pos[1]):
+                    allowed_directions.append("DOWN")
+                    
+            # Horizontally aligned
+            if indicator_pos[1] == first_pos[1] == second_pos[1]:
+                if indicator_pos[0] > min(first_pos[0], second_pos[0]):
+                    allowed_directions.append("LEFT")
+                    
+                if indicator_pos[0] < max(first_pos[0], second_pos[0]):
+                    allowed_directions.append("RIGHT")
+                    
+        return allowed_directions
         
     def is_deleted(self):
         return self.__is_deleted()
@@ -447,6 +601,10 @@ class GUIConnectionWithBlocks(GUIConnection):
         if not self.__is_deleted:
             self.__is_deleted = True
             
+            if self.__input_scalars_indicator != None:
+                self.__input_scalars_indicator.delete()
+                
+            self.remove_corners()
             self.remove_lines()
             self.__view.remove_connection_with_blocks(self)
             

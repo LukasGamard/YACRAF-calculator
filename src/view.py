@@ -18,6 +18,7 @@ class View(tk.Frame):
         self.__configuration_change_view_buttons = {} # View and corresponding button
         self.__setup_change_view_buttons = {} # View and corersponding button
         self.__held_connection = None
+        self.__selected_items = set()
         
         self.__is_panning = False
         self.__is_zooming = False
@@ -50,8 +51,10 @@ class View(tk.Frame):
         
         print(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y)))
         
+        self.__canvas.focus_set()
+        
         if self.__is_panning:
-            # self.__canvas.scan_mark(event.x, event.y)
+            self.unselect_all_items()
             self.__panning_last_mouse_coordinate = (event.x, event.y)
             
     def pan_move(self, event):
@@ -145,12 +148,15 @@ class View(tk.Frame):
         self.__save_button.move_block(0, move_y)
         
         return move_x, move_y
-            
+        
     def open_options(self):
         return OptionsView(self.get_model(), self)
         
-    def get_updated_font(self, label=None):
+    def get_updated_font(self, *, label=None, has_line_break=False):
         new_font_size = int(FONT[1] * self.get_length_unit() / LENGTH_UNIT + 0.5)
+        
+        if has_line_break:
+            new_font_size -= FONT_DECREASE_LINE_BREAK
         
         if new_font_size < 1:
             new_font_size = 1
@@ -253,6 +259,31 @@ class View(tk.Frame):
             
         self.__held_connection = None
         
+    def get_selected_items(self):
+        return self.__selected_items
+        
+    def is_selected_item(self, selected_item):
+        return selected_item in self.__selected_items
+        
+    def select_item(self, selected_item):
+        if not (self.get_model().is_currently_pressing_key("Shift_L") or self.get_model().is_currently_pressing_key("Shift_R")):
+            self.unselect_all_items()
+            
+        if selected_item not in self.__selected_items:
+            selected_item.highlight(HIGHLIGHT_SELECTED_COLOR)
+            self.__selected_items.add(selected_item)
+            
+    def unselect_item(self, unselected_item):
+        if unselected_item in self.__selected_items:
+            unselected_item.unhighlight()
+            self.__selected_items.remove(unselected_item)
+            
+    def unselect_all_items(self):
+        for selected_item in self.__selected_items:
+            selected_item.unhighlight()
+            
+        self.__selected_items.clear()
+        
     def is_zooming(self):
         return self.__is_zooming
         
@@ -297,8 +328,8 @@ class ConfigurationView(View):
         
         return configuration_class_gui
         
-    def create_configuration_class_gui_copy(self, configuration_class_gui_to_copy, x, y):
-        configuration_class_gui = configuration_class_gui_to_copy.copy(self, x, y)
+    def create_configuration_class_gui_copy(self, configuration_class_gui_to_copy):
+        configuration_class_gui = configuration_class_gui_to_copy.copy(self)
         self.__configuration_classes_gui.append(configuration_class_gui)
         
         return configuration_class_gui
@@ -370,7 +401,7 @@ class ConfigurationView(View):
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [configuration_class_gui]
-                        
+                            
                         # Set configuration class data
                         configuration_class_gui.set_name(saved_states_configuration_class_gui["name"])
                         
@@ -385,6 +416,7 @@ class ConfigurationView(View):
                             # Set configuration attribute data
                             configuration_attribute_gui.set_name(saved_states_configuration_attribute_gui["name"])
                             configuration_attribute_gui.set_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
+                            configuration_attribute_gui.set_input_scalar(saved_states_configuration_attribute_gui["input_scalar"])
                             configuration_attribute_gui.set_hidden(saved_states_configuration_attribute_gui["is_hidden"])
                             
                             mapping_configuration_attribute_gui[saved_states_configuration_attribute_gui["configuration_attribute_gui"]] = configuration_attribute_gui
@@ -395,7 +427,7 @@ class ConfigurationView(View):
                     configuration_input_gui = self.create_configuration_input_gui(x=saved_states_configuration_input_gui["x"], y=saved_states_configuration_input_gui["y"])
                     
                     # Set configuration input data
-                    configuration_input_gui.put_down_block()
+                    configuration_input_gui.attempt_to_attach_to_attribute()
                     symbol_calculation_type = saved_states_configuration_input_gui["symbol_calculation_type"]
                     
                     if symbol_calculation_type != "":
@@ -409,6 +441,7 @@ class ConfigurationView(View):
                                 saved_states_connection["start_direction"], \
                                 end_block=configuration_input_gui, \
                                 end_direction=saved_states_connection["end_direction"], \
+                                corner_coordinates=saved_states_connection["corner_coordinates"], \
                                 is_external=saved_states_connection["is_external"])
                                 
             return mapping_configuration_class_gui
@@ -438,15 +471,16 @@ class SetupView(View):
         self.__run_script_buttons = []
         
         for file_name_full in os.listdir(f"{BASE_PATH}/{SCRIPTS_PATH}"):
-            file_name = file_name_full.replace(".py", "")
-            
-            if file_name not in ("SCRIPT_TEMPLATE", "__pycache__"):
-                if len(self.__run_script_buttons) == 0:
-                    self.__run_script_buttons.append(GUIRunScriptButton(model, self, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
-                    
-                run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
-                self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
+            if file_name_full.strip()[-3:] == ".py":
+                file_name = file_name_full.strip().replace(".py", "")
                 
+                if file_name != "SCRIPT_TEMPLATE":
+                    if len(self.__run_script_buttons) == 0:
+                        self.__run_script_buttons.append(GUIRunScriptButton(model, self, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
+                        
+                    run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
+                    self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
+                    
     def on_resize(self, event):
         move_x, move_y = super().on_resize(event)
         

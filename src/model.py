@@ -1,6 +1,8 @@
 import os
 from view import ConfigurationView, SetupView
+from blocks_setup import GUISetupAttribute
 from connection_gui import GUIConnection
+from helper_functions import delete_all
 from config import *
 
 class Model:
@@ -8,6 +10,9 @@ class Model:
         self.__root = root
         self.__configuration_views = []
         self.__setup_views = []
+        self.__current_view = None
+        
+        self.__currently_pressed_keys = set()
         
         self.__linked_configuration_groups_per_number = {}
         self.__linked_setup_groups_per_number = {}
@@ -51,6 +56,49 @@ class Model:
         elif len(self.__setup_views) > 0:
             self.change_view(self.__setup_views[0])
             
+        root.bind("<KeyPress>", self.on_key_press)
+        root.bind("<KeyRelease>", self.on_key_release)
+        
+        # self.__configuration_classes_gui_to_copy = []
+        
+    def on_key_press(self, event):
+        self.__currently_pressed_keys.add(event.keysym.lower())
+        
+        if "BackSpace".lower() in self.__currently_pressed_keys:
+            items_to_delete = []
+            
+            for selected_item in list(self.__current_view.get_selected_items()):
+                if not isinstance(selected_item, GUISetupAttribute):
+                    items_to_delete.append(selected_item)
+                    
+            delete_all(items_to_delete)
+            
+        elif "e" in self.__currently_pressed_keys:
+            selected_items = list(self.__current_view.get_selected_items())
+            
+            if len(selected_items) > 0:
+                for selected_item in selected_items:
+                    selected_item.open_options()
+                    
+            else:
+                self.__current_view.open_options()
+                
+        """
+        elif "Control_L" in self.__currently_pressed_keys and ("c" in self.__currently_pressed_keys or "C" in self.__currently_pressed_keys):
+            self.__configuration_classes_gui_to_copy = list(self.__current_view.get_selected_items())
+            
+        elif "Control_L" in self.__currently_pressed_keys and ("v" in self.__currently_pressed_keys or "V" in self.__currently_pressed_keys):
+            for configuration_class_gui_to_copy in self.__configuration_classes_gui_to_copy:
+                self.__current_view.create_configuration_class_gui_copy(configuration_class_gui_to_copy)
+        """
+        
+    def on_key_release(self, event):
+        if event.keysym.lower() in self.__currently_pressed_keys:
+            self.__currently_pressed_keys.remove(event.keysym.lower())
+            
+    def is_currently_pressing_key(self, key):
+        return key.lower() in self.__currently_pressed_keys
+        
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
         for existing_setup_view in self.__setup_views:
             existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
@@ -82,10 +130,10 @@ class Model:
             
         return linked_configuration_attributes_gui
         
-    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to):
         self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
         
-        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy, x, y)
+        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy)
         self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
             
         return linked_configuration_class_gui
@@ -95,7 +143,7 @@ class Model:
         
         if linked_group_number == None:
             return []
-        
+            
         linked_setup_classes_gui = self.__linked_setup_groups_per_number[linked_group_number].copy()
         linked_setup_classes_gui.remove(setup_class_gui)
         
@@ -155,25 +203,29 @@ class Model:
                 
         return configuration_classes
         
-    def get_matching_setup_classes_gui(self, *, class_configuration_name=None, class_instance_name=None):
-        matching_setup_classes_gui = {}
+    """
+    def get_matching_setup_classes_gui(self, *, view_name=None, class_configuration_name=None, class_instance_name=None):
+        matching_setup_classes_gui = []
         
         for setup_view in self.__setup_views:
-            matching_setup_classes_gui.update(setup_view.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name))
-            
+            if view_name == None or setup_view.get_name() == view_name:
+                for setup_class_gui in setup_view.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
+                    matching_setup_classes_gui.append(setup_class_gui)
+                    
         return matching_setup_classes_gui
         
-    def get_matching_setup_attributes_gui(self, *, class_configuration_name=None, class_instance_name=None, attribute_name=None):
-        matching_setup_attributes_gui = {}
+    def get_matching_setup_attributes_gui(self, *, view_name=None, class_configuration_name=None, class_instance_name=None, attribute_name=None):
+        matching_setup_attributes_gui = []
         
-        for matching_setup_class_gui in self.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
+        for matching_setup_class_gui in self.get_matching_setup_classes_gui(view_name=view_name, class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
             for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
                 if not setup_attribute_gui.is_hidden():
                     if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
                         matching_setup_attributes_gui.append(setup_attribute_gui)
                         
         return matching_setup_attributes_gui
-        
+    """
+    
     def get_root(self):
         return self.__root
         
@@ -270,7 +322,10 @@ class Model:
             self.__setup_views.remove(view_to_delete)
             
     def change_view(self, view):
+        self.__current_view = view
         view.tkraise()
+        
+        self.__current_view.get_canvas().focus_set()
         
     def get_num_configuration_classes(self):
         num_configuration_classes = 0

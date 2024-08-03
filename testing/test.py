@@ -293,8 +293,8 @@ class TestConnections(unittest.TestCase):
         drag_to(configuration_input_gui, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
         
         # Add connection
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 10, 10+CLASS_HEIGHT)
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 10, 10+CLASS_HEIGHT)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
         
         output_configuration_attributes = output_configuration_class_gui.get_configuration_attributes_gui()
         input_configuration_attribute_gui = input_configuration_class_gui.get_configuration_attributes_gui()[-1]
@@ -312,8 +312,8 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 0)
         
         # Add connection to disconnected input block
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 10, 10+2*CLASS_HEIGHT)
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 15, 15)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 10, 10+2*CLASS_HEIGHT)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 15, 15)
         
         self.assertEqual(len(output_configuration_attributes[0]._GUIConfigurationAttribute__connections), 1)
         self.assertEqual(len(output_configuration_attributes[1]._GUIConfigurationAttribute__connections), 1)
@@ -384,8 +384,8 @@ class TestSwitchPlaces(unittest.TestCase):
         drag_to(configuration_input_gui, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
         
         # Add connection
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 10, 10+CLASS_HEIGHT)
-        perform_action(MOUSE_LEFT_PRESS, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 10, 10+CLASS_HEIGHT)
+        perform_action(MOUSE_RIGHT_PRESS, self.configuration_view, 20-INPUT_WIDTH, 20+CLASS_HEIGHT)
         
         input_configuration_attribute_gui_1, input_configuration_attribute_gui_2 = input_configuration_class_gui.get_configuration_attributes_gui()
         options = input_configuration_attribute_gui_1.open_options()
@@ -457,6 +457,9 @@ class TestLinkedBlocks(unittest.TestCase):
         
     def tearDown(self):
         tear_down(self.root)
+        
+    def test_configuration_input(self):
+        pass
         
 class TestHideAttribute(unittest.TestCase):
     def setUp(self):

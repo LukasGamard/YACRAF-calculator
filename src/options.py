@@ -44,6 +44,17 @@ class Options:
         delete_button = tk.Button(self.__window, text="Delete", font=FONT, command=lambda: self.delete(to_delete))
         delete_button.grid(row=row, column=column, columnspan=columnspan, sticky=tk.W+tk.E)
         
+    def add_scalar_entry(self, row, label_text, entry_text):
+        self.__entry_scalar_text = tk.StringVar()
+        self.__entry_scalar_text.set(entry_text)
+        
+        self.add_label(row, 0, 1, label_text)
+        
+        entry_scalar = tk.Entry(self.get_window(), textvariable=self.__entry_scalar_text, font=FONT)
+        entry_scalar.grid(row=row, column=1, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING)
+        
+        self.__entry_scalar_text.trace("w", lambda *args: self.set_scalar(self.__entry_scalar_text.get()))
+        
     def set_name(self, name):
         self.__to_configure.set_name(name)
         
@@ -63,8 +74,9 @@ class OptionsView(Options):
         self.__view = view
         
         self.add_name_entry("Name:")
-        self.add_swap_buttons(1, 0, 2)
-        self.add_delete_button(3, 0, 2, None)
+        self.add_label(1, 0, 2, "Move view button:")
+        self.add_swap_buttons(2, 0, 2)
+        self.add_delete_button(4, 0, 2, None)
         
     def move(self, up):
         self.__model.swap_view_places(self.__view, up)
@@ -88,9 +100,6 @@ class OptionsConfigurationClass(Options):
             link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
             
         row_after_link_buttons = 2 + len(configuration_views)
-        
-        self.add_label(row_after_link_buttons, 0, 2, "")
-        self.add_delete_button(row_after_link_buttons+1, 0, 2, configuration_class_gui)
         
     def create_linked_configuration_class_gui(self, configuration_view):
         self.__model.create_linked_configuration_class_gui(self.__configuration_class_gui, configuration_view)
@@ -123,12 +132,8 @@ class OptionsConfigurationAttribute(Options):
             radio_button.grid(row=4+i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
         row_after_radio_buttons = 5 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
-        self.add_label(row_after_radio_buttons, 0, 2, "")
-        
-        self.__hidden_toggle = tk.Checkbutton(self.get_window(), text="Hide", font=FONT, variable=self.__is_hidden, command=self.set_is_hidden)
-        self.__hidden_toggle.grid(row=row_after_radio_buttons+1, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
-        
-        self.add_delete_button(row_after_radio_buttons+2, 0, 2, configuration_attribute_gui)
+        self.__hidden_toggle = tk.Checkbutton(self.get_window(), text="Hide from setup views", font=FONT, variable=self.__is_hidden, command=self.set_is_hidden)
+        self.__hidden_toggle.grid(row=row_after_radio_buttons, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
         
     def move(self, up):
         self.__configuration_class_gui.swap_attribute_places(self.__configuration_attribute_gui, up)
@@ -155,15 +160,29 @@ class OptionsCalculationInput(Options):
             calculation_symbol, text = config
             
             radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__calculation_type_choice, value=calculation_symbol, command=self.set_calculation_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_INPUT_WIDTH, anchor="w")
-            radio_button.grid(row=i, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
+            radio_button.grid(row=i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
         row_after_radio_buttons = len(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS)
         
-        self.add_label(row_after_radio_buttons, 0, 1, "")
-        self.add_delete_button(row_after_radio_buttons+1, 0, 1, configuration_input)
+        attached_configuration_attribute_gui = self.get_to_configure().get_attached_configuration_attribute_gui()
+        
+        if attached_configuration_attribute_gui != None:
+            entry_text = attached_configuration_attribute_gui.get_configuration_attribute().get_input_scalar()
+        else:
+            entry_text = 1
+            
+        self.add_scalar_entry(row_after_radio_buttons, "Scalar (float):", entry_text)
         
     def set_calculation_type(self):
         self.get_to_configure().set_symbol_calculation_type(self.__calculation_type_choice.get())
+        
+    def set_scalar(self, input_scalar):
+        try:
+            input_scalar = float(input_scalar)
+        except:
+            input_scalar = 1
+            
+        self.get_to_configure().set_input_scalar(float(input_scalar))
         
 class OptionsSetupClass(Options):
     def __init__(self, model, setup_class_gui, configuration_class_gui, setup_views):
@@ -171,6 +190,9 @@ class OptionsSetupClass(Options):
         self.__model = model
         self.__setup_class_gui = setup_class_gui
         self.__configuration_class_gui = configuration_class_gui
+        # self.__is_connected_to_all = tk.BooleanVar()
+        
+        # self.__is_connected_to_all.set(False)
         
         self.add_name_entry("Name:")
         
@@ -180,13 +202,16 @@ class OptionsSetupClass(Options):
             link_button = tk.Button(self.get_window(), text=setup_view.get_name(), font=FONT, command=lambda setup_view=setup_view: self.create_linked_setup_class_gui(setup_view))
             link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
             
-        row_after_link_buttons = 2 + len(setup_views)
+        row_after_radio_buttons = 2 + len(setup_views)
         
-        self.add_label(row_after_link_buttons, 0, 2, "")
-        self.add_delete_button(row_after_link_buttons+1, 0, 2, setup_class_gui)
+        # self.__connect_all_toggle = tk.Checkbutton(self.get_window(), text="Connect to all blocks in view", font=FONT, variable=self.__is_connected_to_all, command=self.connect_to_all)
+        # self.__connect_all_toggle.grid(row=row_after_radio_buttons, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
         
     def create_linked_setup_class_gui(self, setup_view):
         self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view)
+        
+    def connect_to_all(self):
+        pass
         
 class OptionsConnection(Options):
     def __init__(self, root, connection):
@@ -199,7 +224,29 @@ class OptionsConnection(Options):
         self.__external_toggle = tk.Checkbutton(self.get_window(), text="External connection", font=FONT, variable=self.__is_external, command=self.set_is_external)
         self.__external_toggle.grid(row=0, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
         
-        self.add_delete_button(1, 0, 1, self.__connection)
-        
     def set_is_external(self):
         self.__connection.set_external(self.__is_external.get())
+        
+class OptionsConnectionWithBlocks(Options):
+    def __init__(self, root, connection):
+        super().__init__(root, None)
+        self.__connection = connection
+        
+        entry_text = connection.get_input_scalars()
+        
+        if entry_text == None:
+            entry_text = DEFAULT_INPUT_SCALAR
+        
+        self.add_scalar_entry(0, "Scalar (float or a / b / c:", entry_text)
+        
+    def set_scalar(self, input_scalars):
+        final_input_scalars = []
+        
+        try:
+            for input_scalar in input_scalars.split("/"):
+                final_input_scalars.append(float(input_scalar.strip()))
+                
+        except:
+            final_input_scalars = [DEFAULT_INPUT_SCALAR]
+            
+        self.__connection.set_input_scalars(final_input_scalars)

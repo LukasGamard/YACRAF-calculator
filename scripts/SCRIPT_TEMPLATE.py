@@ -1,7 +1,7 @@
 # Available functions:
 # Default value of None implies matching all blocks
 
-# script_if.get_class_names()
+# script_if.get_class_type_names()
 #     Returns a list of names of all found classes
 
 # script_if.get_class_instance_names(class_type)
@@ -33,5 +33,6 @@ def script_logic(script_if):
     # Insert logic here
     
 def script_control(script_if):
+    script_if.update_setup_structure()
     script_if.reset_script_changes()
     script_logic(script_if)

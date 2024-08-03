@@ -1,4 +1,5 @@
 from calculations_setup import SetupClass
+from config import *
 
 class ConfigurationClass:
     def __init__(self, name):
@@ -47,6 +48,7 @@ class ConfigurationAttribute:
         self.__symbol_value_type = None
         self.__symbol_calculation_type = None
         self.__input_configuration_attributes = {} # Key: input_configuration_attribute, Value: is_internal
+        self.__input_scalar = DEFAULT_INPUT_SCALAR
         self.__is_hidden = False
         
     def get_name(self):
@@ -82,8 +84,14 @@ class ConfigurationAttribute:
     def remove_input_configuration_attribute(self, input_configuration_attribute):
         self.__input_configuration_attributes.pop(input_configuration_attribute)
         
-    def remove_all_input_configuration_attributes(self):
-        self.__input_configuration_attributes = {}
+    def get_input_scalar(self):
+        return self.__input_scalar
+        
+    def set_input_scalar(self, input_scalar):
+        self.__input_scalar = input_scalar
+        
+    def reset_input_scalar(self):
+        self.__input_scalar = DEFAULT_INPUT_SCALAR
         
     def is_hidden(self):
         return self.__is_hidden
