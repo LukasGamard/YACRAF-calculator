@@ -36,6 +36,9 @@ class GUIBlock:
         
         GUIBlock.scale(self, view.get_length_unit())
         
+        if not isinstance(self, GUIConnectionCorner):
+            view.update_shown_order()
+            
     def left_pressed(self, event):
         self.__view.select_item(self)
         
@@ -230,18 +233,18 @@ class GUIBlock:
         return {"x": self.__x, "y": self.__y}
         
 class GUIModelingBlock(GUIBlock):
-    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None):
+    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None, tags_rect=(), tags_text=()):
         canvas = view.get_canvas()
         actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
         actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
         
-        self.__rect = canvas.create_rectangle(actual_rect_x1, actual_rect_y1, actual_rect_x2, actual_rect_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=fill_color)
+        self.__rect = canvas.create_rectangle(actual_rect_x1, actual_rect_y1, actual_rect_x2, actual_rect_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=fill_color, tags=tags_rect)
         
         if label_text_x == None:
             label_text_x = x + width / 2
             
         actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, label_text_x, y+height/2)
-        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT, justify="center")
+        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT, justify="center", tags=tags_text)
         self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
         
         pressable_items = [self.__rect, self.__label_text]
@@ -377,6 +380,11 @@ class GUIClass(GUIModelingBlock):
         if self.__linked_group_number != None:
             self.update_linked_group_indicator()
             
+    def left_released(self, event):
+        super().left_released(event)
+        
+        self.get_view().update_shown_order()
+            
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
@@ -425,7 +433,7 @@ class GUIConnectionCorner(GUIBlock):
     def __init__(self, model, view, connection, x, y):
         actual_x, actual_y = convert_grid_coordinate_to_actual(view, x+0.5-CORNER_WIDTH/2, y+0.5-CORNER_HEIGHT/2)
         actual_width, actual_height = convert_grid_coordinate_to_actual(view, CORNER_WIDTH, CORNER_HEIGHT)
-        self.__rect = view.get_canvas().create_rectangle(actual_x, actual_y, actual_x+actual_width, actual_y+actual_height, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CORNER_COLOR)
+        self.__rect = view.get_canvas().create_rectangle(actual_x, actual_y, actual_x+actual_width, actual_y+actual_height, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CORNER_COLOR, tags=(TAG_CONNECTION_CORNER,))
         
         super().__init__(model, view, [self.__rect], x, y, CORNER_WIDTH, CORNER_HEIGHT, bind_left=MOUSE_DRAG)
         self.__connection = connection
@@ -479,10 +487,6 @@ class NumberIndicator:
         self.__view.get_canvas().coords(self.__label, label_x, label_y)
         self.__view.get_canvas().itemconfig(self.__label, font=self.__view.get_updated_font(label=self.__label))
         
-    def raise_to_top(self):
-        for item in (self.__circle, self.__label):
-            self.__view.get_canvas().tag_raise(item)
-            
     def get_x(self):
         return self.__x
         
@@ -490,8 +494,8 @@ class NumberIndicator:
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
         actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)
         
-        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color)
-        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT)
+        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color, tags=(TAG_NUMBER_INDICATOR,))
+        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_NUMBER_INDICATOR_TEXT,))
         
     def remove(self):
         self.__view.get_canvas().delete(self.__circle)

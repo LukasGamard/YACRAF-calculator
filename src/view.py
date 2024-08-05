@@ -37,7 +37,7 @@ class View(tk.Frame):
         self.__canvas.bind(MOUSE_LEFT_RELEASE, self.pan_stop)
         self.__canvas.bind(MOUSE_MOTION, self.move_items)
         
-        # Binds two variations to cover Linux, macOS, and Windows
+        # Binds two variations to account for Linux, macOS, and Windows
         self.__canvas.bind(MOUSE_WHEEL_UP, self.zoom_in)
         self.__canvas.bind(MOUSE_WHEEL_DOWN, self.zoom_out)
         self.__canvas.bind(MOUSE_WHEEL, lambda event: self.zoom_in(event) if event.delta > 0 else self.zoom_out(event))
@@ -47,10 +47,19 @@ class View(tk.Frame):
         self.__canvas.pack(expand=True, fill="both")
         
     def pan_start(self, event):
-        self.__is_panning = len(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y))) == 0
+        """
+        When starting to pan by pressing the canvas background
+        """
+        # No item on the canvas was pressed (pressed on background)
+        closest_item = self.__canvas.find_closest(event.x, event.y)
+        actual_coords_closest_item = self.__canvas.bbox(closest_item)
         
-        print(self.__canvas.gettags(self.__canvas.find_closest(event.x, event.y)))
-        
+        if actual_coords_closest_item != None:
+            x1, y1, x2, y2 = actual_coords_closest_item
+            self.__is_panning = not (x1 <= event.x <= x2 and y1 <= event.y <= y2)
+        else:
+            self.__is_panning = True
+            
         self.__canvas.focus_set()
         
         if self.__is_panning:
@@ -58,6 +67,9 @@ class View(tk.Frame):
             self.__panning_last_mouse_coordinate = (event.x, event.y)
             
     def pan_move(self, event):
+        """
+        When dragging on the canvas background to pan
+        """
         if self.__is_panning:
             """
             # Move all items
@@ -73,6 +85,7 @@ class View(tk.Frame):
             self.__panning_last_offset = (self.__canvas.canvasx(0), self.__canvas.canvasy(0))
             """
             
+            # How much to move each item
             move_x, move_y = convert_actual_coordinate_to_grid(self, event.x-self.__panning_last_mouse_coordinate[0], event.y-self.__panning_last_mouse_coordinate[1])
             
             self.update_grid_offset(move_x, move_y)
@@ -83,6 +96,9 @@ class View(tk.Frame):
             self.__panning_last_mouse_coordinate = (event.x, event.y)
             
     def pan_stop(self, event):
+        """
+        When stopping to pan by releasing the mouse button
+        """
         # Snap blocks to grid
         if self.__is_panning:
             """
@@ -149,6 +165,10 @@ class View(tk.Frame):
         
         return move_x, move_y
         
+    def update_shown_order(self):
+        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_NUMBER_INDICATOR, TAG_NUMBER_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT):
+            self.__canvas.tag_raise(tag)
+            
     def open_options(self):
         return OptionsView(self.get_model(), self)
         

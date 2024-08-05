@@ -193,8 +193,7 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         held_connection = self.get_view().get_held_connection()
         
         if held_connection == None:
-            held_connection = self.get_model().create_connection(self, self.get_direction(event.x, event.y))
-            held_connection.create_new_lines((event.x, event.y))
+            held_connection = self.get_model().create_connection(self, self.get_direction(event.x, event.y), (event.x, event.y))
             
     def open_options(self):
         return OptionsConfigurationAttribute(self.get_model().get_root(), self.__configuration_class_gui, self)
@@ -362,7 +361,7 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
 class GUIConfigurationInput(GUIModelingBlock):
     def __init__(self, model, view, x, y):
-        super().__init__(model, view, "?", x, y, INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS)
+        super().__init__(model, view, "?", x, y, INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS, tags_rect=(TAG_INPUT,), tags_text=(TAG_INPUT_TEXT,))
         self.__attached_configuration_attribute_gui = None
         self.__connections = []
         self.__symbol_calculation_type = None

@@ -2,6 +2,20 @@
 
 This is a graphical tool for doing calculations according to YACRAF (https://link.springer.com/article/10.1007/s10207-023-00713-y) used in the KTH courses EP2790 and EP279V.
 
+## Dependecies
+
+The program utilizes the Tkinter for its GUI and Numpy for its calculations. If not already installed, Tkinter can on Debian-based Linux distributions (such as Ubuntu) be installed using:
+
+```
+sudo apt install python3-tk
+```
+
+Meanwhile, Numpy can be installed using:
+
+```
+pip install numpy
+```
+
 ## How to use
 
 This tool allows calculations inherent to the threat modeling to be setup and calculated using graphical block diagrams, where one can place, drag, and connect different blocks across various `Views`.. The aim of the tool is to allow for the: (1) automation of the calculation process, where any changes to any block automatically propagate through the system, and (2) simulation of various scenarios.

@@ -10,7 +10,7 @@ class GUIConnection:
     """
     Connects blocks by lines
     """
-    def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False):
+    def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False, mouse_location=None):
         self.__model = model
         self.__view = view
         
@@ -34,8 +34,9 @@ class GUIConnection:
         # End block was specified
         if end_block != None:
             end_block.add_connection(self)
-            self.create_new_lines()
             
+        self.create_new_lines(mouse_location)
+        
         # Corner coordinates were specified
         if corner_coordinates != None:
             for i, corner in enumerate(self.__corners):
@@ -63,16 +64,6 @@ class GUIConnection:
         # Scale connection order indicator
         if self.__num_order_indicator != None:
             self.__num_order_indicator.scale(last_length_unit)
-            
-    def raise_to_top(self):
-        """
-        Put corner and connection order indicator above the lines of the connection in the canvas
-        """
-        for corner in self.__corners:
-            corner.raise_to_top()
-        
-        if self.__num_order_indicator != None:
-            self.__num_order_indicator.raise_to_top()
             
     def open_options(self):
         return OptionsConnection(self.__model.get_root(), self)
@@ -282,15 +273,14 @@ class GUIConnection:
             to_y = actual_coordinates[i][1]
             
             if self.__is_external:
-                line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH, dash=CONNECTION_DASH)
+                line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH, dash=CONNECTION_DASH, tags=(TAG_CONNECTION_LINE,))
             else:
-                line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH)
+                line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH, tags=(TAG_CONNECTION_LINE,))
                 
             self.__lines.append(line)
             
         self.attempt_to_set_number()
-        self.raise_to_top()
-            
+        
     def convert_direction_to_vector(self, direction):
         if direction == "UP":
             return np.array([0, -1])
@@ -479,8 +469,6 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         self.__is_deleted = False
         
-        # self.create_new_lines()
-        
     """
     def attempt_to_connect_both_classes(self):
         start_class_gui = self.__start_block.get_attached_class()
@@ -499,7 +487,7 @@ class GUIConnectionWithBlocks(GUIConnection):
             end_class_gui.update_value_input_types()
     """
     
-    def create_new_lines(self):
+    def create_new_lines(self, mouse_location=None):
         super().create_new_lines()
         
         self.update_input_scalars_indicator()

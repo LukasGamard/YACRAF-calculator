@@ -65,8 +65,6 @@ class Model:
         key = event.keysym
         self.__currently_pressed_keys.add(key.lower())
         
-        print(key)
-        
         if key == "BackSpace":
             items_to_delete = []
             
@@ -367,8 +365,8 @@ class Model:
         for view in self.__configuration_views + self.__setup_views:
             view.set_text_change_view_button(view_with_changed_name, text)
         
-    def create_connection(self, block, direction):
-        connection = GUIConnection(self, block.get_view(), block, direction)
+    def create_connection(self, block, direction, mouse_location=None):
+        connection = GUIConnection(self, block.get_view(), block, direction, mouse_location=mouse_location)
         block.get_view().set_held_connection(connection)
         
         return connection

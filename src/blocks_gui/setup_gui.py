@@ -401,7 +401,7 @@ class GUISetupAttribute(GUIModelingBlock):
 class GUIConnectionTriangle(GUIBlock):
     def __init__(self, model, view, x, y, direction, is_end_block):
         self.__is_end_block = is_end_block
-        self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction), width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CONNECTION_END_COLOR)
+        self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction), width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CONNECTION_END_COLOR, tags=(TAG_CONNECTION_CORNER,))
         
         super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT, bind_left=MOUSE_DRAG)
         self.__connection = None

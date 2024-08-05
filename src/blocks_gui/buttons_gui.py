@@ -7,8 +7,8 @@ from script_interface import ScriptInterface
 from config import *
 
 class GUIBlockButton(GUIModelingBlock):
-    def __init__(self, model, view, text, x, y, width, height, fill_color):
-        super().__init__(model, view, text, x, y, width, height, fill_color, bind_left=MOUSE_PRESS)
+    def __init__(self, model, view, text, x, y, width, height, fill_color, tags_rect=(TAG_BUTTON,), tags_text=(TAG_BUTTON_TEXT,)):
+        super().__init__(model, view, text, x, y, width, height, fill_color, bind_left=MOUSE_PRESS, tags_rect=tags_rect, tags_text=tags_text)
         
     def left_pressed(self, event):
         pass
@@ -24,7 +24,7 @@ class GUIBlockButton(GUIModelingBlock):
         
 class GUIAddAttributeButton(GUIBlockButton):
     def __init__(self, model, view, x, y, configuration_class_gui):
-        super().__init__(model, view, "+", x, y, ADD_ATTRIBUTE_WIDTH, ADD_ATTRIBUTE_HEIGHT, ADD_ATTRIBUTE_COLOR)
+        super().__init__(model, view, "+", x, y, ADD_ATTRIBUTE_WIDTH, ADD_ATTRIBUTE_HEIGHT, ADD_ATTRIBUTE_COLOR, tags_rect=(), tags_text=())
         self.__configuration_class_gui = configuration_class_gui
         
     def left_pressed(self, event):
