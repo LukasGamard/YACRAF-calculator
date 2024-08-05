@@ -1,10 +1,10 @@
 import tkinter as tk
 import pickle
 import os
-from calculations_configuration import ConfigurationClass
-from blocks_configuration import GUIConfigurationClass, GUIConfigurationInput
-from blocks_setup import GUISetupClass, GUIConnectionTriangle
-from blocks_buttons import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton, GUIRunScriptButton
+from configuration_calculation import ConfigurationClass
+from configuration_gui import GUIConfigurationClass, GUIConfigurationInput
+from setup_gui import GUISetupClass, GUIConnectionTriangle
+from buttons_gui import GUIAddChangeViewButton, GUISaveButton, GUIAddConfigurationClassButton, GUIAddToSetupButton, GUIAddInputButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIChangeViewButton, GUIRunScriptButton
 from connection_gui import GUIConnection, GUIConnectionWithBlocks
 from options import OptionsView
 from helper_functions import convert_actual_coordinate_to_grid, delete_all
@@ -537,10 +537,6 @@ class SetupView(View):
     def calculate_values(self):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
-            
-    def reset_changes_by_script(self):
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.reset_changes_by_script()
             
     def reset_override_values(self):
         for setup_class_gui in self.__setup_classes_gui:

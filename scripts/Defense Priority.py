@@ -1,33 +1,38 @@
 # Available functions:
-# Default value of None implies matching all blocks
 
-# script_if.get_class_names()
-#     Returns a list of names of all found classes
+# Meaning of values passed to methods for finding/matching blocks in setup views, where None considers all:
+# class_type: Name of class type (for example, Attack event)
+# class_instance: Name of class instance (for example, DoS attack)
+# attribute: Name of attribute (for example, Local difficulty)
+# view: Setup view name to consider, where None considers all
 
-# script_if.get_class_instance_names(class_type)
-#     Returns a list of names of all found class instances for a specific class type
+# script_if.get_class_type_names(view=None)
+#     Returns a list of class names (those specified in configuration views) found in the specified setup views
 
-# script_if.get_attribute_names(class_type)
-#     Returns a list of names of all found attributes for a specific class type
+# script_if.get_class_instance_names(class_type, view=None)
+#     Returns a list of class instance names (those specified in setup views) found in the specified setup views
+
+# script_if.get_attribute_names(class_type, view=None)
+#     Returns a list of attribute names for a specific class type
 
 # script_if.get_input_class_names(class_type, class_instance)
-#     Returns a list of tuples of class type and corresponding class instances that are inputs for a specific pair of class type and class instance
+#     Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input fro
 #     [(input_class_type, input_class_instance), ...]
 
-# script_if.get_attribute_value(class_type, class_instance, attribute)
-#     Returns the value displayed by a specific attribute, which is a list if there are overlapping attribute names for a specific class type
+# script_if.get_attribute_value(class_type, class_instance, attribute, view=None)
+#     Returns the value displayed by a specific setup attribute, which is a list if there are overlapping attribute names for a specific class type
 
-# script_if.override_attribute_values(override_value, *, class_type=None, class_instance=None, attribute=None)
-#     Overrides the value of matching attributes
+# script_if.override_attribute_values(override_value, *, class_type=None, class_instance=None, attribute=None, view=None)
+#     Overrides the displayed value of matching attributes with a temporary one
 
-# script_if.reset_override_attribute_values(*, class_type=None, class_instance=None, attribute=None)
-#     Removes the override value of matching attributes
+# script_if.reset_override_attribute_values(*, class_type=None, class_instance=None, attribute=None, view=None)
+#     Resets any override value of matching attributes
 
-# script_if.set_class_marker(value, color, *, class_type=None, class_instance=None)
+# script_if.set_class_marker(value, color, *, class_type=None, class_instance=None, view=None)
 #     Adds a visual marker on all matching class instances
 
 # script_if.calculate_values()
-#     Calculates all attribute values based on the current configuration
+#     Calculates all attribute values in the setup views based on the current configuration
 
 DEFENSE_MECHANISM_NAME = "Defense mechanism"
 LOSS_EVENT_NAME = "Loss event"
@@ -50,6 +55,7 @@ def calculate_total_magnitude(script_if):
     return total_magnitude
     
 def script_logic(script_if):
+    # Insert logic here
     remaining_defenses_names = script_if.get_class_instance_names(DEFENSE_MECHANISM_NAME)
     priority_of_defenses = []
     
@@ -78,5 +84,6 @@ def script_logic(script_if):
         print(f"{i}. {defense_name}: {magnitude}")
         
 def script_control(script_if):
+    script_if.update_setup_structure()
     script_if.reset_script_changes()
     script_logic(script_if)

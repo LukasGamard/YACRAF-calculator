@@ -1,5 +1,5 @@
-from blocks_general import GUIModelingBlock, GUIClass, NumberIndicator
-from blocks_buttons import GUIAddAttributeButton
+from general_gui import GUIModelingBlock, GUIClass, NumberIndicator
+from buttons_gui import GUIAddAttributeButton
 from options import OptionsConfigurationClass, OptionsConfigurationAttribute, OptionsCalculationInput
 from helper_functions import delete_all
 from config import *
@@ -145,7 +145,7 @@ class GUIConfigurationClass(GUIClass):
             
     def update_value_input_types(self, specific_attribute_index=None):
         for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, check_linked=False)
+            setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, update_linked=False)
             
     def copy(self, view_to_copy_to):
         configuration_class_gui = GUIConfigurationClass(self.get_model(), view_to_copy_to, self.__configuration_class, GUI_BLOCK_START_COORDINATES[0][0], GUI_BLOCK_START_COORDINATES[0][1], self.get_linked_group_number())
@@ -196,9 +196,6 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             held_connection = self.get_model().create_connection(self, self.get_direction(event.x, event.y))
             held_connection.create_new_lines((event.x, event.y))
             
-        else:
-            self.get_view().reset_held_connection(True)
-        
     def open_options(self):
         return OptionsConfigurationAttribute(self.get_model().get_root(), self.__configuration_class_gui, self)
         

@@ -1,25 +1,29 @@
 import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
-from blocks_general import GUIConnectionCorner, NumberIndicator
-from blocks_setup import GUIConnectionTriangle, GUIConnectionScalarsIndicator
+from general_gui import GUIConnectionCorner, NumberIndicator
+from setup_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
 from options import OptionsConnection, OptionsConnectionWithBlocks
 from config import *
 
 class GUIConnection:
+    """
+    Connects blocks by lines
+    """
     def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False):
         self.__model = model
         self.__view = view
         
         self.__start_block = start_block
-        self.__start_direction = start_direction
+        self.__start_direction = start_direction # Direction which the first line goes out from the start block
         
         self.__end_block = end_block
-        self.__end_direction = end_direction
+        self.__end_direction = end_direction # Direction which the last line goes out from the end block
         
         self.__corners = []
         self.__lines = []
         
+        # Indicator for which order connections are considered when calculating values (only applying to relevant calculation types)
         self.__num_order = None
         self.__num_order_indicator = None
         
@@ -27,10 +31,12 @@ class GUIConnection:
         
         start_block.add_connection(self)
         
+        # End block was specified
         if end_block != None:
             end_block.add_connection(self)
             self.create_new_lines()
             
+        # Corner coordinates were specified
         if corner_coordinates != None:
             for i, corner in enumerate(self.__corners):
                 move_x = corner_coordinates[i][0] - corner.get_x()
@@ -41,18 +47,27 @@ class GUIConnection:
             self.adjust_lines_to_dragged_corners()
             
     def scale(self, last_length_unit):
+        """
+        Scales items on the canvas when zooming
+        """
+        # Scale lines
         for line in self.__lines:
             adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(line), last_length_unit)
             x1, y1, x2, y2 = adjusted_actual_coordinates
             self.__view.get_canvas().coords(line, x1, y1, x2, y2)
             
+        # Scale corners        
         for corner in self.__corners:
             corner.scale(last_length_unit)
             
+        # Scale connection order indicator
         if self.__num_order_indicator != None:
             self.__num_order_indicator.scale(last_length_unit)
             
     def raise_to_top(self):
+        """
+        Put corner and connection order indicator above the lines of the connection in the canvas
+        """
         for corner in self.__corners:
             corner.raise_to_top()
         
@@ -68,13 +83,10 @@ class GUIConnection:
     def get_end_block(self):
         return self.__end_block
         
-    def get_other_block(self, block):
-        if self.__start_block == block:
-            return self.__end_block
-            
-        return self.__start_block
-        
     def set_end_location(self, block, direction):
+        """
+        Connects the connection to an end block
+        """
         self.__end_block = block
         self.__end_direction = direction
         
@@ -83,6 +95,9 @@ class GUIConnection:
         self.create_new_lines()
         
     def update_direction(self, affected_block, new_direction):
+        """
+        Updates the direction which the line goes out from a block
+        """
         if affected_block == self.__start_block:
             self.__start_direction = new_direction
             
@@ -92,6 +107,9 @@ class GUIConnection:
         self.create_new_lines()
         
     def get_attached_grid_coordinate(self, is_start_block):
+        """
+        Returns the grid coordinate that the line should start from considering its connected block
+        """
         if is_start_block:
             block = self.__start_block
             direction = self.__start_direction
@@ -99,9 +117,11 @@ class GUIConnection:
             block = self.__end_block
             direction = self.__end_direction
             
+        # Center of block as default
         x = block.get_x() + int(0.5 * block.get_width())
         y = block.get_y() + int(0.5 * block.get_height())
         
+        # Correct one of the values to get the correct coordinate considering the direction which the line goes out from the block
         if direction == "UP":
             y = block.get_y() - 1
         elif direction == "DOWN":
@@ -114,9 +134,14 @@ class GUIConnection:
         return x, y
         
     def get_actual_attached_coordinates(self, x, y, direction):
+        """
+        Returns the pixel start coordinate of the line
+        """
+        # Center of grid coordinate as default
         attached_x = x + 0.5
         attached_y = y + 0.5
         
+        # Correct one of the values to get the correct pixel coordinate considering the direction of the line
         if direction == "UP":
             attached_y += 0.5
         elif direction == "DOWN":
@@ -131,20 +156,24 @@ class GUIConnection:
         return actual_x, actual_y
         
     def create_new_lines(self, mouse_location=None):
+        """
+        Deletes existing lines and corners, creating new ones
+        """
         self.remove_corners()
         self.remove_lines()
         
         start_x, start_y = self.get_attached_grid_coordinate(True)
         
+        # The lines should follow the mouse around as it has not been connected to a block yet
         if mouse_location != None:
             end_x, end_y = convert_actual_coordinate_to_grid(self.__view, mouse_location[0], mouse_location[1])
             end_x -= 0.5
             end_y -= 0.5
             
+            # Direction which the line should attach to the mouse
             if end_x > start_x:
                 self.__end_direction = "LEFT"
                 end_x -= 1
-                
             else:
                 self.__end_direction = "RIGHT"
                 end_x += 1
@@ -153,9 +182,11 @@ class GUIConnection:
             
         corner_coordinates = self.create_corners(start_x, start_y, end_x, end_y)
         
+        # Create corners
         for corner_x, corner_y in corner_coordinates:
             self.__corners.append(GUIConnectionCorner(self.__model, self.__view, self, corner_x, corner_y))
             
+        # Draw lines based on the created corners
         self.create_lines_from_corners(start_x, start_y, end_x, end_y)
         
     def adjust_lines_to_dragged_corners(self):

@@ -1,4 +1,4 @@
-from calculations_setup import SetupClass
+from setup_calculation import SetupClass
 from config import *
 
 class ConfigurationClass:

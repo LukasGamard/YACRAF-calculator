@@ -5,12 +5,13 @@ import os
 import time
 
 sys.path.append(os.path.join(".."))
-sys.path.append(os.path.join("..", "src"))
 from config import *
-sys.path.append(os.path.join("..", "src", "calculations"))
-sys.path.append(os.path.join("..", "src", "gui_blocks"))
+sys.path.append(os.path.join("..", SOURCE_PATH))
+sys.path.append(os.path.join("..", BLOCKS_CALCULATION_PATH))
+sys.path.append(os.path.join("..", BLOCKS_GUI_PATH))
 sys.path.append(os.path.join("..", SCRIPTS_PATH))
 from model import Model
+from script_interface import ScriptInterface
 
 MOUSE_OFFSET = (int(LENGTH_UNIT / 2), int(LENGTH_UNIT / 2))
 
@@ -474,6 +475,74 @@ class TestDeleteBlocks(unittest.TestCase):
         
     def tearDown(self):
         tear_down(self.root)
+        
+class TestScripts(unittest.TestCase):
+    def setUp(self):
+        self.root, self.model = set_up()
+        self.script_if = ScriptInterface(self.model)
+        
+        self.configuration_view = self.model.get_configuration_views()[0]
+        self.setup_views = self.model.get_setup_views()
+        
+        self.configuration_classes_gui = []
+        
+        for i in range(3):
+            configuration_class_gui = self.configuration_view.create_configuration_class_gui()
+            configuration_class_gui.open_options().set_name(f"CLASS {i}")
+            
+            self.configuration_classes_gui.append(configuration_class_gui)
+            
+            for j in range(3):
+                configuration_class_gui.create_attribute()
+                configuration_attribute_gui = configuration_class_gui.get_configuration_attributes_gui()[-1]
+                configuration_attribute_gui.open_options().set_name(f"ATTRIBUTE {i}-{j}")
+                
+        for i, configuration_class_gui in enumerate(self.configuration_classes_gui):
+            if i < 2:
+                for j in range(2):
+                    setup_class_gui = self.setup_views[0].create_setup_class_gui(configuration_class_gui)
+                    setup_class_gui.open_options().set_name(f"INSTANCE {i}-{j}")
+                    drag_to(setup_class_gui, self.setup_views[0], j*20, i*10)
+                    
+            else:
+                for i in range(2):
+                    setup_class_gui = self.setup_views[1].create_setup_class_gui(configuration_class_gui)
+                    setup_class_gui.open_options().set_name(f"INSTANCE {i}-{j}")
+                    drag_to(setup_class_gui, self.setup_views[1], j*20, i*10)
+                    
+                    
+        
+        self.script_if.update_setup_structure()
+        
+    def tearDown(self):
+        tear_down(self.root)
+        
+    def list_elements_are_equal(self, list1, list2):
+        if len(list1) != len(list2):
+            return False
+            
+        for element1, element2 in zip(list1, list2):
+            if element1 != element2:
+                return False
+                
+        return True
+        
+    def test_get_class_type_names(self):
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(), ["CLASS 0", "CLASS 1", "CLASS 2"]))
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(self.setup_views[0].get_name()), ["CLASS 0", "CLASS 1"]))
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(self.setup_views[1].get_name()), ["CLASS 2"]))
+        
+    def test_get_class_instance_names(self):
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_instance_names("CLASS 0"), ["INSTANCE 0-0", "INSTANCE 0-1"]))
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_instance_names("CLASS 0", self.setup_views[1].get_name()), []))
+        
+    def test_get_attribute_names(self):
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_attribute_names("CLASS 0"), ["ATTRIBUTE 0-0", "ATTRIBUTE 0-1", "ATTRIBUTE 0-2"]))
+        self.assertTrue(self.list_elements_are_equal(self.script_if.get_attribute_names("CLASS 1"), ["ATTRIBUTE 1-0", "ATTRIBUTE 1-1", "ATTRIBUTE 1-2"]))
+        
+    def test_get_input_class_names(self):
+        # self.assertTrue(self.list_elements_are_equal(self.script_if.get_input_class_names("CLASS 0", "INSTANCE 0-0"), []))
+        pass
         
 if __name__ == "__main__":
     unittest.main()

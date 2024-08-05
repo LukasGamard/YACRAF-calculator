@@ -1,7 +1,7 @@
 import os
 import importlib.util
 from helper_functions import convert_grid_coordinate_to_actual
-from blocks_general import GUIModelingBlock
+from general_gui import GUIModelingBlock
 from options import OptionsView
 from script_interface import ScriptInterface
 from config import *
@@ -116,10 +116,10 @@ class GUIRunScriptButton(GUIBlockButton):
             spec = importlib.util.spec_from_file_location(script_name, script_path)
             self.__script_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.__script_module)
-        
+            
     def left_pressed(self, event):
         if self.__is_clear_button:
-            self.get_model().reset_changes_by_script()
+            self.get_model().reset_script_changes()
             
         else:
             self.__script_module.script_control(self.__script_interface)

@@ -74,8 +74,8 @@ Pressing the `Connection` button at the top creates a directional `Connection` t
 
 #### Calculate
 
-The `Calculate` button at the top calculate the values of all `Attributes` that do not have a entry field of all `Classes` in all `Setup Views`.
+The `Calculate` button at the top calculates the values of all `Attributes` that do not have an input entry field. Calculated are the `Attributes` of all `Classes` in all `Setup Views`.
 
 #### Scripts
 
-Scripts to visualize or simulate different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the easiest attack paths, can be created using Python scripts that interface to the tool. To create a script, create a copy of the template in the `scripts` directory and name it accordingly. Upon boot of the tool, a button to run the newly created script will appear in the bottom right corner of `Setup Views`. The scripts interface to the tool through different methods of a `ScriptInterface` class, each one explained in the top of the script file.
+Scripts to visualize or simulate different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the easiest attack paths, can be created using Python scripts that interface to the tool. To create a script, go to the `scripts` directory.

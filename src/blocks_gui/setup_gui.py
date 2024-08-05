@@ -1,7 +1,7 @@
 import tkinter as tk
 import numpy as np
 from helper_functions import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom, get_triangle_coordinates, get_max_directions_movement
-from blocks_general import GUIBlock, GUIModelingBlock, GUIClass, NumberIndicator
+from general_gui import GUIBlock, GUIModelingBlock, GUIClass, NumberIndicator
 from options import OptionsSetupClass
 from config import *
 
@@ -163,22 +163,15 @@ class GUISetupClass(GUIClass):
             for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
                 linked_setup_class_gui.create_script_marker_indicator(text, color, False)
                 
-    def reset_changes_by_script(self, update_linked=True):
+    def reset_changes_by_scripts(self):
         for setup_attribute_gui in self.__setup_attributes_gui:
-            did_reset = setup_attribute_gui.attempt_to_reset_override_value()
-            
-            if did_reset:
-                setup_attribute_gui.update_value_input_type(self, self.__setup_class.get_input_classes())
+            setup_attribute_gui.attempt_to_reset_override_value()
                 
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.remove()
             
         self.__script_marker_indicators = []
         
-        if update_linked:
-            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
-                linked_setup_class_gui.reset_changes_by_script(text, color, False)
-                
     def update_value_input_types(self, *, specific_attribute_index=None, update_linked=True):
         for i, setup_attribute_gui in enumerate(self.__setup_attributes_gui):
             if specific_attribute_index == None or i == specific_attribute_index:
@@ -290,24 +283,26 @@ class GUISetupAttribute(GUIModelingBlock):
                 else:
                     connected_setup_attribute_gui.unhighlight()
                     
-    def update_value_input_type(self):
+    def update_value_input_type(self, clear_value=True):
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
         
         if has_currently_connected_inputs and self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
-            self.switch_to_value_label()
+            self.switch_to_value_label(clear_value)
         else:
-            self.switch_to_value_entry()
+            self.switch_to_value_entry(clear_value)
             
-    def switch_to_value_label(self):
+    def switch_to_value_label(self, clear_value=True):
         if self.__entry_value != None:
             self.get_view().get_canvas().delete(self.__entry_value_window)
             self.__entry_value_window = None
             self.__entry_value = None
             
-            self.__setup_attribute.clear_value()
-            self.set_displayed_value("-")
-            
-    def switch_to_value_entry(self):
+            # Reset any manually entered value
+            if clear_value:
+                self.__setup_attribute.clear_value()
+                self.set_displayed_value("-")
+                
+    def switch_to_value_entry(self, clear_value=True):
         if self.__entry_value == None:
             actual_width, actual_height = self.get_entry_size()
             actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x()+self.get_width()/2, self.get_y())
@@ -316,9 +311,11 @@ class GUISetupAttribute(GUIModelingBlock):
             self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
             self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), window=self.__entry_value, anchor="nw", width=actual_width, height=actual_height)
             
-            self.__setup_attribute.clear_value()
-            self.set_displayed_value("Value")
-            
+            # Reset any calculated value as the input now should be entered manually
+            if clear_value:
+                self.__setup_attribute.clear_value()
+                self.set_displayed_value("Value")
+                
             # When starting the edit the entered value, unselect all blocks to avoid accidentally deleting them
             self.__entry_value.bind("<FocusIn>", lambda event: self.get_view().unselect_all_items())
             
@@ -361,29 +358,24 @@ class GUISetupAttribute(GUIModelingBlock):
             
     def update_value(self):
         if self.__setup_attribute.has_override_value():
-            self.switch_to_value_label()
+            self.switch_to_value_label(False)
             self.set_displayed_value(self.__setup_attribute.get_override_value(), "red")
+            
         else:
             self.set_displayed_value(self.__setup_attribute.get_value())
             
-    """
-    def set_override_value(self, override_value):
-        self.__setup_attribute.set_override_value(override_value)
-    """
-        
-    def get_current_value(self):
-        if self.__setup_attribute.has_override_value():
-            return self.__setup_attribute.get_override_value()
-            
-        return self.__setup_attribute.get_value()
-        
     def attempt_to_reset_override_value(self):
         if self.__setup_attribute.has_override_value():
             self.__setup_attribute.reset_override_value()
+            self.update_value_input_type(False)
+            self.update_value()
             
             return True
             
         return False
+        
+    def get_name(self):
+        return self.__configuration_attribute_gui.get_name()
                 
     # def is_hidden(self):
         # return self.__configuration_attribute_gui.is_hidden()

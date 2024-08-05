@@ -1,6 +1,6 @@
 import os
 from view import ConfigurationView, SetupView
-from blocks_setup import GUISetupAttribute
+from setup_gui import GUISetupAttribute
 from connection_gui import GUIConnection
 from helper_functions import delete_all
 from config import *
@@ -62,9 +62,12 @@ class Model:
         # self.__configuration_classes_gui_to_copy = []
         
     def on_key_press(self, event):
-        self.__currently_pressed_keys.add(event.keysym.lower())
+        key = event.keysym
+        self.__currently_pressed_keys.add(key.lower())
         
-        if "BackSpace".lower() in self.__currently_pressed_keys:
+        print(key)
+        
+        if key == "BackSpace":
             items_to_delete = []
             
             for selected_item in list(self.__current_view.get_selected_items()):
@@ -73,14 +76,17 @@ class Model:
                     
             delete_all(items_to_delete)
             
-        elif "e" in self.__currently_pressed_keys:
+        elif key == "Escape":
+            self.__current_view.reset_held_connection(True)
+            
+        elif key.lower() == "e":
             selected_items = list(self.__current_view.get_selected_items())
             
             if len(selected_items) > 0:
                 for selected_item in selected_items:
                     selected_item.open_options()
                     
-            else:
+            elif self.__root.focus_get() == self.__current_view.get_canvas():
                 self.__current_view.open_options()
                 
         """
@@ -93,8 +99,10 @@ class Model:
         """
         
     def on_key_release(self, event):
-        if event.keysym.lower() in self.__currently_pressed_keys:
-            self.__currently_pressed_keys.remove(event.keysym.lower())
+        key = event.keysym
+        
+        if key.lower() in self.__currently_pressed_keys:
+            self.__currently_pressed_keys.remove(key.lower())
             
     def is_currently_pressing_key(self, key):
         return key.lower() in self.__currently_pressed_keys
@@ -335,6 +343,13 @@ class Model:
             
         return num_configuration_classes
         
+    def reset_script_changes(self):
+        for setup_view in self.__setup_views:
+            for setup_class_gui in setup_view.get_setup_classes_gui():
+                setup_class_gui.reset_changes_by_scripts()
+                
+        self.calculate_values()
+        
     def calculate_values(self):
         # Reset all values first
         for setup_view in self.__setup_views:
@@ -357,12 +372,6 @@ class Model:
         block.get_view().set_held_connection(connection)
         
         return connection
-        
-    def reset_changes_by_script(self):
-        for setup_view in self.__setup_views:
-            setup_view.reset_changes_by_script()
-            
-        self.calculate_values()
         
     def update_duplicate_view_name(self, view, existing_view_names):
         added_number = 1

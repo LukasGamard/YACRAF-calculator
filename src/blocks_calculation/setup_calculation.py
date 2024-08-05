@@ -1,4 +1,4 @@
-from calculations_general import check_input_value_types, extract_input_values, combine_values
+from general_calculation import check_input_value_types, extract_input_values, combine_values
 
 class SetupClass:
     def __init__(self, instance_name, configuration_class):
@@ -30,8 +30,8 @@ class SetupClass:
         """
         Reset the calculated value of all setup attributes of this setup class so that the program knows a new should be calculated later
         """
-        for attribute in self.__setup_attributes:
-            attribute.reset_value_if_inputs()
+        for setup_attribute in self.__setup_attributes:
+            setup_attribute.attempt_to_reset_value()
             
     def get_setup_attributes(self):
         return self.__setup_attributes
@@ -83,11 +83,11 @@ class SetupAttribute:
     def clear_value(self):
         self.__value = None
         
-    def reset_value_if_inputs(self):
+    def attempt_to_reset_value(self):
         """
-        Reset value so that the program knows it should calculate a new one, but only if there are input attributes as this attribute otherwise should take a manual input
+        Reset value so that the program knows it should calculate a new one, but only if there is no override value and there are input attributes as this attribute otherwise should take a manual input
         """
-        if self.__configuration_attribute.has_input_configuration_attributes():
+        if self.__configuration_attribute.has_input_configuration_attributes() and not self.has_override_value():
             self.__value = None
             return True
             
