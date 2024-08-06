@@ -6,6 +6,8 @@
 # attribute: Name of attribute (for example, Local difficulty)
 # view: Setup view name to consider, where None considers all
 
+# Values passed to the methods should either be a string or a float/integer
+
 # script_if.get_class_type_names(view=None)
 #     Returns a list of class names (those specified in configuration views) found in the specified setup views
 
@@ -20,10 +22,11 @@
 #     [(input_class_type, input_class_instance), ...]
 
 # script_if.get_attribute_value(class_type, class_instance, attribute, view=None)
-#     Returns the value displayed by a specific setup attribute, which is a list if there are overlapping attribute names for a specific class type
+#     Returns the value displayed by a specific setup attribute, which is a float if the value type, a list of values if a distribution, or otherwise a string
+#     If there are overlapping attribute names for a specific class type, each attribute value is returned as part of a list
 
 # script_if.override_attribute_values(override_value, *, class_type=None, class_instance=None, attribute=None, view=None)
-#     Overrides the displayed value of matching attributes with a temporary one
+#     Overrides the displayed value of matching attributes with a temporary one given in string format (as if it was entered through an entry field)
 
 # script_if.reset_override_attribute_values(*, class_type=None, class_instance=None, attribute=None, view=None)
 #     Resets any override value of matching attributes

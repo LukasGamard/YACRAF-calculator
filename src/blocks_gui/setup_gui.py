@@ -166,7 +166,7 @@ class GUISetupClass(GUIClass):
     def reset_changes_by_scripts(self):
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.attempt_to_reset_override_value()
-                
+            
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.remove()
             
@@ -271,6 +271,9 @@ class GUISetupAttribute(GUIModelingBlock):
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
             self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
+    def open_options(self):
+        pass
+        
     def unhighlight(self):
         super().unhighlight()
         self.set_input_attributes_highlight(False)
@@ -417,8 +420,10 @@ class GUIConnectionTriangle(GUIBlock):
             self.attempt_to_detach_from_class()
             
     def left_released(self, event):
-        if super().left_released(event):
+        if super().left_released(event, False):
             self.put_down_block()
+            
+        self.get_view().update_shown_order()
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -500,7 +505,7 @@ class GUIConnectionScalarsIndicator(GUIModelingBlock):
         self.__connection = connection
         x, y = connection.get_scalars_indicator_start_coordinate()
         
-        super().__init__(model, view, self.get_input_scalars_string(), x, y, INPUT_SCALARS_INDICATOR_WIDTH, INPUT_SCALARS_INDICATOR_HEIGHT, INPUT_SCALARS_INDICATOR_COLOR, bind_left=MOUSE_DRAG)
+        super().__init__(model, view, self.__connection.get_input_scalars_string(), x, y, INPUT_SCALARS_INDICATOR_WIDTH, INPUT_SCALARS_INDICATOR_HEIGHT, INPUT_SCALARS_INDICATOR_COLOR, bind_left=MOUSE_DRAG, tags_rect=(TAG_INDICATOR,), tags_text=(TAG_INDICATOR_TEXT,))
         
     def left_dragged(self, event):
         allowed_movement_directions = self.__connection.allowed_scalars_indicator_movement_directions()
@@ -508,11 +513,11 @@ class GUIConnectionScalarsIndicator(GUIModelingBlock):
         
         super().left_dragged(event, max_positive_move_x=max_positive_move_x, max_negative_move_x=max_negative_move_x, max_positive_move_y=max_positive_move_y, max_negative_move_y=max_negative_move_y, single_direction=True)
         
-    def get_input_scalars_string(self):
-        return " / ".join([str(input_scalar) for input_scalar in self.__connection.get_input_scalars()])
+    def open_options(self):
+        return self.__connection.open_options()
         
     def update_displayed_input_scalars(self):
-        self.set_text(self.get_input_scalars_string())
+        self.set_text(self.__connection.get_input_scalars_string())
         
     def delete(self, reset_input_scalars=True):
         super().delete()

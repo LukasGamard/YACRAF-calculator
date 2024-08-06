@@ -4,13 +4,13 @@ This is a graphical tool for doing calculations according to YACRAF (https://lin
 
 ## Dependecies
 
-The program utilizes the Tkinter for its GUI and Numpy for its calculations. If not already installed, Tkinter can on Debian-based Linux distributions (such as Ubuntu) be installed using:
+The program utilizes the Tkinter for its GUI and NumPy for its calculations. If not already installed, Tkinter can on Debian-based Linux distributions (such as Ubuntu) be installed using:
 
 ```
 sudo apt install python3-tk
 ```
 
-Meanwhile, Numpy can be installed using:
+Meanwhile, NumPy can be installed using:
 
 ```
 pip install numpy

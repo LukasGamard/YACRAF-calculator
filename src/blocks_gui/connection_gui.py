@@ -487,6 +487,12 @@ class GUIConnectionWithBlocks(GUIConnection):
             end_class_gui.update_value_input_types()
     """
     
+    def scale(self, last_length_unit):
+        super().scale(last_length_unit)
+        
+        if self.__input_scalars_indicator != None:
+            self.__input_scalars_indicator.scale(last_length_unit)
+            
     def create_new_lines(self, mouse_location=None):
         super().create_new_lines()
         
@@ -523,13 +529,16 @@ class GUIConnectionWithBlocks(GUIConnection):
             
         return end_attached_setup_class_gui.get_setup_class()
     
-    def move_and_place_blocks(self, new_start_x, new_start_y, new_end_x, new_end_y):
+    def move_and_place_blocks(self, new_start_x, new_start_y, new_end_x, new_end_y, input_scalars_indicator_coordinate):
         self.__start_block.move_block(new_start_x - GUI_BLOCK_START_COORDINATES[0][0], new_start_y - GUI_BLOCK_START_COORDINATES[0][1])
         self.__start_block.put_down_block()
         
         self.__end_block.move_block(new_end_x - GUI_BLOCK_START_COORDINATES[1][0], new_end_y - GUI_BLOCK_START_COORDINATES[1][1])
         self.__end_block.put_down_block()
         
+        if self.__input_scalars_indicator != None:
+            self.__input_scalars_indicator.move_block(input_scalars_indicator_coordinate[0] - self.__input_scalars_indicator.get_x(), input_scalars_indicator_coordinate[1] - self.__input_scalars_indicator.get_y())
+            
     def get_movable_items(self):
         movable_items = []
         
@@ -543,6 +552,10 @@ class GUIConnectionWithBlocks(GUIConnection):
         return self.__input_scalars
         
     def set_input_scalars(self, input_scalars):
+        if input_scalars != None and len(input_scalars) == 1 and input_scalars[0] == DEFAULT_INPUT_SCALAR:
+            self.reset_input_scalars()
+            return
+            
         self.__input_scalars = input_scalars
         
         start_setup_class_gui = self.get_start_setup_class_gui()
@@ -555,6 +568,12 @@ class GUIConnectionWithBlocks(GUIConnection):
         
     def reset_input_scalars(self):
         self.set_input_scalars(None)
+        
+    def get_input_scalars_string(self):
+        if self.__input_scalars != None:
+            return " / ".join([str(input_scalar) for input_scalar in self.__input_scalars])
+            
+        return DEFAULT_INPUT_SCALAR
         
     def update_input_scalars_indicator(self):
         if self.__input_scalars_indicator != None:
@@ -631,4 +650,12 @@ class GUIConnectionWithBlocks(GUIConnection):
             self.__end_block.delete()
             
     def save_state(self):
-        return {"start_block": self.__start_block.save_state(), "end_block": self.__end_block.save_state()}
+        saved_states = {"start_block": self.__start_block.save_state(), "end_block": self.__end_block.save_state(), "input_scalars": self.__input_scalars}
+        
+        if self.__input_scalars_indicator == None:
+            saved_states["input_scalars_indicator_coordinate"] = None
+        else:
+            saved_states["input_scalars_indicator_coordinate"] = (self.__input_scalars_indicator.get_x(), self.__input_scalars_indicator.get_y())
+            
+        return saved_states
+

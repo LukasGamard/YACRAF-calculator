@@ -17,7 +17,7 @@ class GUIBlock:
         self.__shapes_highlight = []
         
         self.__draggable = bind_left == MOUSE_DRAG
-        self.__picked_up = False
+        self.__is_picked_up = False
         self.__pick_up_actual_coordinate = (0, 0)
         
         for pressable_item in self.__pressable_items:
@@ -45,10 +45,10 @@ class GUIBlock:
         # Pick up block
         if self.__draggable:
             self.__pick_up_actual_coordinate = (event.x, event.y)
-            self.__picked_up = True
+            self.__is_picked_up = True
             
     def left_dragged(self, event, *, max_positive_move_x=None, max_negative_move_x=None, max_positive_move_y=None, max_negative_move_y=None, single_direction=False):
-        if self.__picked_up:
+        if self.__is_picked_up:
             self.__has_moved = True
             move_x, move_y = convert_actual_coordinate_to_grid(self.__view, event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1])
             
@@ -78,17 +78,21 @@ class GUIBlock:
             
         return 0, 0
         
-    def left_released(self, event):
+    def left_released(self, event, update_shown_order=True):
+        did_put_down_block = False
+        
         # Put down block
-        if self.__picked_up:
+        if self.__is_picked_up:
             if self.__has_moved:
                 self.snap_to_grid()
                 
-            self.__picked_up = False
+            self.__is_picked_up = False
+            did_put_down_block = True
             
-            return True
-            
-        return False
+            if update_shown_order:
+                self.__view.update_shown_order()
+                
+        return did_put_down_block
         
     def right_pressed(self, event):
         pass
@@ -155,10 +159,6 @@ class GUIBlock:
         if len(self.__shapes_highlight) > 0:
             self.unhighlight()
             self.highlight(color)
-            
-    def raise_to_top(self):
-        for pressable_item in self.__pressable_items:
-            self.__view.get_canvas().tag_raise(pressable_item)
             
     def snap_to_grid(self):
         move_x, move_y = distance_to_closest_grid_intersection(self.__view, self.__x, self.__y)
@@ -380,11 +380,6 @@ class GUIClass(GUIModelingBlock):
         if self.__linked_group_number != None:
             self.update_linked_group_indicator()
             
-    def left_released(self, event):
-        super().left_released(event)
-        
-        self.get_view().update_shown_order()
-            
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
@@ -450,12 +445,14 @@ class GUIConnectionCorner(GUIBlock):
         self.__connection.adjust_lines_to_dragged_corners()
         
     def left_released(self, event):
-        super().left_released(event)
+        super().left_released(event, False)
         
         for adjacent_corner in self.__connection.get_adjacent_corners(self):
             adjacent_corner.snap_to_grid()
             
         self.__connection.adjust_lines_to_dragged_corners()
+        
+        self.get_view().update_shown_order()
         
     def open_options(self):
         self.__connection.open_options()
@@ -494,8 +491,8 @@ class NumberIndicator:
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
         actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)
         
-        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color, tags=(TAG_NUMBER_INDICATOR,))
-        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_NUMBER_INDICATOR_TEXT,))
+        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color, tags=(TAG_INDICATOR,))
+        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_INDICATOR_TEXT,))
         
     def remove(self):
         self.__view.get_canvas().delete(self.__circle)

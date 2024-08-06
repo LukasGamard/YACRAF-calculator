@@ -195,8 +195,8 @@ OPTION_RADIO_BUTTON_CONFIGURATION_INPUT_WIDTH = 50
 # Tags used to find specific items
 TAG_BUTTON = "button"
 TAG_BUTTON_TEXT = "button_text"
-TAG_NUMBER_INDICATOR = "number_indicator"
-TAG_NUMBER_INDICATOR_TEXT = "number_indicator_text"
+TAG_INDICATOR = "number_indicator"
+TAG_INDICATOR_TEXT = "number_indicator_text"
 TAG_CONNECTION_LINE = "connection_line"
 TAG_CONNECTION_CORNER = "connection_corner"
 TAG_INPUT = "input"

@@ -48,29 +48,47 @@ class ScriptInterface:
         """
         Returns the value displayed by a specific setup attribute, which is a list if there are overlapping attribute names for a specific class type
         """
-        attribute_value = None
+        attributes_values = None
         
         for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
             setup_attribute = setup_attribute_gui.get_setup_attribute()
             
             if setup_attribute.has_override_value():
-                value = setup_attribute.get_override_value()
+                value_string = setup_attribute.get_override_value()
             else:
-                value = setup_attribute.get_value()
+                value_string = setup_attribute.get_value()
                 
-            # First value
-            if attribute_value == None:
-                attribute_value = value
+            # Convert string value into a single value, list of values if a distribution, or keep as string
+            try:
+                values_in_string = value_string.split("/")
                 
-            # If there is a second value, convert to list
-            elif not isinstance(attribute_value, list):
-                attribute_value = [attribute_value, value]
+                # Value is a single number
+                if len(values_in_string) == 0:
+                    value = float(values_in_string.strip())
+                    
+                # Value is a distribution
+                else:
+                    value = []
+                    
+                    for value_in_string in values_in_string:
+                        value.append(float(value_in_string.strip()))
+                        
+            except:
+                value = value_string
                 
-            # More than two values
+            # First attribute
+            if attributes_values == None:
+                attributes_values = value
+                
+            # If there is a second attribute, convert to list
+            elif not isinstance(attributes_values, list):
+                attributes_values = [attribute_value, value]
+                
+            # More than two attributes
             else:
-                attribute_value.append(value)
+                attributes_values.append(value)
                 
-        return attribute_value
+        return attributes_values
         
     def override_attribute_values(self, override_value, *, class_type=None, class_instance=None, attribute=None, view=None):
         """
@@ -83,7 +101,8 @@ class ScriptInterface:
         """
         Resets any override value of matching attributes
         """
-        self.override_attribute_values(None, class_type=class_type, class_instance=class_instance, attribute=attribute, view=view)
+        for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
+            setup_attribute_gui.attempt_to_reset_override_value()
         
     def set_class_marker(self, value, color, *, class_type=None, class_instance=None, view=None):
         """

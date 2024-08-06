@@ -84,6 +84,7 @@ class Model:
                 for selected_item in selected_items:
                     selected_item.open_options()
                     
+            # If the canvas is in focus (not typing in an entry), open the view configuration
             elif self.__root.focus_get() == self.__current_view.get_canvas():
                 self.__current_view.open_options()
                 
@@ -331,7 +332,7 @@ class Model:
         self.__current_view = view
         view.tkraise()
         
-        self.__current_view.get_canvas().focus_set()
+        # view.get_canvas().focus_set()
         
     def get_num_configuration_classes(self):
         num_configuration_classes = 0

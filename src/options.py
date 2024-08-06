@@ -232,7 +232,7 @@ class OptionsConnectionWithBlocks(Options):
         super().__init__(root, None)
         self.__connection = connection
         
-        entry_text = connection.get_input_scalars()
+        entry_text = connection.get_input_scalars_string()
         
         if entry_text == None:
             entry_text = DEFAULT_INPUT_SCALAR
@@ -247,6 +247,6 @@ class OptionsConnectionWithBlocks(Options):
                 final_input_scalars.append(float(input_scalar.strip()))
                 
         except:
-            final_input_scalars = [DEFAULT_INPUT_SCALAR]
+            final_input_scalars = None
             
         self.__connection.set_input_scalars(final_input_scalars)

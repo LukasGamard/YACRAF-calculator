@@ -166,7 +166,7 @@ class View(tk.Frame):
         return move_x, move_y
         
     def update_shown_order(self):
-        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_NUMBER_INDICATOR, TAG_NUMBER_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT):
+        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_INDICATOR, TAG_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT):
             self.__canvas.tag_raise(tag)
             
     def open_options(self):
@@ -452,7 +452,7 @@ class ConfigurationView(View):
                     
                     if symbol_calculation_type != "":
                         configuration_input_gui.set_symbol_calculation_type(symbol_calculation_type)
-                    
+                        
                     # Restore configuration connections
                     for saved_states_connection in saved_states_configuration_input_gui["connections"]:
                         connection = GUIConnection(self.get_model(), \
@@ -632,15 +632,19 @@ class SetupView(View):
                     
                     for saved_states_setup_attribute_gui, setup_attribute_gui in zip(saved_states_setup_class_gui["setup_attributes_gui"], setup_class_gui.get_setup_attributes_gui()):
                         setup_attribute_gui.set_displayed_value(saved_states_setup_attribute_gui["value"])
-                    
+                        
+                # Restore setup connections
                 for saved_states_connection_with_blocks in saved_states_connections_with_blocks:
                     connection_with_blocks = self.create_connection_with_blocks()
                     
                     saved_states_start_block = saved_states_connection_with_blocks["start_block"]
                     saved_states_end_block = saved_states_connection_with_blocks["end_block"]
                     
-                    connection_with_blocks.move_and_place_blocks(saved_states_start_block["x"], saved_states_start_block["y"], saved_states_end_block["x"], saved_states_end_block["y"])
-            
+                    connection_with_blocks.set_input_scalars(saved_states_connection_with_blocks["input_scalars"])
+                    input_scalars_indicator_coordinate = saved_states_connection_with_blocks["input_scalars_indicator_coordinate"]
+                    
+                    connection_with_blocks.move_and_place_blocks(saved_states_start_block["x"], saved_states_start_block["y"], saved_states_end_block["x"], saved_states_end_block["y"], input_scalars_indicator_coordinate)
+                    
         # except:
             # print("Creating new setup view")
             
