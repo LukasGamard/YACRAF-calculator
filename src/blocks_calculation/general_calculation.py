@@ -119,7 +119,7 @@ def calculate_output_value(symbol_calculation_type, input_values):
         
     # OR calculation
     elif symbol_calculation_type == SYMBOL_CALCULATION_TYPE_OR:
-        output_value = np.max(np.stack(input_values), axis=0)
+        output_value = np.min(np.stack(input_values), axis=0)
         
     # Multiplication calculation
     elif symbol_calculation_type == SYMBOL_CALCULATION_TYPE_MULTIPLICATION:

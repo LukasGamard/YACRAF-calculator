@@ -32,7 +32,7 @@ SYMBOL_CALCULATION_TYPE_OR = "|"
 SYMBOL_CALCULATION_TYPE_MULTIPLICATION = "*"
 SYMBOL_CALCULATION_TYPE_TRIANGLE = "T"
 SYMBOL_CALCULATION_TYPE_QUALITATIVE = "Q"
-ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_CALCULATION_TYPE_MEAN, "Mean of inputs"), (SYMBOL_CALCULATION_TYPE_AND, "AND (addition) of inputs"), (SYMBOL_CALCULATION_TYPE_OR, "OR (maximum) of inputs"), (SYMBOL_CALCULATION_TYPE_MULTIPLICATION, "Multiplication of input values"), (SYMBOL_CALCULATION_TYPE_TRIANGLE, "Sample two triangle distributions - ratio of input (1) > (2)"), (SYMBOL_CALCULATION_TYPE_QUALITATIVE, "Manual and qualitative evaluation of inputs")]
+ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_CALCULATION_TYPE_MEAN, "Mean of inputs"), (SYMBOL_CALCULATION_TYPE_AND, "AND (addition) of inputs"), (SYMBOL_CALCULATION_TYPE_OR, "OR (minimum) of inputs"), (SYMBOL_CALCULATION_TYPE_MULTIPLICATION, "Multiplication of input values"), (SYMBOL_CALCULATION_TYPE_TRIANGLE, "Sample two triangle distributions - ratio of input (1) > (2)"), (SYMBOL_CALCULATION_TYPE_QUALITATIVE, "Manual and qualitative evaluation of inputs")]
 
 # Which calculation operations rely on the order of inputs
 ENUMERATED_INPUT_CALCULATION_TYPE_SYMBOLS = [SYMBOL_CALCULATION_TYPE_TRIANGLE]
