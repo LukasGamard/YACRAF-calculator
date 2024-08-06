@@ -2,4 +2,10 @@
 
 WARNING: Risk of flashing lights as GUI windows are rapidly created and destroyed
 
-`test.py` runs unit tests that tests the functionality of most aspects of the tool.
+Run the test by running:
+
+```
+python3 test.py
+```
+
+The unit tests validate the functionality of several aspects of the tool.
