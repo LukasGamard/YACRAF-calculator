@@ -1,3 +1,5 @@
+from helper_functions import convert_string_to_value
+
 class ScriptInterface:
     """
     Methods that scripts can interact with to manipulate the program
@@ -60,19 +62,7 @@ class ScriptInterface:
                 
             # Convert string value into a single value, list of values if a distribution, or keep as string
             try:
-                values_in_string = value_string.split("/")
-                
-                # Value is a single number
-                if len(values_in_string) == 0:
-                    value = float(values_in_string.strip())
-                    
-                # Value is a distribution
-                else:
-                    value = []
-                    
-                    for value_in_string in values_in_string:
-                        value.append(float(value_in_string.strip()))
-                        
+                value = convert_string_to_value(value_string)
             except:
                 value = value_string
                 

@@ -1,4 +1,5 @@
 import tkinter as tk
+from helper_functions import convert_string_to_value
 from config import *
 
 class Options:
@@ -237,16 +238,12 @@ class OptionsConnectionWithBlocks(Options):
         if entry_text == None:
             entry_text = DEFAULT_INPUT_SCALAR
         
-        self.add_scalar_entry(0, "Scalar (float or a / b / c:", entry_text)
+        self.add_scalar_entry(0, "Scalar (number or a / b / c):", entry_text)
         
-    def set_scalar(self, input_scalars):
-        final_input_scalars = []
-        
+    def set_scalar(self, input_scalars_string):
         try:
-            for input_scalar in input_scalars.split("/"):
-                final_input_scalars.append(float(input_scalar.strip()))
-                
+            input_scalars = convert_string_to_value(input_scalars_string)
+            self.__connection.set_input_scalars(input_scalars)
         except:
-            final_input_scalars = None
-            
-        self.__connection.set_input_scalars(final_input_scalars)
+            self.__connection.reset_input_scalars()
+

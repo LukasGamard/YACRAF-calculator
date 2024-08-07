@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from helper_functions import convert_value_to_string, convert_string_to_value
 from config import *
         
 def check_input_value_types(symbol_calculation_type, input_attributes):
@@ -74,17 +75,17 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
         if input_value != None:
             if input_symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
                 try:
-                    input_value_int = float(str(input_value).strip())
+                    input_value_int = convert_string_to_value(input_value)
                     
                 except:
                     print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                input_values.append(apply_input_scalars(np.array([input_value_int]), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars))
+                input_values = apply_input_scalars(np.array([input_value_int]), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars)
                 
             elif input_symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
                 try:
-                    current_input_values = [float(value.strip()) for value in input_value.split("/")]
+                    current_input_values = convert_string_to_value(input_value)
                     
                 except:
                     print(f"Error: Could not cast the elements of {input_values} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
@@ -154,19 +155,6 @@ def calculate_output_value(symbol_calculation_type, input_values):
         
     return output_value
     
-def format_output_value(symbol_value_type, output_value):
-    if symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
-        output_value = str(round(float(output_value[0]), 3))
-        
-    elif symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
-        output_value = " / ".join([str(round(float(value), 3)) for value in output_value])
-        
-    else:
-        print(f"Error: Did not recognized value type {symbol_value_type}")
-        return None
-        
-    return output_value
-    
 def combine_values(symbol_calculation_type, symbol_value_type, input_configuration_attributes, input_setup_attributes, *, configuration_input_scalar=None, setup_input_scalars_per_attribute=None):
     if not check_input_value_types(symbol_calculation_type, input_setup_attributes):
         return None
@@ -191,7 +179,5 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_configurati
             
     else:
         output_value = calculate_output_value(symbol_calculation_type, input_values)
-            
-    output_value = format_output_value(symbol_value_type, output_value)
-    
-    return output_value
+        
+    return convert_value_to_string(output_value)

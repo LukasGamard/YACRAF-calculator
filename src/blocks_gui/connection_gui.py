@@ -1,6 +1,6 @@
 import tkinter as tk
 import numpy as np
-from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
+from helper_functions import convert_value_to_string, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, get_grid_mid_x, get_grid_mid_y
 from general_gui import GUIConnectionCorner, NumberIndicator
 from setup_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
 from options import OptionsConnection, OptionsConnectionWithBlocks
@@ -552,7 +552,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         return self.__input_scalars
         
     def set_input_scalars(self, input_scalars):
-        if input_scalars != None and len(input_scalars) == 1 and input_scalars[0] == DEFAULT_INPUT_SCALAR:
+        if input_scalars != None and input_scalars[0] == DEFAULT_INPUT_SCALAR:
             self.reset_input_scalars()
             return
             
@@ -571,9 +571,9 @@ class GUIConnectionWithBlocks(GUIConnection):
         
     def get_input_scalars_string(self):
         if self.__input_scalars != None:
-            return " / ".join([str(input_scalar) for input_scalar in self.__input_scalars])
+            return convert_value_to_string(self.__input_scalars)
             
-        return DEFAULT_INPUT_SCALAR
+        return str(DEFAULT_INPUT_SCALAR)
         
     def update_input_scalars_indicator(self):
         if self.__input_scalars_indicator != None:
@@ -598,6 +598,11 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         indicator_x -= INPUT_SCALARS_INDICATOR_WIDTH // 2
         indicator_y -= INPUT_SCALARS_INDICATOR_HEIGHT // 2
+        
+        offset_from_grid_x, offset_from_grid_y = distance_to_closest_grid_intersection(self.__view, indicator_x, indicator_y)
+        
+        indicator_x -= offset_from_grid_x
+        indicator_y -= offset_from_grid_y
         
         return indicator_x, indicator_y
         

@@ -9,12 +9,11 @@ class GUISetupClass(GUIClass):
     def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
         self.__configuration_class_gui = configuration_class_gui
         self.__setup_class = setup_class
-        
-        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
         self.__setup_attributes_gui = []
         self.__connections = []
-        
         self.__script_marker_indicators = []
+        
+        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
         
         configuration_class_gui.add_setup_class_gui(self)
         

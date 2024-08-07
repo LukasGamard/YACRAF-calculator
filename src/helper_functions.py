@@ -1,5 +1,26 @@
+import numpy as np
 from config import *
 
+def convert_value_to_string(value):
+    if not isinstance(value, (np.ndarray, list)):
+        print(f"Error: Could not convert {value} to string")
+        return None
+        
+    final_value = []
+    
+    for element in value:
+        rounded_value = round(float(element), 3)
+        
+        if rounded_value == int(rounded_value):
+            rounded_value = int(rounded_value)
+            
+        final_value.append(str(rounded_value))
+        
+    return " / ".join(final_value)
+    
+def convert_string_to_value(string):
+    return [float(element.strip()) for element in string.split("/")]
+    
 def convert_grid_coordinate_to_actual(view, grid_x, grid_y, length_unit=None):
     if length_unit == None:
         length_unit = view.get_length_unit()
@@ -43,7 +64,7 @@ def distance_to_closest_grid_intersection(view, grid_x, grid_y):
         
     if grid_y <= -0.5:
         grid_distance_y -= 1
-    
+        
     return grid_distance_x, grid_distance_y
     
 def get_grid_mid_x(view, grid_x):
