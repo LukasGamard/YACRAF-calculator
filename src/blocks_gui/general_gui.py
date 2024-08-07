@@ -17,7 +17,6 @@ class GUIBlock:
         self.__shapes_highlight = []
         
         self.__draggable = bind_left == MOUSE_DRAG
-        self.__is_picked_up = False
         self.__pick_up_actual_coordinate = (0, 0)
         
         for pressable_item in self.__pressable_items:
@@ -31,7 +30,7 @@ class GUIBlock:
             if bind_right == MOUSE_PRESS:
                 view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
-        self.__has_moved = False
+        self.__was_dragged = False
         self.__is_deleted = False
         
         GUIBlock.scale(self, view.get_length_unit())
@@ -45,11 +44,10 @@ class GUIBlock:
         # Pick up block
         if self.__draggable:
             self.__pick_up_actual_coordinate = (event.x, event.y)
-            self.__is_picked_up = True
             
     def left_dragged(self, event, *, max_positive_move_x=None, max_negative_move_x=None, max_positive_move_y=None, max_negative_move_y=None, single_direction=False):
-        if self.__is_picked_up:
-            self.__has_moved = True
+        if self.__draggable:
+            self.__was_dragged = True
             move_x, move_y = convert_actual_coordinate_to_grid(self.__view, event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1])
             
             if max_positive_move_x != None and move_x > max_positive_move_x:
@@ -81,17 +79,16 @@ class GUIBlock:
     def left_released(self, event, update_shown_order=True):
         did_put_down_block = False
         
-        # Put down block
-        if self.__is_picked_up:
-            if self.__has_moved:
-                self.snap_to_grid()
-                
-            self.__is_picked_up = False
+        # Put down block, where it needs to have been dragged to correct its position to avoid always drawing new connection lines that reset custom paths
+        if self.__draggable and self.__was_dragged:
+            self.snap_to_grid()
             did_put_down_block = True
             
             if update_shown_order:
                 self.__view.update_shown_order()
                 
+        self.__was_dragged = False
+        
         return did_put_down_block
         
     def right_pressed(self, event):

@@ -372,14 +372,16 @@ class GUIConfigurationInput(GUIModelingBlock):
         # Move block if no connection was held and added
         if not self.attach_held_connection():
             super().left_pressed(event)
-            self.attempt_to_detach_from_attribute()
-                
+            
+    def left_dragged(self, event):
+        super().left_dragged(event)
+        self.attempt_to_detach_from_attribute()
+        
     def left_released(self, event):
         if super().left_released(event, False):
             self.attempt_to_attach_to_attribute()
+            self.get_view().update_shown_order()
             
-        self.get_view().update_shown_order()
-        
     def right_pressed(self, event):
         self.attach_held_connection()
         
