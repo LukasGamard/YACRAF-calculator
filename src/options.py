@@ -1,5 +1,5 @@
 import tkinter as tk
-from helper_functions import convert_string_to_value
+from helper_functions_general import convert_string_to_value
 from config import *
 
 class Options:
@@ -244,6 +244,7 @@ class OptionsConnectionWithBlocks(Options):
         try:
             input_scalars = convert_string_to_value(input_scalars_string)
             self.__connection.set_input_scalars(input_scalars)
+            self.__connection.correct_scalars_indicator_location()
         except:
             self.__connection.reset_input_scalars()
 

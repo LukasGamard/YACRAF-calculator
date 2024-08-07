@@ -1,9 +1,9 @@
 import tkinter as tk
 import numpy as np
-from helper_functions import convert_value_to_string, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, get_grid_mid_x, get_grid_mid_y
-from general_gui import GUIConnectionCorner, NumberIndicator
-from setup_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
-from options import OptionsConnection, OptionsConnectionWithBlocks
+from connection_blocks_gui import GUIConnectionCorner
+from circle_indicator_gui import GUICircleIndicator
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
+from options import OptionsConnection
 from config import *
 
 class GUIConnection:
@@ -28,6 +28,7 @@ class GUIConnection:
         self.__num_order_indicator = None
         
         self.__is_external = is_external
+        self.__is_deleted = False
         
         start_block.add_connection(self)
         
@@ -250,7 +251,7 @@ class GUIConnection:
                 
             num_order_y += 0.5
             
-            self.__num_order_indicator = NumberIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
+            self.__num_order_indicator = GUICircleIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
             
     def attempt_to_remove_number(self):
         if self.__num_order_indicator != None:
@@ -399,7 +400,7 @@ class GUIConnection:
                 self.__corners.pop(i)
         """
         for corner in self.__corners:
-            corner.delete()
+            corner.delete(False)
             
         self.__corners.clear()
         
@@ -436,18 +437,21 @@ class GUIConnection:
         self.create_new_lines()
         
     def delete(self):
-        self.__start_block.remove_connection(self)
-                
-        if self.__end_block != None:
-            self.__end_block.remove_connection(self)
-            attached_configuration_attribute_gui = self.__end_block.get_attached_configuration_attribute_gui()
+        if not self.__is_deleted:
+            self.__is_deleted = True
             
-            if attached_configuration_attribute_gui != None:
-                attached_configuration_attribute_gui.get_configuration_class_gui().update_value_input_types()
+            self.__start_block.remove_connection(self)
+            
+            if self.__end_block != None:
+                self.__end_block.remove_connection(self)
+                attached_configuration_attribute_gui = self.__end_block.get_attached_configuration_attribute_gui()
                 
-        self.remove_corners()
-        self.remove_lines()
-        
+                if attached_configuration_attribute_gui != None:
+                    attached_configuration_attribute_gui.get_configuration_class_gui().update_value_input_types()
+                    
+            self.remove_corners()
+            self.remove_lines()
+            
     def save_state(self):
         saved_states = {"start_block": str(self.__start_block), "start_direction": self.__start_direction, "end_direction": self.__end_direction, "corner_coordinates": [], "is_external": self.__is_external}
         
@@ -455,212 +459,3 @@ class GUIConnection:
             saved_states["corner_coordinates"].append((corner.get_x(), corner.get_y()))
             
         return saved_states
-                
-class GUIConnectionWithBlocks(GUIConnection):
-    def __init__(self, model, view):
-        self.__start_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[0][0], GUI_BLOCK_START_COORDINATES[0][1], "RIGHT", False)
-        self.__end_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[1][0], GUI_BLOCK_START_COORDINATES[1][1], "RIGHT", True)
-        
-        self.__model = model
-        self.__view = view
-        self.__input_scalars = None
-        self.__input_scalars_indicator = None
-        super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
-        
-        self.__is_deleted = False
-        
-    """
-    def attempt_to_connect_both_classes(self):
-        start_class_gui = self.__start_block.get_attached_class()
-        end_class_gui = self.__end_block.get_attached_class()
-        
-        if start_class_gui != None and end_class_gui != None:
-            end_class_gui.get_setup_class().add_input_class(start_class_gui.get_setup_class())
-            end_class_gui.update_value_input_types()
-            
-    def attempt_to_disconnect_both_classes(self):
-        start_class_gui = self.__start_block.get_attached_class()
-        end_class_gui = self.__end_block.get_attached_class()
-        
-        if start_class_gui != None and end_class_gui != None:
-            end_class_gui.get_setup_class().remove_input_class(start_class_gui.get_setup_class())
-            end_class_gui.update_value_input_types()
-    """
-    
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
-        
-        if self.__input_scalars_indicator != None:
-            self.__input_scalars_indicator.scale(last_length_unit)
-            
-    def create_new_lines(self, mouse_location=None):
-        super().create_new_lines()
-        
-        self.update_input_scalars_indicator()
-        
-    def move_lines(self, move_x, move_y):
-        only_moved = super().move_lines(move_x, move_y)
-        
-        if only_moved and self.__input_scalars_indicator != None:
-            self.__input_scalars_indicator.move_block(move_x, move_y)
-    
-    def open_options(self):
-        return OptionsConnectionWithBlocks(self.__model.get_root(), self)
-        
-    def get_start_setup_class_gui(self):
-        return self.__start_block.get_attached_setup_class_gui()
-    
-    def get_end_setup_class_gui(self):
-        return self.__end_block.get_attached_setup_class_gui()
-    
-    def get_start_setup_class(self):
-        start_attached_setup_class_gui = self.__start_block.get_attached_setup_class_gui()
-        
-        if start_attached_setup_class_gui == None:
-            return None
-        
-        return start_attached_setup_class_gui.get_setup_class()
-        
-    def get_end_setup_class(self):
-        end_attached_setup_class_gui = self.__end_block.get_attached_setup_class_gui()
-        
-        if end_attached_setup_class_gui == None:
-            return None
-            
-        return end_attached_setup_class_gui.get_setup_class()
-    
-    def move_and_place_blocks(self, new_start_x, new_start_y, new_end_x, new_end_y, input_scalars_indicator_coordinate):
-        self.__start_block.move_block(new_start_x - GUI_BLOCK_START_COORDINATES[0][0], new_start_y - GUI_BLOCK_START_COORDINATES[0][1])
-        self.__start_block.put_down_block()
-        
-        self.__end_block.move_block(new_end_x - GUI_BLOCK_START_COORDINATES[1][0], new_end_y - GUI_BLOCK_START_COORDINATES[1][1])
-        self.__end_block.put_down_block()
-        
-        if self.__input_scalars_indicator != None:
-            self.__input_scalars_indicator.move_block(input_scalars_indicator_coordinate[0] - self.__input_scalars_indicator.get_x(), input_scalars_indicator_coordinate[1] - self.__input_scalars_indicator.get_y())
-            
-    def get_movable_items(self):
-        movable_items = []
-        
-        for potential_block in [self.__start_block, self.__end_block]:
-            if not potential_block.is_attached():
-                movable_items.append(potential_block)
-                
-        return movable_items
-        
-    def get_input_scalars(self):
-        return self.__input_scalars
-        
-    def set_input_scalars(self, input_scalars):
-        if input_scalars != None and input_scalars[0] == DEFAULT_INPUT_SCALAR:
-            self.reset_input_scalars()
-            return
-            
-        self.__input_scalars = input_scalars
-        
-        start_setup_class_gui = self.get_start_setup_class_gui()
-        end_setup_class_gui = self.get_end_setup_class_gui()
-        
-        if start_setup_class_gui != None and end_setup_class_gui != None:
-            end_setup_class_gui.get_setup_class().set_input_setup_class_scalars(start_setup_class_gui.get_setup_class(), input_scalars)
-            
-        self.update_input_scalars_indicator()
-        
-    def reset_input_scalars(self):
-        self.set_input_scalars(None)
-        
-    def get_input_scalars_string(self):
-        if self.__input_scalars != None:
-            return convert_value_to_string(self.__input_scalars)
-            
-        return str(DEFAULT_INPUT_SCALAR)
-        
-    def update_input_scalars_indicator(self):
-        if self.__input_scalars_indicator != None:
-            self.__input_scalars_indicator.delete(False)
-            
-        if self.__input_scalars != None:
-            if (len(self.__input_scalars) == 1 and self.__input_scalars[0] != DEFAULT_INPUT_SCALAR) or len(self.__input_scalars) == 3:
-                self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
-                
-    def get_scalars_indicator_start_coordinate(self):
-        corners = self.get_corners()
-        end_x, end_y = self.get_attached_grid_coordinate(False)
-        
-        if len(corners) > 0:
-            start_x, start_y = corners[-1].get_x(), corners[-1].get_y()
-            
-        else:
-            start_x, start_y = self.get_attached_grid_coordinate(True)
-            
-        indicator_x = abs(start_x + end_x) / 2
-        indicator_y = abs(start_y + end_y) / 2
-        
-        indicator_x -= INPUT_SCALARS_INDICATOR_WIDTH // 2
-        indicator_y -= INPUT_SCALARS_INDICATOR_HEIGHT // 2
-        
-        offset_from_grid_x, offset_from_grid_y = distance_to_closest_grid_intersection(self.__view, indicator_x, indicator_y)
-        
-        indicator_x -= offset_from_grid_x
-        indicator_y -= offset_from_grid_y
-        
-        return indicator_x, indicator_y
-        
-    def allowed_scalars_indicator_movement_directions(self):
-        allowed_directions = []
-        indicator_pos = (self.__input_scalars_indicator.get_x()+self.__input_scalars_indicator.get_width()//2, self.__input_scalars_indicator.get_y()+self.__input_scalars_indicator.get_height()//2)
-        
-        start_x, start_y = self.get_attached_grid_coordinate(True)
-        end_x, end_y = self.get_attached_grid_coordinate(False)
-        corners = self.get_corners()
-        
-        coordinates = [(start_x, start_y)] + [(corner.get_x(), corner.get_y()) for corner in corners] + [(end_x, end_y)]
-        
-        for i in range(1, len(coordinates)):
-            first_pos, second_pos = coordinates[i-1], coordinates[i]
-            
-            # Vertically aligned
-            if indicator_pos[0] == first_pos[0] == second_pos[0]:
-                if indicator_pos[1] > min(first_pos[1], second_pos[1]):
-                    allowed_directions.append("UP")
-                    
-                if indicator_pos[1] < max(first_pos[1], second_pos[1]):
-                    allowed_directions.append("DOWN")
-                    
-            # Horizontally aligned
-            if indicator_pos[1] == first_pos[1] == second_pos[1]:
-                if indicator_pos[0] > min(first_pos[0], second_pos[0]):
-                    allowed_directions.append("LEFT")
-                    
-                if indicator_pos[0] < max(first_pos[0], second_pos[0]):
-                    allowed_directions.append("RIGHT")
-                    
-        return allowed_directions
-        
-    def is_deleted(self):
-        return self.__is_deleted()
-        
-    def delete(self):
-        if not self.__is_deleted:
-            self.__is_deleted = True
-            
-            if self.__input_scalars_indicator != None:
-                self.__input_scalars_indicator.delete()
-                
-            self.remove_corners()
-            self.remove_lines()
-            self.__view.remove_connection_with_blocks(self)
-            
-            self.__start_block.delete()
-            self.__end_block.delete()
-            
-    def save_state(self):
-        saved_states = {"start_block": self.__start_block.save_state(), "end_block": self.__end_block.save_state(), "input_scalars": self.__input_scalars}
-        
-        if self.__input_scalars_indicator == None:
-            saved_states["input_scalars_indicator_coordinate"] = None
-        else:
-            saved_states["input_scalars_indicator_coordinate"] = (self.__input_scalars_indicator.get_x(), self.__input_scalars_indicator.get_y())
-            
-        return saved_states
-

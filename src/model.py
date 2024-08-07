@@ -1,11 +1,15 @@
 import os
-from view import ConfigurationView, SetupView
-from setup_gui import GUISetupAttribute
+from configuration_view import ConfigurationView
+from setup_view import SetupView
+from setup_attribute_gui import GUISetupAttribute
 from connection_gui import GUIConnection
-from helper_functions import delete_all
+from helper_functions_general import delete_all
 from config import *
 
 class Model:
+    """
+    Class that tracks all views and other objects that spans multiple views
+    """
     def __init__(self, root, new_save, *, num_configuration_views=1, num_setup_views=3):
         self.__root = root
         self.__configuration_views = []
@@ -32,24 +36,27 @@ class Model:
                 
         # Restore saved views
         else:
-            with open(f"{BASE_PATH}/{FILE_PATHS_SAVES_PATH}", "r") as file_with_paths:
-                mapping_configuration_class_gui = {}
+            with open(os.path.join(BASE_PATH, FILE_PATHS_SAVES_PATH), "r") as file_with_paths:
+                mapping_configuration_class_gui = {} # Used to map configuration class IDs from the saves to newly created ones
                 
                 for line in file_with_paths:
                     file_path = line.strip()
                     view_directory_path, view_name = os.path.split(file_path)
                     view_name = view_name.replace(".pickle", "")
                     
+                    # Restore saved configuration view
                     if view_directory_path == CONFIGURATION_SAVES_PATH:
                         configuration_view = self.create_view(True, view_name)
                         mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
                         
+                    # Restore saved setup view
                     elif view_directory_path == SETUP_SAVES_PATH:
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
                         
                 self.calculate_values()
                 
+        # Attempt to find and set a suitable default view
         if len(self.__configuration_views) > 0:
             self.change_view(self.__configuration_views[0])
             
@@ -59,12 +66,14 @@ class Model:
         root.bind("<KeyPress>", self.on_key_press)
         root.bind("<KeyRelease>", self.on_key_release)
         
-        # self.__configuration_classes_gui_to_copy = []
-        
     def on_key_press(self, event):
+        """
+        When pressing a key on the keyboard
+        """
         key = event.keysym
         self.__currently_pressed_keys.add(key.lower())
         
+        # Delete a selected block
         if key == "BackSpace":
             items_to_delete = []
             
@@ -72,11 +81,13 @@ class Model:
                 if not isinstance(selected_item, GUISetupAttribute):
                     items_to_delete.append(selected_item)
                     
-            delete_all(items_to_delete)
+            delete_all(items_to_delete, True)
             
+        # Reset a held connection
         elif key == "Escape":
             self.__current_view.reset_held_connection(True)
             
+        # Edit a selected block, or the current view if no block is selected
         elif key.lower() == "e":
             selected_items = list(self.__current_view.get_selected_items())
             
@@ -88,18 +99,13 @@ class Model:
             elif self.__root.focus_get() == self.__current_view.get_canvas():
                 self.__current_view.open_options()
                 
-        """
-        elif "Control_L" in self.__currently_pressed_keys and ("c" in self.__currently_pressed_keys or "C" in self.__currently_pressed_keys):
-            self.__configuration_classes_gui_to_copy = list(self.__current_view.get_selected_items())
-            
-        elif "Control_L" in self.__currently_pressed_keys and ("v" in self.__currently_pressed_keys or "V" in self.__currently_pressed_keys):
-            for configuration_class_gui_to_copy in self.__configuration_classes_gui_to_copy:
-                self.__current_view.create_configuration_class_gui_copy(configuration_class_gui_to_copy)
-        """
-        
     def on_key_release(self, event):
+        """
+        When releasing a key on the keyboard
+        """
         key = event.keysym
         
+        # Remove the released key from the set of currently pressed ones
         if key.lower() in self.__currently_pressed_keys:
             self.__currently_pressed_keys.remove(key.lower())
             
@@ -107,72 +113,119 @@ class Model:
         return key.lower() in self.__currently_pressed_keys
         
     def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
+        """
+        Creates and adds the button used to create a setup version of a configuration class to each existing setup view
+        """
         for existing_setup_view in self.__setup_views:
             existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
             
     def remove_add_to_setup_buttons(self, to_setup_buttons):
+        """
+        Removes the button used to create a setup version of a configuration class from each existing setup view, typically due to the configuration class being deleted
+        """
         for to_setup_button in to_setup_buttons:
             to_setup_button.get_view().remove_add_to_setup_button(to_setup_button)
             
     def get_linked_configuration_classes_gui(self, configuration_class_gui):
+        """
+        Returns a list of all configuration classes that are linked copies of the specified one
+        """
         linked_group_number = configuration_class_gui.get_linked_group_number()
         
         if linked_group_number == None:
             return []
             
         linked_configuration_classes_gui = self.__linked_configuration_groups_per_number[linked_group_number].copy()
-        linked_configuration_classes_gui.remove(configuration_class_gui)
+        linked_configuration_classes_gui.remove(configuration_class_gui) # Do not include itself
             
         return linked_configuration_classes_gui
         
+    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+        """
+        Creates a linked copy of a configuration class in a specified view
+        """
+        # Create a new linked group if it does not exist
+        self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
+        
+        # Create new linked copy and add it to the group
+        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy, x=x, y=y)
+        self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
+            
+        return linked_configuration_class_gui
+        
     def get_linked_configuration_attributes_gui(self, configuration_attribute_gui):
+        """
+        Returns a list of all configuration attributes that are linked copies of the specified one
+        """
         if configuration_attribute_gui.get_configuration_class_gui().get_linked_group_number() == None:
             return []
             
         linked_configuration_attributes_gui = []
+        
+        # Index that the specified attribute has in its class
         attribute_index = configuration_attribute_gui.get_configuration_class_gui().get_configuration_attributes_gui().index(configuration_attribute_gui)
         
+        # Find the corresponding attribute of each linked configuration class
         for linked_configuration_class_gui in self.get_linked_configuration_classes_gui(configuration_attribute_gui.get_configuration_class_gui()):
             linked_configuration_attributes_gui.append(linked_configuration_class_gui.get_configuration_attributes_gui()[attribute_index])
             
         return linked_configuration_attributes_gui
         
-    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to):
-        self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
-        
-        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy)
-        self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
-            
-        return linked_configuration_class_gui
-        
     def get_linked_setup_classes_gui(self, setup_class_gui):
+        """
+        Returns a list of all setup classes that are linked copies of the specified one
+        """
         linked_group_number = setup_class_gui.get_linked_group_number()
         
         if linked_group_number == None:
             return []
             
         linked_setup_classes_gui = self.__linked_setup_groups_per_number[linked_group_number].copy()
-        linked_setup_classes_gui.remove(setup_class_gui)
+        linked_setup_classes_gui.remove(setup_class_gui) # Do not include itself
         
         return linked_setup_classes_gui
         
-    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_to_copy_to, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+        """
+        Creates a linked copy of a setup class in a specified view
+        """
+        # Create a new linked group if it does not exist
         self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number)
-            
+        
         # Create new linked copy and add it to the group
         linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(configuration_class_gui, x=x, y=y, setup_class=setup_class_gui_to_copy.get_setup_class(), linked_group_number=setup_class_gui_to_copy.get_linked_group_number())
         self.__linked_setup_groups_per_number[linked_setup_class_gui.get_linked_group_number()].append(linked_setup_class_gui)
         
         return linked_setup_class_gui
         
+    def get_linked_setup_attributes_gui(self, setup_attribute_gui):
+        """
+        Returns a list of all setup attributes that are linked copies of the specified one
+        """
+        if setup_attribute_gui.get_setup_class_gui().get_linked_group_number() == None:
+            return []
+            
+        linked_setup_attributes_gui = []
+        
+        # Index that the specified attribute has in its class
+        attribute_index = setup_attribute_gui.get_setup_class_gui().get_setup_attributes_gui().index(setup_attribute_gui)
+        
+        # Find the corresponding attribute of each linked configuration class
+        for linked_setup_class_gui in self.get_linked_setup_classes_gui(setup_attribute_gui.get_setup_class_gui()):
+            linked_setup_attributes_gui.append(linked_setup_class_gui.get_setup_attributes_gui()[attribute_index])
+            
+        return linked_setup_attributes_gui
+        
     def attempt_to_create_linked_group(self, class_gui_to_copy, view_to_copy_to, linked_groups_per_number):
-        # Need to create a new group
+        """
+        Create a new linked group if it does not exist
+        """
         if class_gui_to_copy.get_linked_group_number() == None:
             linked_group_number = len(linked_groups_per_number)
             
             linked_groups_per_number[linked_group_number] = [class_gui_to_copy]
             class_gui_to_copy.set_linked_group_number(linked_group_number)
-        
+            
     def remove_class_gui_from_linked_group(self, linked_class_gui, is_configuration_view):
         linked_group_number = linked_class_gui.get_linked_group_number()
         
@@ -383,7 +436,7 @@ class Model:
         setup_view_names = set()
         
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
-        with open(f"{BASE_PATH}/{FILE_PATHS_SAVES_PATH}", "w") as file_with_paths:
+        with open(os.path.join(BASE_PATH, FILE_PATHS_SAVES_PATH), "w") as file_with_paths:
             # Need to store configuration views first as they need to be restored before setup views so that they can use their configurations
             for configuration_view in self.__configuration_views:
                 self.update_duplicate_view_name(configuration_view, configuration_view_names)

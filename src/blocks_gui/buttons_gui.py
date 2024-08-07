@@ -1,8 +1,6 @@
 import os
 import importlib.util
-from helper_functions import convert_grid_coordinate_to_actual
 from general_gui import GUIModelingBlock
-from options import OptionsView
 from script_interface import ScriptInterface
 from config import *
 
@@ -12,15 +10,6 @@ class GUIBlockButton(GUIModelingBlock):
         
     def left_pressed(self, event):
         pass
-        
-    """
-    def set_text(self, text):
-        self.get_canvas().itemconfig(self.__label, text=text)
-        
-    def delete(self):
-        self.get_canvas().delete(self.__rect)
-        self.get_canvas().delete(self.__label)
-    """
         
 class GUIAddAttributeButton(GUIBlockButton):
     def __init__(self, model, view, x, y, configuration_class_gui):

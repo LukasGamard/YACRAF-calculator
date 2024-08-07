@@ -3,12 +3,11 @@ import sys
 import os
 
 # Paths to all directories from which modules may be imported elsewhere in the program
-sys.path.append("src")
-from config import BLOCKS_CALCULATION_PATH, BLOCKS_GUI_PATH, SCRIPTS_PATH
-sys.path.append(BLOCKS_CALCULATION_PATH)
-sys.path.append(BLOCKS_GUI_PATH)
-sys.path.append(SCRIPTS_PATH)
+from config import IMPORT_PATHS
 
+for path in IMPORT_PATHS:
+    sys.path.append(path)
+    
 def main():
     new_save = False
     

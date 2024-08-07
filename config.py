@@ -1,21 +1,44 @@
 import os
 import tkinter as tk
-from settings import *
 
+# Default window size overwritten by the settings
+CANVAS_WIDTH = 800
+CANVAS_HEIGHT = 600
+
+if os.path.exists("settings.py"):
+    from settings import *
+    
 # The pixel width of each block in the grid
 LENGTH_UNIT = 25
 LENGTH_UNIT_ZOOM_LIMITS = (5, 50)
 
+
+
 # Used paths
 BASE_PATH = os.path.dirname(__file__)
+
 SOURCE_PATH = "src"
+
 BLOCKS_CALCULATION_PATH = os.path.join(SOURCE_PATH, "blocks_calculation")
+BLOCKS_CALCULATION_CONFIGURATION_PATH = os.path.join(BLOCKS_CALCULATION_PATH, "configuration")
+BLOCKS_CALCULATION_SETUP_PATH = os.path.join(BLOCKS_CALCULATION_PATH, "setup")
+
 BLOCKS_GUI_PATH = os.path.join(SOURCE_PATH, "blocks_gui")
+BLOCKS_GUI_CONFIGURATION_PATH = os.path.join(BLOCKS_GUI_PATH, "configuration")
+BLOCKS_GUI_SETUP_PATH = os.path.join(BLOCKS_GUI_PATH, "setup")
+BLOCKS_GUI_CONNECTION_PATH = os.path.join(BLOCKS_GUI_PATH, "connection")
+
+VIEW_PATH = os.path.join(SOURCE_PATH, "views")
+
+IMPORT_PATHS = (SOURCE_PATH, BLOCKS_CALCULATION_PATH, BLOCKS_CALCULATION_CONFIGURATION_PATH, BLOCKS_CALCULATION_SETUP_PATH, BLOCKS_GUI_PATH, BLOCKS_GUI_CONFIGURATION_PATH, BLOCKS_GUI_SETUP_PATH, BLOCKS_GUI_CONNECTION_PATH, VIEW_PATH)
+
 SAVES_PATH = "saved_views"
 FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.csv")
 CONFIGURATION_SAVES_PATH = os.path.join(SAVES_PATH, "configurations")
 SETUP_SAVES_PATH = os.path.join(SAVES_PATH, "setups")
 SCRIPTS_PATH = "scripts"
+
+
 
 # Window default value
 BACKGROUND_COLOR = "white"

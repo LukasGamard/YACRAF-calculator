@@ -4,12 +4,12 @@ import sys
 import os
 import time
 
-sys.path.append(os.path.join(".."))
+sys.path.append("..")
 from config import *
-sys.path.append(os.path.join("..", SOURCE_PATH))
-sys.path.append(os.path.join("..", BLOCKS_CALCULATION_PATH))
-sys.path.append(os.path.join("..", BLOCKS_GUI_PATH))
-sys.path.append(os.path.join("..", SCRIPTS_PATH))
+
+for path in IMPORT_PATHS:
+    sys.path.append(os.path.join(path, "..")))
+    
 from model import Model
 from script_interface import ScriptInterface
 

@@ -1,0 +1,221 @@
+import tkinter as tk
+import numpy as np
+from general_gui import GUIClass
+from setup_attribute_gui import GUISetupAttribute
+from circle_indicator_gui import GUICircleIndicator
+from options import OptionsSetupClass
+from config import *
+
+class GUISetupClass(GUIClass):
+    def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
+        self.__configuration_class_gui = configuration_class_gui
+        self.__setup_class = setup_class
+        self.__setup_attributes_gui = []
+        self.__connections = []
+        self.__script_marker_indicators = []
+        
+        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
+        
+        configuration_class_gui.add_setup_class_gui(self)
+        
+        for setup_attribute, configuration_attribute_gui in zip(self.__setup_class.get_setup_attributes(), self.__configuration_class_gui.get_configuration_attributes_gui()):
+            if not configuration_attribute_gui.is_hidden():
+                self.create_setup_attribute_gui(setup_attribute, configuration_attribute_gui)
+                
+        self.update_text()
+        
+    def right_pressed(self, event):
+        self.open_options()
+        
+    def open_options(self):
+        return OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
+        
+    def move_block(self, move_x, move_y):
+        super().move_block(move_x, move_y)
+        
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_marker_indicator.move(move_x, move_y)
+            
+    def scale(self, last_length_unit):
+        super().scale(last_length_unit)
+        
+        for connection in self.__connections:
+            # Only scale connection if this class is connected to the start block of the connection to avoid moving it twice
+            if self.has_attached_block(connection.get_start_block()):
+                connection.scale(last_length_unit)
+                
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_marker_indicator.scale(last_length_unit)
+            
+    def is_adjacent(self, coordinates):
+        # Above class
+        for coordinate in coordinates:
+            coordinate_to_check = np.array(coordinate)
+            
+            for i in range(self.get_width()):
+                coordinate_up = np.array((self.get_x() + i, self.get_y() - 1))
+                
+                if np.linalg.norm(coordinate_to_check - coordinate_up) < 0.5:
+                    return True, "UP"
+                    
+                if len(self.__setup_attributes_gui) == 0:
+                    coordinate_down = np.array((self.get_x() + i, self.get_y() + self.get_height()))
+                else:
+                    last_attribute = self.__setup_attributes_gui[-1]
+                    coordinate_down = np.array((last_attribute.get_x() + i, last_attribute.get_y() + last_attribute.get_height()))
+                    
+                # Below last attribute
+                if np.linalg.norm(coordinate_to_check - coordinate_down) < 0.5:
+                    return True, "DOWN"
+                        
+        # Sides of class
+        is_adjacent_side, direction = super().is_adjacent(coordinates)
+        
+        if is_adjacent_side:
+            return True, direction 
+                
+        for i, attribute in enumerate(self.__setup_attributes_gui):
+            # Sides of attribute
+            is_adjacent_side, direction = attribute.is_adjacent(coordinates)
+            
+            if is_adjacent_side:
+                return True, direction
+                    
+        return False, ""
+        
+    def create_setup_attribute_gui(self, setup_attribute, configuration_attribute_gui):
+        """
+        Creates and adds a GUI version of a setup attribute
+        """
+        setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, self, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
+        
+        self.__setup_attributes_gui.append(setup_attribute_gui)
+        self.add_attached_block(setup_attribute_gui)
+        
+        return setup_attribute_gui
+        
+    def update_setup_attribute_gui_order(self):
+        # Map each setup attribute (in their current order) to an index value to be sorted according to
+        index_map = {value: index for index, value in enumerate(self.__setup_class.get_setup_attributes())}
+        
+        sorted_setup_attributes_gui = sorted(self.__setup_attributes_gui, key=lambda attribute_gui: index_map[attribute_gui.get_setup_attribute()])
+        
+        # Move position of GUI blocks
+        for i, setup_attribute_gui in enumerate(sorted_setup_attributes_gui):
+            steps_moved = i - self.__setup_attributes_gui.index(setup_attribute_gui)
+            setup_attribute_gui.move_block(0, steps_moved)
+            
+        self.__setup_attributes_gui = sorted_setup_attributes_gui
+        
+    def get_connected_setup_attributes_gui(self, setup_attribute):
+        connected_setup_attributes_gui = []
+        
+        for connected_setup_attribute in setup_attribute.get_connected_setup_attributes():
+            for connected_setup_class_gui in self.get_connected_setup_classes_gui() + [self]:
+                if connected_setup_attribute.has_setup_class(connected_setup_class_gui.get_setup_class()):
+                    if not connected_setup_attribute.is_hidden():
+                        attribute_index = connected_setup_attribute.get_attribute_index()
+                        connected_setup_attribute_gui = connected_setup_class_gui.get_setup_attributes_gui()[attribute_index]
+                        
+                        connected_setup_attributes_gui.append(connected_setup_attribute_gui)
+                        
+                    else:
+                        connected_setup_attributes_gui += connected_setup_class_gui.get_connected_setup_attributes_gui(connected_setup_attribute)
+                        
+        return connected_setup_attributes_gui
+        
+    def get_setup_class(self):
+        return self.__setup_class
+        
+    def get_setup_attributes_gui(self):
+        return self.__setup_attributes_gui
+        
+    def remove_setup_attribute_gui(self, setup_attribute_gui_to_remove):
+        index_first_move_up = self.__setup_attributes_gui.index(setup_attribute_gui_to_remove)
+        self.__setup_attributes_gui.remove(setup_attribute_gui_to_remove)
+        self.remove_attached_block(setup_attribute_gui_to_remove)
+        
+        for setup_attribute_gui in self.__setup_attributes_gui[index_first_move_up:]:
+            setup_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
+            
+    def add_connection(self, connection):
+        self.__connections.append(connection)
+        
+    def remove_connection(self, connection):
+        if connection in self.__connections:
+            self.__connections.remove(connection)
+            
+    def get_connected_setup_classes_gui(self):
+        connected_setup_classes_gui = []
+        
+        for connection in self.__connections:
+            setup_class_gui = connection.get_start_setup_class_gui()
+            
+            if setup_class_gui not in (None, self):
+                connected_setup_classes_gui.append(setup_class_gui)
+                
+        return connected_setup_classes_gui
+        
+    def create_script_marker_indicator(self, text, color, update_linked=True):
+        self.__script_marker_indicators.append(GUICircleIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
+        
+        if update_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
+                linked_setup_class_gui.create_script_marker_indicator(text, color, False)
+                
+    def reset_changes_by_scripts(self):
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            setup_attribute_gui.attempt_to_reset_override_value()
+            
+        for script_marker_indicator in self.__script_marker_indicators:
+            script_marker_indicator.remove()
+            
+        self.__script_marker_indicators = []
+        
+    def update_value_input_types(self, *, specific_attribute_index=None, update_linked=True):
+        for i, setup_attribute_gui in enumerate(self.__setup_attributes_gui):
+            if specific_attribute_index == None or i == specific_attribute_index:
+                setup_attribute_gui.update_value_input_type()
+                
+        if update_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
+                linked_setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, update_linked=False)
+                
+    def calculate_values(self):
+        self.__setup_class.calculate_values()
+        
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            setup_attribute_gui.update_displayed_value()
+        
+    def reset_calculated_values(self):
+        self.__setup_class.reset_calculated_values()
+        
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            setup_attribute_gui.add_entered_value_to_attribute()
+            
+    def get_configuration_name(self):
+        return self.__configuration_class_gui.get_name()
+        
+    def get_name(self):
+        return self.__setup_class.get_instance_name()
+        
+    def set_name(self, name):
+        self.__setup_class.set_instance_name(name)
+        self.update_text()
+        
+    def update_text(self):
+        self.set_text(f"{self.__configuration_class_gui.get_name()}: {self.__setup_class.get_instance_name()}")
+        
+    def delete(self):
+        super().delete()
+        
+        self.__configuration_class_gui.remove_setup_class_gui(self)
+        self.get_view().remove_setup_class_gui(self)
+        
+    def save_state(self):
+        saved_states = super().save_state() | {"name": self.get_name(), "configuration_class_gui": str(self.__configuration_class_gui), "setup_attributes_gui": []}
+        
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            saved_states["setup_attributes_gui"].append(setup_attribute_gui.save_state())
+            
+        return saved_states

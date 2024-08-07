@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-from helper_functions import convert_value_to_string, convert_string_to_value
+from helper_functions_general import convert_value_to_string, convert_string_to_value
 from config import *
         
 def check_input_value_types(symbol_calculation_type, input_attributes):
@@ -75,13 +75,13 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
         if input_value != None:
             if input_symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:
                 try:
-                    input_value_int = convert_string_to_value(input_value)
+                    input_value = convert_string_to_value(input_value)
                     
                 except:
                     print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                input_values = apply_input_scalars(np.array([input_value_int]), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars)
+                input_values.append(apply_input_scalars(np.array(input_value), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars))
                 
             elif input_symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
                 try:

@@ -1,7 +1,8 @@
 import tkinter as tk
 import tkinter.font as tkfont
 import numpy as np
-from helper_functions import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, get_max_directions_movement, delete_all
+from circle_indicator_gui import GUICircleIndicator
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, delete_all
 from config import *
 
 class GUIBlock:
@@ -34,6 +35,8 @@ class GUIBlock:
         self.__is_deleted = False
         
         GUIBlock.scale(self, view.get_length_unit())
+        
+        from connection_blocks_gui import GUIConnectionCorner
         
         if not isinstance(self, GUIConnectionCorner):
             view.update_shown_order()
@@ -407,7 +410,7 @@ class GUIClass(GUIModelingBlock):
         # Add or update indicator
         if self.__linked_group_number != None:
             if self.__linked_group_indicator == None:
-                self.__linked_group_indicator = NumberIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
+                self.__linked_group_indicator = GUICircleIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
             else:
                 self.__linked_group_indicator.create(self.__linked_group_number)
                 
@@ -420,77 +423,5 @@ class GUIClass(GUIModelingBlock):
                     
     def save_state(self):
         return super().save_state() | {"linked_group_number": self.__linked_group_number}
-        
-class GUIConnectionCorner(GUIBlock):
-    def __init__(self, model, view, connection, x, y):
-        actual_x, actual_y = convert_grid_coordinate_to_actual(view, x+0.5-CORNER_WIDTH/2, y+0.5-CORNER_HEIGHT/2)
-        actual_width, actual_height = convert_grid_coordinate_to_actual(view, CORNER_WIDTH, CORNER_HEIGHT)
-        self.__rect = view.get_canvas().create_rectangle(actual_x, actual_y, actual_x+actual_width, actual_y+actual_height, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=CORNER_COLOR, tags=(TAG_CONNECTION_CORNER,))
-        
-        super().__init__(model, view, [self.__rect], x, y, CORNER_WIDTH, CORNER_HEIGHT, bind_left=MOUSE_DRAG)
-        self.__connection = connection
-        
-    def left_dragged(self, event):
-        allowed_movement_directions = self.__connection.allowed_corner_movement_directions(self)
-        max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y = get_max_directions_movement(allowed_movement_directions)
-        
-        move_x, move_y = super().left_dragged(event, max_positive_move_x=max_positive_move_x, max_negative_move_x=max_negative_move_x, max_positive_move_y=max_positive_move_y, max_negative_move_y=max_negative_move_y)
-        
-        for adjacent_corner in self.__connection.get_adjacent_corners(self):
-            adjacent_corner.move_block(move_x, move_y)
-            
-        self.__connection.adjust_lines_to_dragged_corners()
-        
-    def left_released(self, event):
-        super().left_released(event, False)
-        
-        for adjacent_corner in self.__connection.get_adjacent_corners(self):
-            adjacent_corner.snap_to_grid()
-            
-        self.__connection.adjust_lines_to_dragged_corners()
-        
-        self.get_view().update_shown_order()
-        
-    def open_options(self):
-        self.__connection.open_options()
-        
-class NumberIndicator:
-    def __init__(self, view, x, y, radius, color, outline_width, text):
-        self.__view = view
-        self.__x = x
-        self.__y = y
-        self.__radius = radius
-        self.__color = color
-        self.__outline_width = outline_width
-        self.__circle = None
-        self.__label = None
-        
-        self.create(text)
-        
-    def move(self, move_x, move_y):
-        actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
-        
-        self.__view.get_canvas().move(self.__circle, actual_move_x, actual_move_y)
-        self.__view.get_canvas().move(self.__label, actual_move_x, actual_move_y)
-        
-    def scale(self, last_length_unit):
-        circle_x1, circle_y1, circle_x2, circle_y2 = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(self.__circle), last_length_unit)
-        label_x, label_y = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(self.__label), last_length_unit)
-        
-        self.__view.get_canvas().coords(self.__circle, circle_x1, circle_y1, circle_x2, circle_y2)
-        self.__view.get_canvas().coords(self.__label, label_x, label_y)
-        self.__view.get_canvas().itemconfig(self.__label, font=self.__view.get_updated_font(label=self.__label))
-        
-    def get_x(self):
-        return self.__x
-        
-    def create(self, text):
-        circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
-        actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)
-        
-        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color, tags=(TAG_INDICATOR,))
-        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_INDICATOR_TEXT,))
-        
-    def remove(self):
-        self.__view.get_canvas().delete(self.__circle)
-        self.__view.get_canvas().delete(self.__label)
+         
+

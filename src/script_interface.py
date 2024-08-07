@@ -1,4 +1,4 @@
-from helper_functions import convert_string_to_value
+from helper_functions_general import convert_string_to_value
 
 class ScriptInterface:
     """
