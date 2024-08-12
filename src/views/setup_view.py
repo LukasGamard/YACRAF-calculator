@@ -9,19 +9,21 @@ from helper_functions_general import delete_all
 from config import *
 
 class SetupView(View):
+    """
+    Class managing a setup view
+    """
     def __init__(self, model, name):
         super().__init__(model, name)
         self.__setup_classes_gui = []
         self.__connections_with_blocks = []
         self.__to_setup_buttons = []
-        # self.__moving_connection_corner = None
         
         self.__add_connection_button = GUIAddConnectionButton(model, self, ADD_CONNECTION_POSITION[0], ADD_CONNECTION_POSITION[1])
         self.__calculate_value_button = GUICalculateValuesButton(model, self, CALCULATE_VALUES_POSITION[0], CALCULATE_VALUES_POSITION[1])
         
         self.__run_script_buttons = []
         
-        for file_name_full in os.listdir(f"{BASE_PATH}/{SCRIPTS_PATH}"):
+        for file_name_full in os.listdir(SCRIPTS_PATH):
             if file_name_full.strip()[-3:] == ".py":
                 file_name = file_name_full.strip().replace(".py", "")
                 
@@ -136,8 +138,7 @@ class SetupView(View):
         if not SHOULD_RESTORE_SAVE:
             return
             
-        # try:
-        if True:
+        try:
             with open(os.path.join(BASE_PATH, file_path), "rb") as file_pickle:
                 grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
@@ -176,8 +177,8 @@ class SetupView(View):
                     
                     connection_with_blocks.move_and_place_blocks(saved_states_start_block["x"], saved_states_start_block["y"], saved_states_end_block["x"], saved_states_end_block["y"], input_scalars_indicator_coordinate)
                     
-        # except:
-            # print("Creating new setup view")
+        except:
+            print(f"Could not restore setup view {file_path}")
             
     def delete(self):
         delete_all(self.__setup_classes_gui)

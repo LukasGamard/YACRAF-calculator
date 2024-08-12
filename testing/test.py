@@ -8,7 +8,7 @@ sys.path.append("..")
 from config import *
 
 for path in IMPORT_PATHS:
-    sys.path.append(os.path.join(path, "..")))
+    sys.path.append(os.path.join("..", path))
     
 from model import Model
 from script_interface import ScriptInterface

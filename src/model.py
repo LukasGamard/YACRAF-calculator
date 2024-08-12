@@ -254,6 +254,7 @@ class Model:
                     for class_gui in group:
                         class_gui.set_linked_group_number(group_number-1)
         
+    """
     def get_configuration_classes(self):
         configuration_classes = []
         
@@ -263,7 +264,6 @@ class Model:
                 
         return configuration_classes
         
-    """
     def get_matching_setup_classes_gui(self, *, view_name=None, class_configuration_name=None, class_instance_name=None):
         matching_setup_classes_gui = []
         
@@ -296,35 +296,41 @@ class Model:
         return self.__setup_views
         
     def swap_view_places(self, view_to_move, move_up):
+        """
+        Switches the order that two views are stored and their corresonding buttons appear in based on whether a specific view should be move up or down
+        """
         views_to_consider_moving = []
         
+        # Select all configuration or setup views
         if view_to_move in self.__configuration_views:
             views_to_consider_moving = self.__configuration_views
             
         elif view_to_move in self.__setup_views:
             views_to_consider_moving = self.__setup_views
             
-        for i in range(len(views_to_consider_moving)):
-            if views_to_consider_moving[i] is view_to_move:
-                if (move_up and i > 0) or (not move_up and i < len(views_to_consider_moving) - 1):
-                    for view in self.__configuration_views + self.__setup_views:
-                        if move_up:
-                            view.move_change_view_button(views_to_consider_moving[i], True)
-                            view.move_change_view_button(views_to_consider_moving[i-1], False)
-                            
-                        else:
-                            view.move_change_view_button(views_to_consider_moving[i], False)
-                            view.move_change_view_button(views_to_consider_moving[i+1], True)
-                            
-                    if move_up:
-                        views_to_consider_moving[i], views_to_consider_moving[i-1] = views_to_consider_moving[i-1], views_to_consider_moving[i]
-                        
-                    else:
-                        views_to_consider_moving[i], views_to_consider_moving[i+1] = views_to_consider_moving[i+1], views_to_consider_moving[i]
-                        
-                    break
+        view_index = views_to_consider_moving.index(view_to_move)
+        
+        # Swap views if there is a view to swap position with
+        if (move_up and view_index > 0) or (not move_up and view_index < len(views_to_consider_moving) - 1):
+            for view in self.__configuration_views + self.__setup_views:
+                if move_up:
+                    view.move_change_view_button(views_to_consider_moving[view_index], True)
+                    view.move_change_view_button(views_to_consider_moving[view_index-1], False)
                     
+                else:
+                    view.move_change_view_button(views_to_consider_moving[view_index], False)
+                    view.move_change_view_button(views_to_consider_moving[view_index+1], True)
+                    
+            if move_up:
+                views_to_consider_moving[view_index], views_to_consider_moving[view_index-1] = views_to_consider_moving[view_index-1], views_to_consider_moving[view_index]
+                
+            else:
+                views_to_consider_moving[view_index], views_to_consider_moving[view_index+1] = views_to_consider_moving[view_index+1], views_to_consider_moving[view_index]
+                
     def create_view(self, is_configuration_view, view_name):
+        """
+        Creates a new view, including buttons to navigate to the new view from existing ones
+        """
         if is_configuration_view:
             new_view = ConfigurationView(self, view_name)
         else:
@@ -339,7 +345,7 @@ class Model:
         for i, setup_view in enumerate(self.__setup_views):
             new_view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], CHANGE_VIEW_SETUP_START_POSITION[1]+i*CHANGE_VIEW_HEIGHT, setup_view, True)
             
-        # Add the new view to the existing ones
+        # Add the new view to the list of existing ones
         if is_configuration_view:
             self.__configuration_views.append(new_view)
         else:
@@ -353,6 +359,7 @@ class Model:
             else:
                 view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], (len(self.__setup_views)-1)*CHANGE_VIEW_HEIGHT, new_view, True)
                 
+        # If setup view, add buttons to add class from configuration views to the setup view 
         if not is_configuration_view:
             for configuration_view in self.__configuration_views:
                 for i, configuration_class_gui in enumerate(configuration_view.get_configuration_classes_gui()):
@@ -361,6 +368,9 @@ class Model:
         return new_view
         
     def delete_view(self, view_to_delete):
+        """
+        Deletes a view and removes the buttons to navigate to it from the remsining views
+        """
         view_to_delete.delete()
         
         # Remove button to change to the deleted view from all other views
@@ -382,12 +392,18 @@ class Model:
             self.__setup_views.remove(view_to_delete)
             
     def change_view(self, view):
+        """
+        Moves the specified view to the top of all views so that it is shown
+        """
         self.__current_view = view
         view.tkraise()
         
         # view.get_canvas().focus_set()
         
     def get_num_configuration_classes(self):
+        """
+        Returns the total number of configuration classes across all configuration views
+        """
         num_configuration_classes = 0
         
         for view in self.__configuration_views:
@@ -396,6 +412,9 @@ class Model:
         return num_configuration_classes
         
     def reset_script_changes(self):
+        """
+        Resets any changes or additions made by scripts to all setup views
+        """
         for setup_view in self.__setup_views:
             for setup_class_gui in setup_view.get_setup_classes_gui():
                 setup_class_gui.reset_changes_by_scripts()
@@ -403,41 +422,58 @@ class Model:
         self.calculate_values()
         
     def calculate_values(self):
-        # Reset all values first
+        """
+        Calculates the values of setup attributes
+        """
+        
+        # Reset all values that do not have a manual entry field
         for setup_view in self.__setup_views:
             setup_view.reset_calculated_values()
             
-        # Calculate new values
+        # Calculates the values of any attribute that had its value reset
         for setup_view in self.__setup_views:
             setup_view.calculate_values()
             
+    """
     def get_setup_view_names(self):
         return [view.get_name() for view in self.__setup_views]
-        
+    """
+    
     def set_text_change_view_buttons(self, view_with_changed_name, text):
-        # Go through all views and update the text of the corresponding change view button
+        """
+        Sets the text shown on all buttons changing to the specified view in all views
+        """
         for view in self.__configuration_views + self.__setup_views:
             view.set_text_change_view_button(view_with_changed_name, text)
         
     def create_connection(self, block, direction, mouse_location=None):
+        """
+        Creates a new held connection that is connected to the specified block in on end and ends at the current mouse location
+        """
         connection = GUIConnection(self, block.get_view(), block, direction, mouse_location=mouse_location)
         block.get_view().set_held_connection(connection)
         
         return connection
         
     def update_duplicate_view_name(self, view, existing_view_names):
+        """
+        Adds a number to the name of the specified view if it overlaps with snother view
+        """
         added_number = 1
         
         while view.get_name() in existing_view_names:
             view.set_name(f"{view.get_name()} ({added_number})")
         
     def save(self):
+        """
+        Saves all configuration and setup views
+        """
         configuration_view_names = set()
         setup_view_names = set()
         
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
         with open(os.path.join(BASE_PATH, FILE_PATHS_SAVES_PATH), "w") as file_with_paths:
-            # Need to store configuration views first as they need to be restored before setup views so that they can use their configurations
+            # Need to store configuration views first as they need to be restored before setup views so that they can use the configurations
             for configuration_view in self.__configuration_views:
                 self.update_duplicate_view_name(configuration_view, configuration_view_names)
                 configuration_view_names.add(configuration_view.get_name())

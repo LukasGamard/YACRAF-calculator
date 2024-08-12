@@ -165,7 +165,7 @@ def get_max_directions_movement(allowed_movement_directions):
     
 def delete_all(to_delete_list, manual_delete=False):
     """
-    Calls the delete function of all elements in to_delete_list
+    Calls the delete method of all elements in to_delete_list
     """
     for i in range(len(to_delete_list)-1, -1, -1):
         from configuration_attribute_gui import GUIConfigurationAttribute

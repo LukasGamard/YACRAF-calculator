@@ -36,7 +36,8 @@ SAVES_PATH = "saved_views"
 FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.csv")
 CONFIGURATION_SAVES_PATH = os.path.join(SAVES_PATH, "configurations")
 SETUP_SAVES_PATH = os.path.join(SAVES_PATH, "setups")
-SCRIPTS_PATH = "scripts"
+
+SCRIPTS_PATH = os.path.join(BASE_PATH, "scripts")
 
 
 
