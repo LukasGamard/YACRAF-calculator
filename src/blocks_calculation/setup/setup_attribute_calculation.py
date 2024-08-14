@@ -4,7 +4,7 @@ class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):
         self.__setup_class = setup_class
         self.__configuration_attribute = configuration_attribute
-        self.__value = None
+        self.__value = None # String or None
         self.__override_value = None
         
     def has_setup_class(self, setup_class):
@@ -17,7 +17,7 @@ class SetupAttribute:
         return self.__value
         
     def set_value(self, value):
-        self.__value = value
+        self.__value = str(value)
         
     def clear_value(self):
         self.__value = None
@@ -48,6 +48,9 @@ class SetupAttribute:
         return len(self.get_connected_setup_attributes()) > 0
         
     def calculate_value(self):
+        """
+        Calculates the value based on input attributes
+        """
         if self.__value != None:
             return
             
@@ -82,6 +85,9 @@ class SetupAttribute:
         return self.__configuration_attribute.is_hidden()
         
     def get_connected_setup_attributes(self):
+        """
+        Returns all setup classes that are connected through connected setup classes, considering the connections between specific attributes made in the configuration
+        """
         filtered_connected_setup_attributes = {}
         connected_setup_classes = self.__setup_class.get_input_setup_classes() | {self.__setup_class: None}
         

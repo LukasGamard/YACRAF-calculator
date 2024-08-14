@@ -99,6 +99,8 @@ class View(tk.Frame):
     def zoom(self, event, length_unit_difference):
         """
         Zooming in or out the view
+        
+        length_unit_difference: The difference in length unit per grid square due to zooming
         """
         self.__is_zooming = True
         

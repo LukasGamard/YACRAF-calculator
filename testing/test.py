@@ -12,16 +12,19 @@ for path in IMPORT_PATHS:
     
 from model import Model
 from script_interface import ScriptInterface
+from helper_functions_general import convert_actual_coordinate_to_grid
 
 MOUSE_OFFSET = (int(LENGTH_UNIT / 2), int(LENGTH_UNIT / 2))
 
 def process_changes(root):
     root.update_idletasks()
     root.update()
+    time.sleep
     
 def perform_action(action, view, grid_x, grid_y):
     view.get_canvas().event_generate(action, x=grid_x*LENGTH_UNIT+MOUSE_OFFSET[0], y=grid_y*LENGTH_UNIT+MOUSE_OFFSET[1])
     process_changes(view.get_model().get_root())
+    time.sleep(0.05)
     
 def drag_to(block, view, grid_x, grid_y):
     perform_action(MOUSE_LEFT_PRESS, view, block.get_x(), block.get_y())
@@ -544,5 +547,50 @@ class TestScripts(unittest.TestCase):
         # self.assertTrue(self.list_elements_are_equal(self.script_if.get_input_class_names("CLASS 0", "INSTANCE 0-0"), []))
         pass
         
+"""
+class RecordActions(Model):
+    def __init__(self, root):
+        super().__init__(root, True, num_configuration_views=2, num_setup_views=2)
+        
+        root.bind(MOUSE_LEFT_PRESS, self.left_pressed)
+        root.bind(MOUSE_LEFT_DRAG, self.left_dragged)
+        root.bind(MOUSE_LEFT_RELEASE, self.left_released)
+        root.bind(MOUSE_RIGHT_PRESS, self.right_pressed)
+        
+    def left_pressed(self, event):
+        self.get_current_view().pan_start(event)
+        self.register_action(event, "LEFT_PRESSED")
+        
+    def left_dragged(self, event):
+        self.get_current_view().pan_move(event)
+        self.register_action(event, "LEFT_DRAGGED")
+        
+    def left_released(self, event):
+        self.get_current_view().pan_stop(event)
+        self.register_action(event, "LEFT_RELEASED")
+        
+    def right_pressed(self, event):
+        self.register_action(event, "RIGHT_PRESSED")
+        
+    def get_current_view(self):
+        return self._Model__current_view
+        
+    def register_action(self, event, action_type):
+        grid_x, grid_y = convert_actual_coordinate_to_grid(self.get_current_view(), event.x, event.y)
+        
+        grid_offset = self.get_current_view().get_grid_offset()
+        
+        print(grid_offset)
+        
+        grid_x -= grid_offset[0]
+        grid_y -= grid_offset[1]
+        
+        print(f"({grid_x}, {grid_y}, {action_type})")
+"""
+
 if __name__ == "__main__":
+    # root = tk.Tk()
+    # model = RecordActions(root)
+    # root.mainloop()
+    
     unittest.main()

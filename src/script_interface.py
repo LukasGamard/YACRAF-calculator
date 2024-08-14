@@ -1,4 +1,5 @@
-from helper_functions_general import convert_string_to_value
+import numpy as np
+from helper_functions_general import convert_value_to_string, convert_string_to_value
 
 class ScriptInterface:
     """
@@ -33,17 +34,20 @@ class ScriptInterface:
         class_instance_name = self.get_class_instance_names(class_type)[0]
         return list(self.__setup_structure.get_names([None, class_type, class_instance_name]))
         
-    def get_input_class_names(self, class_type, class_instance):
+    def get_input_class_names(self, class_type, class_instance, *, input_class_type=None, input_class_instance=None, view=None):
         """
         Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input from
         """
         input_class_names = set()
         
-        for setup_class_gui in self.__setup_structure.get_elements([None, class_type, class_instance]):
+        for setup_class_gui in self.__setup_structure.get_elements([view, class_type, class_instance]):
             # Add any newly found input class name that had not been previously added
             for input_setup_class in setup_class_gui.get_setup_class().get_input_setup_classes():
-                input_class_names.add((input_setup_class.get_configuration_name(), input_setup_class.get_instance_name()))
-                
+                # Filter input setup classes
+                if (input_class_type == None or input_setup_class.get_configuration_name() == input_class_type) and \
+                   (input_class_instance == None or input_setup_class.get_instance_name() == input_class_instance):
+                    input_class_names.add((input_setup_class.get_configuration_name(), input_setup_class.get_instance_name()))
+                    
         return list(input_class_names)
         
     def get_attribute_value(self, class_type, class_instance, attribute, view=None):
@@ -80,6 +84,15 @@ class ScriptInterface:
                 
         return attributes_values
         
+    def convert_value_to_string(self, attribute_value):
+        """
+        Converts the specified attribute value into a formatted string
+        """
+        if isinstance(attribute_value, (np.ndarray, list)):
+            return convert_value_to_string(attribute_value)
+            
+        return str(attribute_value)
+        
     def override_attribute_values(self, override_value, *, class_type=None, class_instance=None, attribute=None, view=None):
         """
         Overrides the displayed value of matching attributes with a temporary one
@@ -93,7 +106,7 @@ class ScriptInterface:
         """
         for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
             setup_attribute_gui.attempt_to_reset_override_value()
-        
+            
     def set_class_marker(self, value, color, *, class_type=None, class_instance=None, view=None):
         """
         Adds a visual marker on all matching class instances

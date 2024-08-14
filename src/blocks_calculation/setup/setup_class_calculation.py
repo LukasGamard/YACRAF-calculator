@@ -7,6 +7,7 @@ class SetupClass:
         self.__setup_attributes = []
         self.__input_setup_classes = {} # Key: input_setup_class, Value: List of input scalars
         
+        # Create setup versions of each configuration attribute in the specified configuration class
         for configuration_attribute in configuration_class.get_configuration_attributes():
             self.create_setup_attribute(configuration_attribute)
             
@@ -37,12 +38,18 @@ class SetupClass:
         return self.__setup_attributes
         
     def create_setup_attribute(self, configuration_attribute):
+        """
+        Creates a setup version of a configuration attribute
+        """
         setup_attribute = SetupAttribute(self, configuration_attribute)
         self.__setup_attributes.append(setup_attribute)
         
         return setup_attribute
         
     def remove_setup_attribute(self, configuration_attribute):
+        """
+        Removes a setup attribute based on its configuration attribute
+        """
         for setup_attribute in self.__setup_attributes:
             if setup_attribute.has_configuration_attribute(configuration_attribute):
                 self.__setup_attributes.remove(setup_attribute)

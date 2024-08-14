@@ -17,13 +17,16 @@
 # script_if.get_attribute_names(class_type)
 #     Returns a list of attribute names for a specific class type
 
-# script_if.get_input_class_names(class_type, class_instance)
-#     Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input fro
+# script_if.get_input_class_names(class_type, class_instance, *, input_class_type=None, input_class_instance=None, view=None)
+#     Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input from, considering the optional filtering of classes
 #     [(input_class_type, input_class_instance), ...]
 
 # script_if.get_attribute_value(class_type, class_instance, attribute, view=None)
 #     Returns the value displayed by a specific setup attribute, which is a float if the value type, a list of values if a distribution, or otherwise a string
 #     If there are overlapping attribute names for a specific class type, each attribute value is returned as part of a list
+
+# script_if.convert_value_to_string(attribute_value)
+#     Returns the specified attribute value as a formatted string
 
 # script_if.override_attribute_values(override_value, *, class_type=None, class_instance=None, attribute=None, view=None)
 #     Overrides the displayed value of matching attributes with a temporary one given in string format (as if it was entered through an entry field)

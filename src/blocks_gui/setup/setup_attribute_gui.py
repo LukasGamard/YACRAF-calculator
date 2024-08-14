@@ -1,8 +1,11 @@
 from general_gui import GUIModelingBlock
-from helper_functions_general import convert_grid_coordinate_to_actual
+from helper_functions_general import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom
 from config import *
 
 class GUISetupAttribute(GUIModelingBlock):
+    """
+    Manages a GUI setup attribute
+    """
     def __init__(self, model, view, setup_attribute, setup_class_gui, configuration_attribute_gui, x, y):
         self.__setup_attribute = setup_attribute
         self.__setup_class_gui = setup_class_gui
@@ -16,9 +19,10 @@ class GUISetupAttribute(GUIModelingBlock):
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
         super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, label_text_x=x+width/4, additional_pressable_items=[self.__label_value], bind_left=MOUSE_PRESS)
+        
+        # Manual entry field
         self.__entry_value = None
         self.__entry_value_window = None
-        
         self.__entry_text = tk.StringVar()
         
         configuration_attribute_gui.add_setup_attribute_gui(self)
@@ -43,6 +47,7 @@ class GUISetupAttribute(GUIModelingBlock):
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
         
+        # Move entry field if it exists
         if self.__entry_value != None:
             actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.get_view(), move_x, move_y)
             new_actual_x, new_actual_y = self.get_view().get_canvas().coords(self.__entry_value_window)
@@ -54,6 +59,7 @@ class GUISetupAttribute(GUIModelingBlock):
     def scale(self, last_length_unit):
         super().scale(last_length_unit)
         
+        # Scale entry field if it exists
         if self.__entry_value != None:
             actual_width, actual_height = self.get_entry_size()
             actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), self.get_view().get_canvas().coords(self.__entry_value_window), last_length_unit)
@@ -68,24 +74,37 @@ class GUISetupAttribute(GUIModelingBlock):
     def unhighlight(self):
         super().unhighlight()
         self.set_input_attributes_highlight(False)
-            
-    def set_input_attributes_highlight(self, adding_color):
+        
+    def set_input_attributes_highlight(self, highlight):
+        """
+        Sets the current highlight of all connected setup attributes that this one currently takes as input
+        """
         for connected_setup_attribute_gui in self.__setup_class_gui.get_connected_setup_attributes_gui(self.__setup_attribute):
             if not self.get_view().is_selected_item(connected_setup_attribute_gui):
-                if adding_color:
+                # Set highlight
+                if highlight:
                     connected_setup_attribute_gui.highlight(HIGHLIGHT_INPUT_COLOR)
+                    
+                # Remove highlight
                 else:
                     connected_setup_attribute_gui.unhighlight()
                     
     def update_value_input_type(self, clear_value=True):
+        """
+        Update the input value type (manual entry field or calculated value) of this setup attribute based on whether there are connected input attributes
+        """
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
         
+        # No manual entry as it takes input from connected attributes
         if has_currently_connected_inputs and self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
             self.switch_to_value_label(clear_value)
         else:
             self.switch_to_value_entry(clear_value)
             
     def switch_to_value_label(self, clear_value=True):
+        """
+        Switches to no manual input
+        """
         if self.__entry_value != None:
             self.get_view().get_canvas().delete(self.__entry_value_window)
             self.__entry_value_window = None
@@ -97,6 +116,9 @@ class GUISetupAttribute(GUIModelingBlock):
                 self.set_displayed_value("-")
                 
     def switch_to_value_entry(self, clear_value=True):
+        """
+        Switches to manual entry input field
+        """
         if self.__entry_value == None:
             actual_width, actual_height = self.get_entry_size()
             actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x()+self.get_width()/2, self.get_y())
@@ -116,6 +138,9 @@ class GUISetupAttribute(GUIModelingBlock):
             self.__entry_value.bind("<FocusIn>", lambda event: self.get_view().unselect_all_items())
             
     def get_entry_size(self):
+        """
+        Returns the pixel width and height that an entry field should be
+        """
         width, height = convert_grid_coordinate_to_actual(self.get_view(), self.get_width()/2, self.get_height())
         width -= OUTLINE_WIDTH
         height -= OUTLINE_WIDTH * 2
@@ -139,6 +164,9 @@ class GUISetupAttribute(GUIModelingBlock):
             	linked_setup_attribute_gui.update_displayed_value()
             	
     def set_displayed_value(self, value, color=None):
+        """
+        Sets the value that is displayed either as the resulting calculated value or that in an entry field
+        """
         if color == None:
             color = TEXT_COLOR
             
@@ -155,6 +183,9 @@ class GUISetupAttribute(GUIModelingBlock):
             self.__entry_value.insert(0, str(value))
             
     def update_displayed_value(self):
+        """
+        Updates the currently shown value, where an override value is shown if it exists
+        """
         if self.__setup_attribute.has_override_value():
             self.switch_to_value_label(False)
             self.set_displayed_value(self.__setup_attribute.get_override_value(), "red")
@@ -163,6 +194,9 @@ class GUISetupAttribute(GUIModelingBlock):
             self.set_displayed_value(self.__setup_attribute.get_value())
             
     def attempt_to_reset_override_value(self):
+        """
+        Remove the override value if it exists and update the displayed value accordingly
+        """
         if self.__setup_attribute.has_override_value():
             self.__setup_attribute.reset_override_value()
             self.update_value_input_type(False)

@@ -3,6 +3,9 @@ from setup_class_calculation import SetupClass
 from config import *
 
 class ConfigurationClass:
+    """
+    Configuration class used for calculations
+    """
     def __init__(self, name):
         self.__name = name
         self.__configuration_attributes = []

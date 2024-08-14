@@ -23,11 +23,15 @@ class SetupView(View):
         
         self.__run_script_buttons = []
         
+        # Add buttons to run scripts
         for file_name_full in os.listdir(SCRIPTS_PATH):
+            # Find all .py files
             if file_name_full.strip()[-3:] == ".py":
                 file_name = file_name_full.strip().replace(".py", "")
                 
+                # Skip the template file
                 if file_name != "SCRIPT_TEMPLATE":
+                    # If at least one script, add a button for resetting any changes made by scripts
                     if len(self.__run_script_buttons) == 0:
                         self.__run_script_buttons.append(GUIRunScriptButton(model, self, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
                         
@@ -35,6 +39,9 @@ class SetupView(View):
                     self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
                     
     def on_resize(self, event):
+        """
+        When changing the size of the window, also move setup view specific buttons
+        """
         move_x, move_y = super().on_resize(event)
         
         self.__add_connection_button.move_block(move_x/2, 0)
@@ -43,13 +50,10 @@ class SetupView(View):
         for run_script_button in self.__run_script_buttons:
             run_script_button.move_block(move_x, move_y)
             
-    def create_connection_with_blocks(self):
-        connection_with_blocks = GUIConnectionWithBlocks(self.get_model(), self)
-        self.__connections_with_blocks.append(connection_with_blocks)
-        
-        return connection_with_blocks
-        
     def create_setup_class_gui(self, configuration_class_gui, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], setup_class=None, linked_group_number=None):
+        """
+        Creates a GUI setup class that is drawn on the canvas in the view
+        """
         if setup_class == None:
             setup_class = configuration_class_gui.get_configuration_class().create_setup_version()
             
@@ -64,38 +68,43 @@ class SetupView(View):
     def remove_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.remove(setup_class_gui)
         
-    """
-    def set_moving_connection_corner(self, moving_connection_corner):
-        self.__moving_connection_corner = moving_connection_corner
-        
-    def reset_moving_connection_corner(self):
-        self.__moving_connection_corner = None
-    """
-    
     def get_movable_items(self):
-        movable_items = self.__setup_classes_gui.copy()
+        """
+        Returns all items that can be directly moved around the view, such as during panning
+        """
+        movable_items = self.__setup_classes_gui.copy() # All setup classes
         
+        # Relevant blocks from directional connections
         for connection in self.__connections_with_blocks:
             movable_items += connection.get_movable_items()
-        
-        # if self.__moving_connection_corner != None:
-            # movable_items.append(self.__moving_connection_corner)
             
         return movable_items
-    
+        
     def reset_calculated_values(self):
+        """
+        Reset the calculated values of all attributes in all setup classes in the view
+        """
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.reset_calculated_values()
             
     def calculate_values(self):
+        """
+        Calculates the values of all attributes in all setup classes in the view
+        """
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.calculate_values()
             
     def reset_override_values(self):
+        """
+        Reset the override values of all attributes in all setup classes in the view
+        """
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.reset_override_value()
             
     def get_matching_setup_classes_gui(self, *, class_configuration_name=None, class_instance_name=None):
+        """
+        Returns a list of all GUI setup classes whose name matches the specified ones, where None matches all
+        """
         matching_setup_classes_gui = []
         
         for setup_class_gui in self.__setup_classes_gui:
@@ -105,36 +114,69 @@ class SetupView(View):
                     
         return matching_setup_classes_gui
         
+    def create_connection_with_blocks(self, *, start_coordinate=None, end_coordinate=None, input_scalars=None, input_scalars_indicator_coordinate=None):
+        """
+        Creates a new directional connection with already attached triangle blocks on either side
+        """
+        connection_with_blocks = GUIConnectionWithBlocks(self.get_model(), \
+                                                         self, \
+                                                         start_coordinate=start_coordinate, \
+                                                         end_coordinate=end_coordinate, \
+                                                         input_scalars=input_scalars, \
+                                                         input_scalars_indicator_coordinate=input_scalars_indicator_coordinate)
+        self.__connections_with_blocks.append(connection_with_blocks)
+        
+        return connection_with_blocks
+        
     def remove_connection_with_blocks(self, connection):
+        """
+        Remove directional connection with attached triangle blocks on either side
+        """
         self.__connections_with_blocks.remove(connection)
         
     def create_add_to_setup_button(self, current_number_of_buttons, configuration_class_gui):
+        """
+        Creates a button for adding a class from a configuration view to this setup view
+        """
         self.__to_setup_buttons.append(GUIAddToSetupButton(self.get_model(), self, ADD_TO_SETUP_START_POSITION[0], ADD_TO_SETUP_START_POSITION[1]+current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
         
     def remove_add_to_setup_button(self, to_setup_button):
+        """
+        Removes a specified button adding a class from a configuration view to this setup view, typically due to removing the configuration class
+        """
         to_setup_button.delete()
         
         button_index = self.__to_setup_buttons.index(to_setup_button)
         self.__to_setup_buttons.remove(to_setup_button)
         
+        # Move up all buttons after the removed button
         for to_setup_button_to_move in self.__to_setup_buttons[button_index:]:
             to_setup_button_to_move.move_block(0, -ADD_TO_SETUP_HEIGHT)
             
-    def get_static_items(self):
-        return [self.__add_connection_button, self.__calculate_value_button] + self.__to_setup_buttons
-        
     def save(self):
+        """
+        Saves the state of the view
+        """
+        # Save the state of all blocks
         saved_states_setup_classes_gui = [class_gui.save_state() for class_gui in self.__setup_classes_gui]
         saved_states_connections_with_blocks = [connection.save_state() for connection in self.__connections_with_blocks]
         
         file_path = os.path.join(SETUP_SAVES_PATH, f"{self.get_name()}.pickle")
         
+        # Save grid offset and block states to file
         with open(file_path, "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
         return file_path
         
     def restore_save(self, file_path, mapping_configuration_class_gui, linked_groups_per_number):
+        """
+        Adds blocks and configures this view according to a previous save
+        
+        file_path: Path to the file save
+        mapping_configuration_class_gui: Mapping between IDs of blocks from the save to those recreated in this new view instance
+        linked_groups_per_number: Dictionary (Key: Group number, Value: List of GUI setup classes) for setup class copies linked to each other
+        """
         if not SHOULD_RESTORE_SAVE:
             return
             
@@ -167,18 +209,19 @@ class SetupView(View):
                         
                 # Restore setup connections
                 for saved_states_connection_with_blocks in saved_states_connections_with_blocks:
-                    connection_with_blocks = self.create_connection_with_blocks()
-                    
                     saved_states_start_block = saved_states_connection_with_blocks["start_block"]
                     saved_states_end_block = saved_states_connection_with_blocks["end_block"]
                     
-                    connection_with_blocks.set_input_scalars(saved_states_connection_with_blocks["input_scalars"])
-                    input_scalars_indicator_coordinate = saved_states_connection_with_blocks["input_scalars_indicator_coordinate"]
+                    start_coordinate = (saved_states_start_block["x"], saved_states_start_block["y"])
+                    end_coordinate = (saved_states_end_block["x"], saved_states_end_block["y"])
                     
-                    connection_with_blocks.move_and_place_blocks(saved_states_start_block["x"], saved_states_start_block["y"], saved_states_end_block["x"], saved_states_end_block["y"], input_scalars_indicator_coordinate)
+                    connection_with_blocks = self.create_connection_with_blocks(start_coordinate=start_coordinate, \
+                                                                                end_coordinate=end_coordinate, \
+                                                                                input_scalars=saved_states_connection_with_blocks["input_scalars"], \
+                                                                                input_scalars_indicator_coordinate=saved_states_connection_with_blocks["input_scalars_indicator_coordinate"])
                     
-        except:
-            print(f"Could not restore setup view {file_path}")
+        except Exception as e:
+            print(f"Could not restore setup view {file_path}: {e}")
             
     def delete(self):
         delete_all(self.__setup_classes_gui)

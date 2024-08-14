@@ -36,24 +36,39 @@ def check_input_value_types(symbol_calculation_type, input_attributes):
                 
     return True
     
-def find_configuration_attribute_index(input_configuration_attributes, input_setup_attribute):
-    for i, input_configuration_attribute in enumerate(input_configuration_attributes):
-        if input_setup_attribute.has_configuration_attribute(input_configuration_attribute):
+def find_configuration_attribute_index(configuration_attributes, setup_attribute):
+    """
+    Returns the index of the attribute in a class whose configuration attribute has the specified setup attribute
+    """
+    for i, configuration_attribute in enumerate(configuration_attributes):
+        if setup_attribute.has_configuration_attribute(configuration_attribute):
             return i
             
     return None
     
-def apply_input_scalars(input_value, configuration_input_scalar=None, setup_input_scalars=None):
+def apply_input_scalars(input_value, configuration_input_scalar, setup_input_scalars):
+    """
+    Applies input scalars from both the configuration and the setup
+    """
+    # Configuration input scalar is a single number
     if configuration_input_scalar != None:
         input_value *= configuration_input_scalar
         
+    # Setup input scalar(s) is either a single number or a distribution
     if setup_input_scalars != None:
-        if len(setup_input_scalars) == 1 or (len(setup_input_scalars) == 3 and len(input_value) == 3):
-            input_value *= setup_input_scalars
+        if len(input_value) == 1 or len(setup_input_scalars) == 1 or len(input_value) == len(setup_input_scalars):
+            # The number of values based on the one with the largest amount
+            input_value = np.ones(max(len(input_value), len(setup_input_scalars))) * input_value * setup_input_scalars
+            
+        else:
+            print(f"Error: The input value {input_value} and input scalar {setup_input_scalars} could not be multiplied, as at least one needs to be of length 1 or both of the same length")
             
     return input_value
     
 def extract_input_values(symbol_calculation_type, input_configuration_attributes, input_setup_attributes, configuration_input_scalar=None, setup_input_scalars_per_attribute=None):
+    """
+    Returns the values that a setup attribute takes as input from connected setup classes
+    """
     input_values = []
     input_symbol_value_type = ""
     
@@ -81,7 +96,7 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
                     print(f"Error: Could not cast {input_value} to float for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                input_values.append(apply_input_scalars(np.array(input_value), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars))
+                input_values.append(apply_input_scalars(np.array(input_value), configuration_input_scalar, setup_input_scalars))
                 
             elif input_symbol_value_type == SYMBOL_VALUE_TYPE_TRIANGLE:
                 try:
@@ -96,7 +111,7 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
                     print(f"Error: Not three values in {input_value} for {input_symbol_value_type} at attribute {input_setup_attribute.get_name()}")
                     return None
                     
-                current_input_values = apply_input_scalars(np.array(current_input_values), configuration_input_scalar=configuration_input_scalar, setup_input_scalars=setup_input_scalars)
+                current_input_values = apply_input_scalars(np.array(current_input_values), configuration_input_scalar, setup_input_scalars)
                 
                 # Find and replace default input
                 if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
@@ -110,6 +125,9 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
     return input_values
     
 def calculate_output_value(symbol_calculation_type, input_values):
+    """
+    Calculate the output value considering specified input values and calculation type
+    """
     # Mean calculation
     if symbol_calculation_type == SYMBOL_CALCULATION_TYPE_MEAN:
         output_value = np.mean(np.stack(input_values), axis=0)
@@ -136,17 +154,18 @@ def calculate_output_value(symbol_calculation_type, input_values):
     # Comparing samples from two triangle distributions
     elif symbol_calculation_type == SYMBOL_CALCULATION_TYPE_TRIANGLE:
         sampled_values = []
-        small_float_value = 1e-10
         
         for input_value in input_values:
             a, b, c = input_value
             
+            # If all values are equal, make one slightly different to avoid errors
             if a == b == c:
-                a -= small_float_value
-                c += small_float_value
+                a -= 1e-10
                 
+            # Sample current triangle distribution
             sampled_values.append(np.random.triangular(a, b, c, SAMPLES_TRIANGLE_DISTRIBUTION))
             
+        # Compare samples
         output_value = [np.array(np.sum(sampled_values[0] > sampled_values[1]) / SAMPLES_TRIANGLE_DISTRIBUTION)]
         
     else:
@@ -156,6 +175,9 @@ def calculate_output_value(symbol_calculation_type, input_values):
     return output_value
     
 def combine_values(symbol_calculation_type, symbol_value_type, input_configuration_attributes, input_setup_attributes, *, configuration_input_scalar=None, setup_input_scalars_per_attribute=None):
+    """
+    Returns a string of the combined and calculated output value based on input values from connected input attributes and the specified mathematical operations
+    """
     if not check_input_value_types(symbol_calculation_type, input_setup_attributes):
         return None
         
@@ -164,7 +186,7 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_configurati
     if input_values == None:
         print("Error: Could not extract input values")
         return None
-          
+        
     # Default values if no inputs
     if len(input_values) == 0:
         if symbol_value_type == SYMBOL_VALUE_TYPE_NUMBER:

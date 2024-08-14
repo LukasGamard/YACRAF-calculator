@@ -23,7 +23,7 @@ class ConfigurationView(View):
         
     def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], configuration_class=None, linked_group_number=None):
         """
-        Create a new GUI configuration class that is drawn in the view
+        Create a new GUI configuration class that is drawn on the canvas in the view
         """
         if configuration_class == None:
             configuration_class = ConfigurationClass("New class")
@@ -103,6 +103,9 @@ class ConfigurationView(View):
         """
         Adds blocks and configures this view according to a previous save
         
+        file_path: Path to the file save
+        linked_groups_per_number: Dictionary (Key: Group number, Value: List of GUI configuration classes) for configuation class copies linked to each other
+        
         Returns mapping between IDs of blocks from the save to those recreated in this new view instance
         """
         if not SHOULD_RESTORE_SAVE:
@@ -174,8 +177,8 @@ class ConfigurationView(View):
                                 
                 return mapping_configuration_class_gui
                 
-        except:
-            print(f"Could not restore configuration view {file_path}")
+        except Exception as e:
+            print(f"Could not restore configuration view {file_path}: {e}")
             
         return {}
         

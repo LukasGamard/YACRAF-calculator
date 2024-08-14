@@ -1,7 +1,10 @@
-from helper_functions_general import convert_grid_coordinate_to_actual
+from helper_functions_general import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom
 from config import *
 
 class GUICircleIndicator:
+    """
+    Indicator/marker that is shown as a circle
+    """
     def __init__(self, view, x, y, radius, color, outline_width, text):
         self.__view = view
         self.__x = x
@@ -15,6 +18,9 @@ class GUICircleIndicator:
         self.create(text)
         
     def move(self, move_x, move_y):
+        """
+        Moves the indicator on the canvas
+        """
         actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
         
         self.__view.get_canvas().move(self.__circle, actual_move_x, actual_move_y)
@@ -32,6 +38,9 @@ class GUICircleIndicator:
         return self.__x
         
     def create(self, text):
+        """
+        Draws the indicator on the canvas
+        """
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
         actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)
         
@@ -39,5 +48,8 @@ class GUICircleIndicator:
         self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_INDICATOR_TEXT,))
         
     def remove(self):
+        """
+        Removed the indicator from the canvas
+        """
         self.__view.get_canvas().delete(self.__circle)
         self.__view.get_canvas().delete(self.__label)

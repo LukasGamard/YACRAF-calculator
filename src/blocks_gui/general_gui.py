@@ -6,6 +6,9 @@ from helper_functions_general import convert_grid_coordinate_to_actual, convert_
 from config import *
 
 class GUIBlock:
+    """
+    Class managing blocks/buttons shown in views
+    """
     def __init__(self, model, view, pressable_items, x, y, width, height, *, bind_left=None, bind_right=None):
         self.__model = model
         self.__view = view
@@ -20,6 +23,7 @@ class GUIBlock:
         self.__draggable = bind_left == MOUSE_DRAG
         self.__pick_up_actual_coordinate = (0, 0)
         
+        # Bind mouse actions to the block
         for pressable_item in self.__pressable_items:
             if bind_left in (MOUSE_PRESS, MOUSE_DRAG):
                 view.get_canvas().tag_bind(pressable_item, MOUSE_LEFT_PRESS, self.left_pressed)
@@ -38,10 +42,14 @@ class GUIBlock:
         
         from connection_blocks_gui import GUIConnectionCorner
         
+        # Do not update shown order of items if corner of a connection as they are recreated often when changing the path of connections
         if not isinstance(self, GUIConnectionCorner):
             view.update_shown_order()
             
     def left_pressed(self, event):
+        """
+        Pressing the left mouse button on the block
+        """
         self.__view.select_item(self)
         
         # Pick up block
@@ -49,22 +57,24 @@ class GUIBlock:
             self.__pick_up_actual_coordinate = (event.x, event.y)
             
     def left_dragged(self, event, *, max_positive_move_x=None, max_negative_move_x=None, max_positive_move_y=None, max_negative_move_y=None, single_direction=False):
+        """
+        Dragging the block with the left mouse button
+        """
         if self.__draggable:
             self.__was_dragged = True
             move_x, move_y = convert_actual_coordinate_to_grid(self.__view, event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1])
             
             if max_positive_move_x != None and move_x > max_positive_move_x:
                 move_x = max_positive_move_x
-                
             elif max_negative_move_x != None and move_x < max_negative_move_x:
                 move_x = max_negative_move_x
                 
             if max_positive_move_y != None and move_y > max_positive_move_y:
                 move_y = max_positive_move_y
-                
             elif max_negative_move_y != None and move_y < max_negative_move_y:
                 move_y = max_negative_move_y
                 
+            # If the block can only be dragged in one direction at a time, pick the one that is moved the most
             if single_direction:
                 if abs(move_x) >= abs(move_y):
                     move_y = 0
@@ -80,6 +90,9 @@ class GUIBlock:
         return 0, 0
         
     def left_released(self, event, update_shown_order=True):
+        """
+        Releasing the left mouse button on the block
+        """
         did_put_down_block = False
         
         # Put down block, where it needs to have been dragged to correct its position to avoid always drawing new connection lines that reset custom paths
@@ -98,10 +111,14 @@ class GUIBlock:
         pass
         
     def scale(self, last_length_unit):
-        for pressable_item in self.__pressable_items:
+        """
+        Scales the block, typical when zooming
+        """
+        for pressable_item in self.__pressable_items + self.__shapes_highlight:
             item_type = self.__view.get_canvas().type(pressable_item)
             adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(pressable_item), last_length_unit)
             
+            # Scales different items on the canvas differently
             if item_type == "rectangle":
                 x1, y1, x2, y2 = adjusted_actual_coordinates
                 self.__view.get_canvas().coords(pressable_item, x1, y1, x2, y2)
@@ -116,8 +133,12 @@ class GUIBlock:
                 self.__view.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(label=pressable_item, has_line_break=self.__has_line_break_text))
                 
     def highlight(self, color):
+        """
+        Create a highlight around the block
+        """
         GUIBlock.unhighlight(self)
         
+        # Creates a slightly larger version of each shape and place it behind
         for pressable_item in self.__pressable_items:
             item_type = self.__view.get_canvas().type(pressable_item)
             actual_coordinates = self.__view.get_canvas().coords(pressable_item)
@@ -150,28 +171,42 @@ class GUIBlock:
                 self.__shapes_highlight.append(triangle)
                 
     def unhighlight(self):
+        """
+        Removes shapes that are used as highlight around the block
+        """
         for shape_highlight in self.__shapes_highlight:
             self.__view.get_canvas().delete(shape_highlight)
             
         self.__shapes_highlight.clear()
         
     def update_highlight(self, color):
+        """
+        Refreshes the highlighy by removing and then recreating it
+        """
         if len(self.__shapes_highlight) > 0:
             self.unhighlight()
             self.highlight(color)
             
     def snap_to_grid(self):
+        """
+        Snaps the block to align with the grid
+        """
         move_x, move_y = distance_to_closest_grid_intersection(self.__view, self.__x, self.__y)
         
         self.move_block(move_x, move_y)
         
     def move_block(self, move_x, move_y):
+        """
+        Moves the block on the canvas based on coordinates of the grid
+        """
         if move_x != 0 or move_y != 0:
             move_actual_x, move_actual_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
             
+            # Move block
             for pressable_item in self.__pressable_items:
                 self.get_canvas().move(pressable_item, move_actual_x, move_actual_y)
                 
+            # Move highlight of the block
             for shape_highlight in self.__shapes_highlight:
                 self.get_canvas().move(shape_highlight, move_actual_x, move_actual_y)
                 
@@ -209,6 +244,9 @@ class GUIBlock:
         return self.__text_width
         
     def get_direction(self, mouse_x, mouse_y):
+        """
+        Returns the direction out from a block based on the closes edge from the mouse
+        """
         direction = "RIGHT"
         actual_mid_x = convert_grid_coordinate_to_actual(self.__view, self.get_x()+self.get_width()//2, 0)[0]
         
@@ -233,6 +271,9 @@ class GUIBlock:
         return {"x": self.__x, "y": self.__y}
         
 class GUIModelingBlock(GUIBlock):
+    """
+    Class for block with text
+    """
     def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None, tags_rect=(), tags_text=()):
         canvas = view.get_canvas()
         actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
@@ -245,7 +286,6 @@ class GUIModelingBlock(GUIBlock):
             
         actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, label_text_x, y+height/2)
         self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT, justify="center", tags=tags_text)
-        self.__default_text_color = view.get_canvas().itemcget(self.__label_text, "fill")
         
         pressable_items = [self.__rect, self.__label_text]
         
@@ -257,7 +297,7 @@ class GUIModelingBlock(GUIBlock):
             
         super().__init__(model, view, pressable_items, x, y, width, height, bind_left=bind_left, bind_right=bind_right)
         self.__text = text
-        self.__attached_blocks = []
+        self.__attached_blocks = [] # Blocks that are attached to this one, also affected by moving, scaling, highlighting, etc
         
         if text_width != None:
             self.__text_width = text_width
@@ -292,6 +332,9 @@ class GUIModelingBlock(GUIBlock):
             attached_block.unhighlight()
             
     def is_adjacent(self, coordinates):
+        """
+        Returns whether any of the specified grid coordinates are considered adjacent to this block, and in such cases which direction goes out from the block
+        """
         for coordinate in coordinates:
             coordinate_to_check = np.array(coordinate)
             
@@ -308,9 +351,15 @@ class GUIModelingBlock(GUIBlock):
         return False, ""
         
     def get_text(self):
+        """
+        Returns the text on the block
+        """
         return self.__text
         
     def set_text(self, text, is_bold=False):
+        """
+        Sets the text on the block
+        """
         actual_maximum_text_width = convert_grid_coordinate_to_actual(self.get_view(), self.__text_width, 0)[0] - 2 * OUTLINE_WIDTH
         font = self.get_view().get_updated_font(label=self.__label_text)
         
@@ -353,10 +402,7 @@ class GUIModelingBlock(GUIBlock):
             
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
-         
-    def get_default_text_color(self):
-        return self.__default_text_color
-            
+        
     def add_attached_block(self, block):
         self.__attached_blocks.append(block)
         
@@ -371,10 +417,13 @@ class GUIModelingBlock(GUIBlock):
         super().delete()
         
 class GUIClass(GUIModelingBlock):
+    """
+    Manages a configuration or setup class
+    """
     def __init__(self, model, view, text, x, y, width, height, is_configuration_class, linked_group_number=None):
         super().__init__(model, view, text, x, y, width, height, CLASS_COLOR, bind_left=MOUSE_DRAG)
         self.__is_configuration_class = is_configuration_class
-        self.__linked_group_number = linked_group_number
+        self.__linked_group_number = linked_group_number # If the class belongs to a group of linked copies
         self.__linked_group_indicator = None
         
         if self.__linked_group_number != None:
@@ -417,11 +466,11 @@ class GUIClass(GUIModelingBlock):
     def delete(self):
         super().delete()
         
+        # Remove linked group indicator if it exists
         if self.__linked_group_number != None:
             self.__linked_group_indicator.remove()
             self.get_model().remove_class_gui_from_linked_group(self, self.__is_configuration_class)
                     
     def save_state(self):
         return super().save_state() | {"linked_group_number": self.__linked_group_number}
-         
 

@@ -7,17 +7,21 @@ from options import OptionsSetupClass
 from config import *
 
 class GUISetupClass(GUIClass):
+    """
+    Manages a GUI setup class
+    """
     def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
         self.__configuration_class_gui = configuration_class_gui
         self.__setup_class = setup_class
         self.__setup_attributes_gui = []
-        self.__connections = []
-        self.__script_marker_indicators = []
+        self.__connections = [] # Directional connections between setup classes
+        self.__script_marker_indicators = [] # Indicators created by scripts
         
         super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
         
         configuration_class_gui.add_setup_class_gui(self)
         
+        # Create all GUI setup attributes, with the exception of hidden ones
         for setup_attribute, configuration_attribute_gui in zip(self.__setup_class.get_setup_attributes(), self.__configuration_class_gui.get_configuration_attributes_gui()):
             if not configuration_attribute_gui.is_hidden():
                 self.create_setup_attribute_gui(setup_attribute, configuration_attribute_gui)
@@ -39,22 +43,21 @@ class GUISetupClass(GUIClass):
     def scale(self, last_length_unit):
         super().scale(last_length_unit)
         
-        for connection in self.__connections:
-            # Only scale connection if this class is connected to the start block of the connection to avoid moving it twice
-            if self.has_attached_block(connection.get_start_block()):
-                connection.scale(last_length_unit)
-                
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.scale(last_length_unit)
             
     def is_adjacent(self, coordinates):
-        # Above class
+        """
+        Returns whether any of the specified grid coordinates are adjacent to this block, and in such cases returns the direction which the adjacent coordinates goes out from the block
+        """
+        # Above or below
         for coordinate in coordinates:
             coordinate_to_check = np.array(coordinate)
             
             for i in range(self.get_width()):
                 coordinate_up = np.array((self.get_x() + i, self.get_y() - 1))
                 
+                # Above class
                 if np.linalg.norm(coordinate_to_check - coordinate_up) < 0.5:
                     return True, "UP"
                     
@@ -67,20 +70,20 @@ class GUISetupClass(GUIClass):
                 # Below last attribute
                 if np.linalg.norm(coordinate_to_check - coordinate_down) < 0.5:
                     return True, "DOWN"
-                        
+                    
         # Sides of class
         is_adjacent_side, direction = super().is_adjacent(coordinates)
         
         if is_adjacent_side:
             return True, direction 
-                
+            
         for i, attribute in enumerate(self.__setup_attributes_gui):
             # Sides of attribute
             is_adjacent_side, direction = attribute.is_adjacent(coordinates)
             
             if is_adjacent_side:
                 return True, direction
-                    
+                
         return False, ""
         
     def create_setup_attribute_gui(self, setup_attribute, configuration_attribute_gui):
@@ -95,6 +98,9 @@ class GUISetupClass(GUIClass):
         return setup_attribute_gui
         
     def update_setup_attribute_gui_order(self):
+        """
+        Updates the shown order of GUI setup attributes according to the order in the calculation setup attribute without a GUI
+        """
         # Map each setup attribute (in their current order) to an index value to be sorted according to
         index_map = {value: index for index, value in enumerate(self.__setup_class.get_setup_attributes())}
         
@@ -108,6 +114,9 @@ class GUISetupClass(GUIClass):
         self.__setup_attributes_gui = sorted_setup_attributes_gui
         
     def get_connected_setup_attributes_gui(self, setup_attribute):
+        """
+        Returns all setup attributes that the specified setup attribute currently takes as input
+        """
         connected_setup_attributes_gui = []
         
         for connected_setup_attribute in setup_attribute.get_connected_setup_attributes():
@@ -118,7 +127,6 @@ class GUISetupClass(GUIClass):
                         connected_setup_attribute_gui = connected_setup_class_gui.get_setup_attributes_gui()[attribute_index]
                         
                         connected_setup_attributes_gui.append(connected_setup_attribute_gui)
-                        
                     else:
                         connected_setup_attributes_gui += connected_setup_class_gui.get_connected_setup_attributes_gui(connected_setup_attribute)
                         
@@ -135,6 +143,7 @@ class GUISetupClass(GUIClass):
         self.__setup_attributes_gui.remove(setup_attribute_gui_to_remove)
         self.remove_attached_block(setup_attribute_gui_to_remove)
         
+        # Move up all GUI setup attributes after the removed one
         for setup_attribute_gui in self.__setup_attributes_gui[index_first_move_up:]:
             setup_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
             
@@ -146,34 +155,54 @@ class GUISetupClass(GUIClass):
             self.__connections.remove(connection)
             
     def get_connected_setup_classes_gui(self):
+        """
+        Returns all setup classes currently connected to this GUI setup class
+        """
         connected_setup_classes_gui = []
         
         for connection in self.__connections:
             setup_class_gui = connection.get_start_setup_class_gui()
             
+            # Do not include connections that are not connected to any other class or those connected to itself
             if setup_class_gui not in (None, self):
                 connected_setup_classes_gui.append(setup_class_gui)
                 
         return connected_setup_classes_gui
         
     def create_script_marker_indicator(self, text, color, update_linked=True):
+        """
+        Indicator that is added by scripts to mark classes
+        """
         self.__script_marker_indicators.append(GUICircleIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
         
+        # Add to linked copies
         if update_linked:
             for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
                 linked_setup_class_gui.create_script_marker_indicator(text, color, False)
                 
     def reset_changes_by_scripts(self):
+        """
+        Remove any changes or additions made by scripts
+        """
+        # Reset override values
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.attempt_to_reset_override_value()
             
+        # Remove markers placed by scripts
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.remove()
             
         self.__script_marker_indicators = []
         
     def update_value_input_types(self, *, specific_attribute_index=None, update_linked=True):
+        """
+        Updates the input value type of all setup attributes of this setup class (manual entry field or based on calculated value)
+        
+        specific_attribute_index: Index of attribute to refresh input type
+        update_linked: Whether linked copies also should be updated
+        """
         for i, setup_attribute_gui in enumerate(self.__setup_attributes_gui):
+            # Update the attribute of the specified index, or all if None
             if specific_attribute_index == None or i == specific_attribute_index:
                 setup_attribute_gui.update_value_input_type()
                 
@@ -182,28 +211,46 @@ class GUISetupClass(GUIClass):
                 linked_setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, update_linked=False)
                 
     def calculate_values(self):
+        """
+        Calculates and shows the values of all setup attributes of this setup class
+        """
         self.__setup_class.calculate_values()
         
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.update_displayed_value()
         
     def reset_calculated_values(self):
+        """
+        Resets any calculated value of all setup attributes so that the program knows which ones should be recalculated later
+        """
         self.__setup_class.reset_calculated_values()
         
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.add_entered_value_to_attribute()
             
     def get_configuration_name(self):
+        """
+        Returns the name of the corresponding configuration class name
+        """
         return self.__configuration_class_gui.get_name()
         
     def get_name(self):
+        """
+        Returns the name of the setup class instance
+        """
         return self.__setup_class.get_instance_name()
         
     def set_name(self, name):
+        """
+        Sets the name of the setup class instance
+        """
         self.__setup_class.set_instance_name(name)
         self.update_text()
         
     def update_text(self):
+        """
+        Updates the displayed text according to the set configuration class and setup class names
+        """
         self.set_text(f"{self.__configuration_class_gui.get_name()}: {self.__setup_class.get_instance_name()}")
         
     def delete(self):

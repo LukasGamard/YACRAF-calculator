@@ -8,7 +8,7 @@ from config import *
 
 class GUIConnection:
     """
-    Connects blocks by lines
+    Connects two blocks by lines
     """
     def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False, mouse_location=None):
         self.__model = model
@@ -38,7 +38,7 @@ class GUIConnection:
             
         self.create_new_lines(mouse_location)
         
-        # Corner coordinates were specified
+        # Specific coordinates for corners were specified
         if corner_coordinates != None:
             for i, corner in enumerate(self.__corners):
                 move_x = corner_coordinates[i][0] - corner.get_x()
@@ -182,6 +182,9 @@ class GUIConnection:
         self.create_lines_from_corners(start_x, start_y, end_x, end_y)
         
     def adjust_lines_to_dragged_corners(self):
+        """
+        Corrects the lines to match the new position of corners as they have been dragged around
+        """
         self.remove_lines()
         
         start_x, start_y = self.get_attached_grid_coordinate(True)
@@ -193,6 +196,9 @@ class GUIConnection:
         return self.__corners
                 
     def get_adjacent_corners(self, corner):
+        """
+        Returns list of corners that are adjacent to the specified corner (directly connected to it)
+        """
         corner_index = self.__corners.index(corner)
         adjacent_corners = []
         
@@ -207,6 +213,9 @@ class GUIConnection:
         return adjacent_corners
         
     def allowed_corner_movement_directions(self, corner):
+        """
+        Returns a list of directions that the specified corner can be moved (other directions would require additional corners to be added)
+        """
         adjacent_corners = self.get_adjacent_corners(corner)
         allowed_directions = set()
         
@@ -222,6 +231,9 @@ class GUIConnection:
         return list(allowed_directions)
         
     def move_lines(self, move_x, move_y):
+        """
+        Attempts to move all lines and corners without recreating the path, but will resort to creating an entirely new path if necessary
+        """
         # If currently panning or zooming, only move lines and corners
         if self.__view.is_panning() or self.__view.is_zooming():
             for corner in self.__corners:
@@ -243,6 +255,9 @@ class GUIConnection:
             return False
             
     def attempt_to_set_number(self):
+        """
+        Will add an indicator for the order which this connection has been connected to a specific input block (important for some mathematical operations) if it has a specific number
+        """
         if self.__num_order != None:
             num_order_x, num_order_y = self.get_attached_grid_coordinate(True)
             
@@ -254,25 +269,34 @@ class GUIConnection:
             self.__num_order_indicator = GUICircleIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
             
     def attempt_to_remove_number(self):
+        """
+        Removes indicator for which order the connection has been connected to a specific input block if such an indicator exists
+        """
         if self.__num_order_indicator != None:
             self.__num_order_indicator.remove()
             self.__num_order_indicator = None
             
     def create_lines_from_corners(self, start_x, start_y, end_x, end_y):
+        """
+        Creates the lines that connect previously created corners
+        """
         actual_coordinates = [self.get_actual_attached_coordinates(start_x, start_y, self.__start_direction)]
         
+        # Get the coordinate of each existing corner
         for corner in self.__corners:
             actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(self.__view, corner.get_x()+0.5, corner.get_y()+0.5)
             actual_coordinates.append((actual_corner_x, actual_corner_y))
             
         actual_coordinates.append(self.get_actual_attached_coordinates(end_x, end_y, self.__end_direction))
         
+        # Draw lines between each corner coordinate
         for i in range(1, len(actual_coordinates)):
             from_x = actual_coordinates[i-1][0]
             from_y = actual_coordinates[i-1][1]
             to_x = actual_coordinates[i][0]
             to_y = actual_coordinates[i][1]
             
+            # Draw a dashed line if an external connection
             if self.__is_external:
                 line = self.__view.get_canvas().create_line(from_x, from_y, to_x, to_y, fill=CONNECTION_COLOR, width=CONNECTION_WIDTH, dash=CONNECTION_DASH, tags=(TAG_CONNECTION_LINE,))
             else:
@@ -283,6 +307,11 @@ class GUIConnection:
         self.attempt_to_set_number()
         
     def convert_direction_to_vector(self, direction):
+        """
+        direction: Tuple (x, y, direction)
+        
+        Returns a normalized vector converted from a specified direction
+        """
         if direction == "UP":
             return np.array([0, -1])
         elif direction == "RIGHT":
@@ -295,6 +324,12 @@ class GUIConnection:
         print(f"Error: Did not recognize direction {direction}")
         
     def positions_dot_product(self, current_position, final_position):
+        """
+        current_position: Tuple (x, y, direction)
+        final_position: Tuple (x, y, direction)
+        
+        Returns the dot product between a normalized vector from current_position to final_position with the normalized vector that is created based on the direction out from current_position
+        """
         vector_to_final_position = np.array([final_position[0] - current_position[0], final_position[1] - current_position[1]])
         vector_direction = self.convert_direction_to_vector(current_position[2])
         
@@ -302,10 +337,16 @@ class GUIConnection:
         
         if vector_to_final_position_norm != 0:
             vector_to_final_position = vector_to_final_position / vector_to_final_position_norm
-        
+            
         return np.dot(vector_to_final_position, vector_direction)
         
     def get_position_after_turn(self, current_position, final_position):
+        """
+        current_position: Tuple (x, y, direction)
+        final_position: Tuple (x, y, direction)
+        
+        Returns a tuple (x, y, direction) of a corner position, where the direction has been changed according to which direction the connection should turn next
+        """
         current_direction = current_position[2]
         current_x, current_y, _ = current_position
         new_direction = ""
@@ -340,6 +381,9 @@ class GUIConnection:
         return (current_x, current_y, new_direction)
         
     def create_corners(self, start_x, start_y, end_x, end_y):
+        """
+        Returns a list of corners between the start and end coordinates
+        """
         corners_from_start = []
         corners_from_end = []
         
@@ -347,6 +391,7 @@ class GUIConnection:
         position_end = (end_x, end_y, self.__end_direction)
         
         while True:
+            # Dot product between current direction and the direction to the other end
             start_dot_product = self.positions_dot_product(position_start, position_end)
             end_dot_product = self.positions_dot_product(position_end, position_start)
             
@@ -377,6 +422,7 @@ class GUIConnection:
                         
                 break
                 
+            # The end point whose current corner has the currently sharpest required turn toward the other end point's current corner should turn first
             if start_dot_product <= end_dot_product:
                 position_start = self.get_position_after_turn(position_start, position_end)
                 corners_from_start.append((position_start[0], position_start[1]))
@@ -388,17 +434,12 @@ class GUIConnection:
             if len(corners_from_start + corners_from_end) >= 10:
                 break
                 
+        # To order the corners from the starting point to the end point
         corners_from_end.reverse()
         
         return corners_from_start + corners_from_end
         
     def remove_corners(self):
-        """
-        for i in range(len(self.__corners)-1, -1, -1):
-            if remove_manually_moved or not self.__corners[i].is_manually_moved():
-                self.__corners[i].delete()
-                self.__corners.pop(i)
-        """
         for corner in self.__corners:
             corner.delete(False)
             
@@ -412,25 +453,24 @@ class GUIConnection:
         
         self.__lines.clear()
         
-    """
-    def get_movable_items(self):
-        movable_items = [self.__start_block]
-        
-        if self.__end_block != None:
-            movable_items.append(self.__end_block)
-            
-        return movable_items
-    """
-    
     def set_num_order(self, num_order):
+        """
+        Sets the number which is displayed to indicate which order connections have been connected to an input block
+        """
         self.__num_order = num_order
         self.attempt_to_remove_number()
         self.attempt_to_set_number()
         
     def is_external(self):
+        """
+        Returns whether the connection is considered external (only takes input from other class instances of the same class type and not itself)
+        """
         return self.__is_external
         
     def set_external(self, is_external):
+        """
+        Sets whether the connection is considered external (only takes input from other class instances of the same class type and not itself)
+        """
         self.__is_external = is_external
         self.__end_block.get_attached_configuration_attribute_gui().get_configuration_attribute().add_input_configuration_attribute(self.__start_block.get_configuration_attribute(), not is_external)
         
@@ -446,6 +486,7 @@ class GUIConnection:
                 self.__end_block.remove_connection(self)
                 attached_configuration_attribute_gui = self.__end_block.get_attached_configuration_attribute_gui()
                 
+                # Update the input value type of all setup attributes of the configuration class which this connection is removed from
                 if attached_configuration_attribute_gui != None:
                     attached_configuration_attribute_gui.get_configuration_class_gui().update_value_input_types()
                     

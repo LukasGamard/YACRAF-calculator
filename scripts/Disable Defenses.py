@@ -40,71 +40,12 @@
 # script_if.calculate_values()
 #     Calculates all attribute values in the setup views based on the current configuration
 
-import numpy as np
-
-DEFENSE_MECHANISM_NAME = "Defense mechanism"
-DEFEMSE_MECHANISM_ATTRIBUTE_IMPACT = "Impact"
-LOSS_EVENT_NAME = "Loss event"
-LOSS_EVENT_ATTRIBUTE_RISK = "Risk"
-
-def disable_all_other_defenses(script_if, defenses_to_disable, defense_to_exclude=None):
-    script_if.reset_override_attribute_values()
-    
-    for defense_name in defenses_to_disable:
-        if defense_name != defense_to_exclude:
-            script_if.override_attribute_values("0 / 0 / 0", class_type=DEFENSE_MECHANISM_NAME, class_instance=defense_name, attribute=DEFEMSE_MECHANISM_ATTRIBUTE_IMPACT)
-            
-def calculate_total_risk(script_if):
-    script_if.calculate_values()
-    
-    total_risk = 0
-    
-    for loss_event_instance in script_if.get_class_instance_names(LOSS_EVENT_NAME):
-        risk = script_if.get_attribute_value(LOSS_EVENT_NAME, loss_event_instance, LOSS_EVENT_ATTRIBUTE_RISK)
-        
-        # If a distribution, add the mean risk
-        if isinstance(risk, list):
-            total_risk += sum(risk) / len(risk)
-            
-        # A single value
-        else:
-            total_risk += risk
-            
-    return total_risk
-    
 def script_logic(script_if):
     # Insert logic here
-    remaining_defenses_names = script_if.get_class_instance_names(DEFENSE_MECHANISM_NAME)
-    priority_of_defenses = []
-    
-    disable_all_other_defenses(script_if, remaining_defenses_names)
-    original_risk = calculate_total_risk(script_if)
-    
-    while len(remaining_defenses_names) > 0:
-        current_lowest_risk = None
-        current_best_defense = None
+    for defense_mechanism_name in script_if.get_class_instance_names("Defense mechanism"):
+        script_if.override_attribute_values("0 / 0 / 0", class_type="Defense mechanism", class_instance=defense_mechanism_name, attribute="Impact")
         
-        for defense_name in remaining_defenses_names:
-            
-            disable_all_other_defenses(script_if, remaining_defenses_names, defense_name)
-            total_risk = calculate_total_risk(script_if)
-            
-            if current_lowest_risk == None or total_risk < current_lowest_risk:
-                current_lowest_risk = total_risk
-                current_best_defense = defense_name
-                
-        remaining_defenses_names.remove(current_best_defense)
-        
-        priority_of_defenses.append((current_best_defense, current_lowest_risk))
-        
-    print("Priority of defense mechanisms:")
-    print(f"No defenses: {original_risk}")
-    
-    for i, defense_and_risk in enumerate(priority_of_defenses):
-        defense_name, risk = defense_and_risk
-        print(f"{i+1}. {defense_name}: {risk}")
-        
-    script_if.reset_script_changes()
+    script_if.calculate_values()
     
 def script_control(script_if):
     script_if.update_setup_structure()

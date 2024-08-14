@@ -136,7 +136,9 @@ class Model:
             return []
             
         linked_configuration_classes_gui = self.__linked_configuration_groups_per_number[linked_group_number].copy()
-        linked_configuration_classes_gui.remove(configuration_class_gui) # Do not include itself
+        
+        if configuration_class_gui in linked_configuration_classes_gui:
+            linked_configuration_classes_gui.remove(configuration_class_gui) # Do not include itself
             
         return linked_configuration_classes_gui
         

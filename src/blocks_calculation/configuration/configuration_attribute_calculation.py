@@ -1,13 +1,16 @@
 from config import *
 
 class ConfigurationAttribute:
+    """
+    Configuration attribute used for calculations
+    """
     def __init__(self, name, configuration_class):
         self.__name = name
         self.__configuration_class = configuration_class
         self.__symbol_value_type = None
         self.__symbol_calculation_type = None
         self.__input_configuration_attributes = {} # Key: input_configuration_attribute, Value: is_internal
-        self.__input_scalar = DEFAULT_INPUT_SCALAR
+        self.__input_scalar = DEFAULT_INPUT_SCALAR # Float
         self.__is_hidden = False
         
     def get_name(self):
@@ -38,6 +41,10 @@ class ConfigurationAttribute:
         return len(self.__input_configuration_attributes) > 0
         
     def add_input_configuration_attribute(self, input_configuration_attribute, is_internal):
+        """
+        input_configuration_attribute: Configuration attribute to add as an input
+        is_internal: Whether the configuration attribute added as an input is connected internally (within the same class instance)
+        """
         self.__input_configuration_attributes[input_configuration_attribute] = is_internal
         
     def remove_input_configuration_attribute(self, input_configuration_attribute):
