@@ -19,18 +19,21 @@ class GUIConnectionWithBlocks(GUIConnection):
         super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
         
         if start_coordinate != None:
-            self.__start_block.move_block(start_coordinate[0] - GUI_BLOCK_START_COORDINATES[0][0], start_coordinate[1] - GUI_BLOCK_START_COORDINATES[0][1])
+            self.__start_block.move_block(start_coordinate[0] - GUI_BLOCK_START_COORDINATES[0][0], \
+                                          start_coordinate[1] - GUI_BLOCK_START_COORDINATES[0][1])
             self.__start_block.put_down_block()
             
         if end_coordinate != None:
-            self.__end_block.move_block(end_coordinate[0] - GUI_BLOCK_START_COORDINATES[1][0], end_coordinate[1] - GUI_BLOCK_START_COORDINATES[1][1])
+            self.__end_block.move_block(end_coordinate[0] - GUI_BLOCK_START_COORDINATES[1][0], \
+                                        end_coordinate[1] - GUI_BLOCK_START_COORDINATES[1][1])
             self.__end_block.put_down_block()
             
         if input_scalars != None:
             self.set_input_scalars(input_scalars)
             
         if self.__input_scalars_indicator != None and input_scalars_indicator_coordinate != None:
-            self.__input_scalars_indicator.move_block(input_scalars_indicator_coordinate[0] - self.__input_scalars_indicator.get_x(), input_scalars_indicator_coordinate[1] - self.__input_scalars_indicator.get_y())
+            self.__input_scalars_indicator.move_block(input_scalars_indicator_coordinate[0] - self.__input_scalars_indicator.get_x(), \
+                                                      input_scalars_indicator_coordinate[1] - self.__input_scalars_indicator.get_y())
             
         self.__is_deleted = False
         
@@ -176,7 +179,8 @@ class GUIConnectionWithBlocks(GUIConnection):
         allowed_directions = []
         
         # Coordinate in the middle of the indicator
-        indicator_pos = (self.__input_scalars_indicator.get_x()+self.__input_scalars_indicator.get_width()//2, self.__input_scalars_indicator.get_y()+self.__input_scalars_indicator.get_height()//2)
+        indicator_pos = (self.__input_scalars_indicator.get_x()+self.__input_scalars_indicator.get_width()//2, \
+                         self.__input_scalars_indicator.get_y()+self.__input_scalars_indicator.get_height()//2)
         
         start_x, start_y = self.get_attached_grid_coordinate(True)
         end_x, end_y = self.get_attached_grid_coordinate(False)

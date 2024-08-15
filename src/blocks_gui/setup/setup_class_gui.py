@@ -90,7 +90,13 @@ class GUISetupClass(GUIClass):
         """
         Creates and adds a GUI version of a setup attribute
         """
-        setup_attribute_gui = GUISetupAttribute(self.get_model(), self.get_view(), setup_attribute, self, configuration_attribute_gui, self.get_x(), self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
+        setup_attribute_gui = GUISetupAttribute(self.get_model(), \
+                                                self.get_view(), \
+                                                setup_attribute, \
+                                                self, \
+                                                configuration_attribute_gui, \
+                                                self.get_x(), \
+                                                self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
         
         self.__setup_attributes_gui.append(setup_attribute_gui)
         self.add_attached_block(setup_attribute_gui)
@@ -173,7 +179,12 @@ class GUISetupClass(GUIClass):
         """
         Indicator that is added by scripts to mark classes
         """
-        self.__script_marker_indicators.append(GUICircleIndicator(self.get_view(), self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, SCRIPT_MARKER_CIRCLE_RADIUS, color, SCRIPT_MARKER_CIRCLE_OUTLINE, text))
+        self.__script_marker_indicators.append(GUICircleIndicator(self.get_view(), \
+                                                                  self.get_x()+2*SCRIPT_MARKER_CIRCLE_RADIUS*(0.5+len(self.__script_marker_indicators)), \
+                                                                  self.get_y()-SCRIPT_MARKER_CIRCLE_RADIUS, \
+                                                                  SCRIPT_MARKER_CIRCLE_RADIUS, \
+                                                                  color, \
+                                                                  SCRIPT_MARKER_CIRCLE_OUTLINE, text))
         
         # Add to linked copies
         if update_linked:

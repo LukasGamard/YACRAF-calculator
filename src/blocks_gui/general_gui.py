@@ -145,7 +145,12 @@ class GUIBlock:
             
             if item_type == "rectangle":
                 x1, y1, x2, y2 = actual_coordinates
-                rect = self.__view.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, y1-HIGHLIGHT_BORDER_WIDTH, x2+HIGHLIGHT_BORDER_WIDTH, y2+HIGHLIGHT_BORDER_WIDTH, width=0, fill=color)
+                rect = self.__view.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, \
+                                                                 y1-HIGHLIGHT_BORDER_WIDTH, \
+                                                                 x2+HIGHLIGHT_BORDER_WIDTH, \
+                                                                 y2+HIGHLIGHT_BORDER_WIDTH, \
+                                                                 width=0, \
+                                                                 fill=color)
                 
                 self.__view.get_canvas().tag_lower(rect)
                 self.__shapes_highlight.append(rect)
@@ -274,7 +279,13 @@ class GUIModelingBlock(GUIBlock):
     """
     Class for block with text
     """
-    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, label_text_x=None, additional_pressable_items=None, bind_left=None, bind_right=None, tags_rect=(), tags_text=()):
+    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, \
+                                                                              label_text_x=None, \
+                                                                              additional_pressable_items=None, \
+                                                                              bind_left=None, \
+                                                                              bind_right=None, \
+                                                                              tags_rect=(), \
+                                                                              tags_text=()):
         canvas = view.get_canvas()
         actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
         actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
@@ -459,7 +470,13 @@ class GUIClass(GUIModelingBlock):
         # Add or update indicator
         if self.__linked_group_number != None:
             if self.__linked_group_indicator == None:
-                self.__linked_group_indicator = GUICircleIndicator(self.get_view(), self.get_x()+self.get_width(), self.get_y(), LINKED_GROUP_CIRCLE_RADIUS, LINKED_GROUP_CIRCLE_COLOR, LINKED_GROUP_CIRCLE_OUTLINE, self.__linked_group_number)
+                self.__linked_group_indicator = GUICircleIndicator(self.get_view(), \
+                                                                   self.get_x()+self.get_width(), \
+                                                                   self.get_y(), \
+                                                                   LINKED_GROUP_CIRCLE_RADIUS, \
+                                                                   LINKED_GROUP_CIRCLE_COLOR, \
+                                                                   LINKED_GROUP_CIRCLE_OUTLINE, \
+                                                                   self.__linked_group_number)
             else:
                 self.__linked_group_indicator.create(self.__linked_group_number)
                 

@@ -65,11 +65,6 @@ class ConfigurationView(View):
     def get_configuration_inputs_gui(self):
         return self.__configuration_inputs_gui
         
-    """
-    def get_static_items(self):
-        return [self.__add_configuration_class_button, self.__add_input_button]
-    """
-    
     def get_movable_items(self):
         """
         Returns all items that can be moved around the view, such as during panning
@@ -125,10 +120,15 @@ class ConfigurationView(View):
                     
                     # Should bind to already existing configuration class
                     if linked_group_number != None and linked_group_number in linked_groups_per_number:
-                        configuration_class_gui = self.get_model().create_linked_configuration_class_gui(linked_groups_per_number[linked_group_number][0], self, x=saved_states_configuration_class_gui["x"], y=saved_states_configuration_class_gui["y"])
+                        configuration_class_gui = self.get_model().create_linked_configuration_class_gui(linked_groups_per_number[linked_group_number][0], \
+                                                                                                         self, \
+                                                                                                         x=saved_states_configuration_class_gui["x"], \
+                                                                                                         y=saved_states_configuration_class_gui["y"])
                         
                     else:
-                        configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], y=saved_states_configuration_class_gui["y"], linked_group_number=linked_group_number)
+                        configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], \
+                                                                                      y=saved_states_configuration_class_gui["y"], \
+                                                                                      linked_group_number=linked_group_number)
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [configuration_class_gui]

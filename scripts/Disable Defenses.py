@@ -43,7 +43,9 @@
 def script_logic(script_if):
     # Insert logic here
     for defense_mechanism_name in script_if.get_class_instance_names("Defense mechanism"):
-        script_if.override_attribute_values("0 / 0 / 0", class_type="Defense mechanism", class_instance=defense_mechanism_name, attribute="Impact")
+        script_if.override_attribute_values("0 / 0 / 0", class_type="Defense mechanism", \
+                                                         class_instance=defense_mechanism_name, \
+                                                         attribute="Impact")
         
     script_if.calculate_values()
     

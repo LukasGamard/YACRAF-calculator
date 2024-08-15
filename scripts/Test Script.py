@@ -52,7 +52,9 @@ def script_logic(script_if):
     
     print("Input classes to Attack event AND: Top 1: " + str(script_if.get_input_class_names("Attack event AND", "Top 1")))
     
-    print("Value of Global difficulty in Attack event AND: Top 1: " + str(script_if.get_attribute_value("Attack event AND", "Top 1", "Global difficulty")))
+    attribute_value = script_if.get_attribute_value("Attack event AND", "Top 1", "Global difficulty")
+    print("Value of Global difficulty in Attack event AND: Top 1: " + str(attribute_value))
+    print("Value of Global difficulty in Attack event AND: Top 1: " + script_if.convert_value_to_string(attribute_value))
     
     script_if.override_attribute_values("0 / 1 / 2", class_type="Attack event AND", class_instance="Top 1", attribute="Local difficulty")
     

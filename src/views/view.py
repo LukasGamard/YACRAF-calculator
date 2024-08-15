@@ -26,8 +26,16 @@ class View(tk.Frame):
         
         self.__canvas = tk.Canvas(self, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg=BACKGROUND_COLOR)
         self.__canvas_size = (CANVAS_WIDTH, CANVAS_HEIGHT)
-        self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_CONFIGURATION_START_POSITION[1], True)
-        self.__add_change_setup_view_button = GUIAddChangeViewButton(model, self, CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, CHANGE_VIEW_SETUP_START_POSITION[1], False)
+        self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, \
+                                                                             self, \
+                                                                             CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
+                                                                             CHANGE_VIEW_CONFIGURATION_START_POSITION[1], \
+                                                                             True)
+        self.__add_change_setup_view_button = GUIAddChangeViewButton(model, \
+                                                                     self, \
+                                                                     CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
+                                                                     CHANGE_VIEW_SETUP_START_POSITION[1], \
+                                                                     False)
         self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
         
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
@@ -134,7 +142,9 @@ class View(tk.Frame):
         self.__canvas_size = (event.width, event.height)
         
         # Buttons to move so that they do not end up outside the window
-        for item_to_move_x in list(self.__configuration_change_view_buttons.values()) + list(self.__setup_change_view_buttons.values()) + [self.__add_change_configuration_view_button, self.__add_change_setup_view_button]:
+        for item_to_move_x in list(self.__configuration_change_view_buttons.values()) + \
+                              list(self.__setup_change_view_buttons.values()) + \
+                              [self.__add_change_configuration_view_button, self.__add_change_setup_view_button]:
             item_to_move_x.move_block(move_x, 0)
             
         self.__save_button.move_block(0, move_y)

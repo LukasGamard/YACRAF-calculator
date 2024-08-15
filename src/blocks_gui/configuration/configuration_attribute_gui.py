@@ -45,12 +45,6 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         
     def get_configuration_class_gui(self):
         return self.__configuration_class_gui
-        
-    """
-    def update_configuration_input_symbol(self):
-        if self.__configuration_input != None:
-            self.__configuration_input.update_symbol_calculation_type()
-    """
             
     def set_configuration_input(self, configuration_input):
         """
@@ -225,4 +219,8 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             delete_all(self.__setup_attributes_gui)
             
     def save_state(self):
-        return {"configuration_attribute_gui": str(self), "name": self.get_name(), "symbol_value_type": self.__configuration_attribute.get_symbol_value_type(), "input_scalar": self.get_input_scalar(), "is_hidden": self.is_hidden()}
+        return {"configuration_attribute_gui": str(self), \
+                "name": self.get_name(), \
+                "symbol_value_type": self.__configuration_attribute.get_symbol_value_type(), \
+                "input_scalar": self.get_input_scalar(), \
+                "is_hidden": self.is_hidden()}

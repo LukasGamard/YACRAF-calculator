@@ -10,7 +10,11 @@ class GUIConnection:
     """
     Connects two blocks by lines
     """
-    def __init__(self, model, view, start_block, start_direction, *, end_block=None, end_direction=None, corner_coordinates=None, is_external=False, mouse_location=None):
+    def __init__(self, model, view, start_block, start_direction, *, end_block=None, \
+                                                                     end_direction=None, \
+                                                                     corner_coordinates=None, \
+                                                                     is_external=False, \
+                                                                     mouse_location=None):
         self.__model = model
         self.__view = view
         
@@ -472,7 +476,8 @@ class GUIConnection:
         Sets whether the connection is considered external (only takes input from other class instances of the same class type and not itself)
         """
         self.__is_external = is_external
-        self.__end_block.get_attached_configuration_attribute_gui().get_configuration_attribute().add_input_configuration_attribute(self.__start_block.get_configuration_attribute(), not is_external)
+        self.__end_block.get_attached_configuration_attribute_gui().get_configuration_attribute().add_input_configuration_attribute(self.__start_block.get_configuration_attribute(), \
+                                                                                                                                    not is_external)
         
         self.create_new_lines()
         
@@ -494,7 +499,11 @@ class GUIConnection:
             self.remove_lines()
             
     def save_state(self):
-        saved_states = {"start_block": str(self.__start_block), "start_direction": self.__start_direction, "end_direction": self.__end_direction, "corner_coordinates": [], "is_external": self.__is_external}
+        saved_states = {"start_block": str(self.__start_block), \
+                        "start_direction": self.__start_direction, \
+                        "end_direction": self.__end_direction, \
+                        "corner_coordinates": [], \
+                        "is_external": self.__is_external}
         
         for corner in self.__corners:
             saved_states["corner_coordinates"].append((corner.get_x(), corner.get_y()))

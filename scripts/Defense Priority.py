@@ -42,25 +42,22 @@
 
 import numpy as np
 
-DEFENSE_MECHANISM_NAME = "Defense mechanism"
-DEFEMSE_MECHANISM_ATTRIBUTE_IMPACT = "Impact"
-LOSS_EVENT_NAME = "Loss event"
-LOSS_EVENT_ATTRIBUTE_RISK = "Risk"
-
 def disable_all_other_defenses(script_if, defenses_to_disable, defense_to_exclude=None):
     script_if.reset_override_attribute_values()
     
     for defense_name in defenses_to_disable:
         if defense_name != defense_to_exclude:
-            script_if.override_attribute_values("0 / 0 / 0", class_type=DEFENSE_MECHANISM_NAME, class_instance=defense_name, attribute=DEFEMSE_MECHANISM_ATTRIBUTE_IMPACT)
+            script_if.override_attribute_values("0 / 0 / 0", class_type="Defense mechanism", \
+                                                             class_instance=defense_name, \
+                                                             attribute="Impact")
             
 def calculate_total_risk(script_if):
     script_if.calculate_values()
     
     total_risk = 0
     
-    for loss_event_instance in script_if.get_class_instance_names(LOSS_EVENT_NAME):
-        risk = script_if.get_attribute_value(LOSS_EVENT_NAME, loss_event_instance, LOSS_EVENT_ATTRIBUTE_RISK)
+    for loss_event_instance in script_if.get_class_instance_names("Loss event"):
+        risk = script_if.get_attribute_value("Loss event", loss_event_instance, "Risk")
         
         # If a distribution, add the mean risk
         if isinstance(risk, list):
@@ -74,7 +71,7 @@ def calculate_total_risk(script_if):
     
 def script_logic(script_if):
     # Insert logic here
-    remaining_defenses_names = script_if.get_class_instance_names(DEFENSE_MECHANISM_NAME)
+    remaining_defenses_names = script_if.get_class_instance_names("Defense mechanism")
     priority_of_defenses = []
     
     disable_all_other_defenses(script_if, remaining_defenses_names)

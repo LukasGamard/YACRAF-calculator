@@ -93,7 +93,8 @@ class GUIConfigurationInput(GUIModelingBlock):
                     self.__direction_out_from_block = direction_out_of_block
                     
                     # Update calculation type of input block but not the attribute
-                    if self.__attached_configuration_attribute_gui.get_configuration_class_gui().is_linked() and self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != None:
+                    if self.__attached_configuration_attribute_gui.get_configuration_class_gui().is_linked() and \
+                       self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != None:
                         self.update_symbol_calculation_type()
                         
                     # Updated calculation type of attribute according to the input block
@@ -235,7 +236,8 @@ class GUIConfigurationInput(GUIModelingBlock):
         Attempts to connect the attribute that a connection starts from with the attribute that this input block is connected to (the calculation versions of the blocks without any GUI do not have any designated input blocks)
         """
         if self.is_attached():
-            is_internal = self.__attached_configuration_attribute_gui.get_configuration_class_gui() == connection.get_start_block().get_configuration_class_gui() and not connection.is_external()
+            is_internal = self.__attached_configuration_attribute_gui.get_configuration_class_gui() == connection.get_start_block().get_configuration_class_gui() and \
+                          not connection.is_external()
             connected_configuration_attribute = connection.get_start_block().get_configuration_attribute()
             
             self.__attached_configuration_attribute_gui.get_configuration_attribute().add_input_configuration_attribute(connected_configuration_attribute, is_internal)
@@ -284,7 +286,9 @@ class GUIConfigurationInput(GUIModelingBlock):
             self.__input_scalar_indicator.remove()
             
     def save_state(self):
-        saved_states = super().save_state() | {"symbol_calculation_type": self.get_symbol_calculation_type(), "connections": [connection.save_state() for connection in self.__connections]}
+        saved_states = super().save_state() | \
+                       {"symbol_calculation_type": self.get_symbol_calculation_type(), \
+                        "connections": [connection.save_state() for connection in self.__connections]}
         
         if self.is_attached() and self.__attached_configuration_attribute_gui.get_input_scalar() not in (None, DEFAULT_INPUT_SCALAR):
             saved_states["x"] -= self.get_move_x_due_to_indicator()

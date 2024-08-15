@@ -30,7 +30,8 @@ BLOCKS_GUI_CONNECTION_PATH = os.path.join(BLOCKS_GUI_PATH, "connection")
 
 VIEW_PATH = os.path.join(SOURCE_PATH, "views")
 
-IMPORT_PATHS = (SOURCE_PATH, BLOCKS_CALCULATION_PATH, BLOCKS_CALCULATION_CONFIGURATION_PATH, BLOCKS_CALCULATION_SETUP_PATH, BLOCKS_GUI_PATH, BLOCKS_GUI_CONFIGURATION_PATH, BLOCKS_GUI_SETUP_PATH, BLOCKS_GUI_CONNECTION_PATH, VIEW_PATH)
+IMPORT_PATHS = (SOURCE_PATH, BLOCKS_CALCULATION_PATH, BLOCKS_CALCULATION_CONFIGURATION_PATH, BLOCKS_CALCULATION_SETUP_PATH, \
+                BLOCKS_GUI_PATH, BLOCKS_GUI_CONFIGURATION_PATH, BLOCKS_GUI_SETUP_PATH, BLOCKS_GUI_CONNECTION_PATH, VIEW_PATH)
 
 SAVES_PATH = "saved_views"
 FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.csv")
@@ -47,7 +48,9 @@ BACKGROUND_COLOR = "white"
 # Available types of attribute values
 SYMBOL_VALUE_TYPE_NUMBER = "N"
 SYMBOL_VALUE_TYPE_TRIANGLE = "T"
-ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [("", "Simple text (no calculations)"), (SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)"), (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)")]
+ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [("", "Simple text (no calculations)"), \
+                                     (SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)"), \
+                                     (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)")]
 
 # Available types of calculation operations between input attribute values
 SYMBOL_CALCULATION_TYPE_MEAN = "M"
@@ -56,7 +59,12 @@ SYMBOL_CALCULATION_TYPE_OR = "|"
 SYMBOL_CALCULATION_TYPE_MULTIPLICATION = "*"
 SYMBOL_CALCULATION_TYPE_TRIANGLE = "T"
 SYMBOL_CALCULATION_TYPE_QUALITATIVE = "Q"
-ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_CALCULATION_TYPE_MEAN, "Mean of inputs"), (SYMBOL_CALCULATION_TYPE_AND, "AND (addition) of inputs"), (SYMBOL_CALCULATION_TYPE_OR, "OR (minimum) of inputs"), (SYMBOL_CALCULATION_TYPE_MULTIPLICATION, "Multiplication of input values"), (SYMBOL_CALCULATION_TYPE_TRIANGLE, "Sample two triangle distributions - ratio of input (1) > (2)"), (SYMBOL_CALCULATION_TYPE_QUALITATIVE, "Manual and qualitative evaluation of inputs")]
+ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_CALCULATION_TYPE_MEAN, "Mean of inputs"), \
+                                           (SYMBOL_CALCULATION_TYPE_AND, "AND (addition) of inputs"), \
+                                           (SYMBOL_CALCULATION_TYPE_OR, "OR (minimum) of inputs"), \
+                                           (SYMBOL_CALCULATION_TYPE_MULTIPLICATION, "Multiplication of input values"), \
+                                           (SYMBOL_CALCULATION_TYPE_TRIANGLE, "Sample two triangle distributions - ratio of input (1) > (2)"), \
+                                           (SYMBOL_CALCULATION_TYPE_QUALITATIVE, "Manual and qualitative evaluation of inputs")]
 
 # Which calculation operations rely on the order of inputs
 ENUMERATED_INPUT_CALCULATION_TYPE_SYMBOLS = [SYMBOL_CALCULATION_TYPE_TRIANGLE]

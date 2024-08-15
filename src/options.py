@@ -205,7 +205,15 @@ class OptionsCalculationInput(Options):
         for i, config in enumerate(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS):
             calculation_symbol, text = config
             
-            radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__calculation_type_choice, value=calculation_symbol, command=self.set_calculation_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_INPUT_WIDTH, anchor="w")
+            radio_button = tk.Radiobutton(self.get_window(), \
+                                          text=text, \
+                                          font=FONT, \
+                                          variable=self.__calculation_type_choice, \
+                                          value=calculation_symbol, \
+                                          command=self.set_calculation_type, \
+                                          bg=BACKGROUND_COLOR, \
+                                          width=OPTION_RADIO_BUTTON_CONFIGURATION_INPUT_WIDTH, \
+                                          anchor="w")
             radio_button.grid(row=i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
         row_after_radio_buttons = len(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS)

@@ -44,7 +44,14 @@ class GUICircleIndicator:
         circle_radius = convert_grid_coordinate_to_actual(self.__view, self.__radius, 0)[0]
         actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, self.__x, self.__y)
         
-        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, actual_y-circle_radius, actual_x+circle_radius, actual_y+circle_radius, width=self.__outline_width, outline="black", fill=self.__color, tags=(TAG_INDICATOR,))
+        self.__circle = self.__view.get_canvas().create_oval(actual_x-circle_radius, \
+                                                             actual_y-circle_radius, \
+                                                             actual_x+circle_radius, \
+                                                             actual_y+circle_radius, \
+                                                             width=self.__outline_width, \
+                                                             outline="black", \
+                                                             fill=self.__color, \
+                                                             tags=(TAG_INDICATOR,))
         self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_INDICATOR_TEXT,))
         
     def remove(self):

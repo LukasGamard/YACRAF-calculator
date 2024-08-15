@@ -18,7 +18,10 @@ class GUISetupAttribute(GUIModelingBlock):
         actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
-        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, label_text_x=x+width/4, additional_pressable_items=[self.__label_value], bind_left=MOUSE_PRESS)
+        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, \
+                                                                                                                    label_text_x=x+width/4, \
+                                                                                                                    additional_pressable_items=[self.__label_value], \
+                                                                                                                    bind_left=MOUSE_PRESS)
         
         # Manual entry field
         self.__entry_value = None
@@ -62,7 +65,9 @@ class GUISetupAttribute(GUIModelingBlock):
         # Scale entry field if it exists
         if self.__entry_value != None:
             actual_width, actual_height = self.get_entry_size()
-            actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), self.get_view().get_canvas().coords(self.__entry_value_window), last_length_unit)
+            actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), \
+                                                                   self.get_view().get_canvas().coords(self.__entry_value_window), \
+                                                                   last_length_unit)
             
             self.__entry_value.config(font=self.get_view().get_updated_font())
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
@@ -96,7 +101,8 @@ class GUISetupAttribute(GUIModelingBlock):
         has_currently_connected_inputs = self.__setup_attribute.has_connected_setup_attributes()
         
         # No manual entry as it takes input from connected attributes
-        if has_currently_connected_inputs and self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
+        if has_currently_connected_inputs and \
+           self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
             self.switch_to_value_label(clear_value)
         else:
             self.switch_to_value_entry(clear_value)
@@ -125,14 +131,16 @@ class GUISetupAttribute(GUIModelingBlock):
             
             # Create Entry and Window to put Entry in to allow it be put inside the Canvas
             self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
-            self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), window=self.__entry_value, anchor="nw", width=actual_width, height=actual_height)
+            self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), \
+                                                                         window=self.__entry_value, \
+                                                                         anchor="nw", \
+                                                                         width=actual_width, \
+                                                                         height=actual_height)
             
             # Reset any calculated value as the input now should be entered manually, where a default value is entered
             if clear_value:
                 self.__setup_attribute.set_value("Value")
                 self.update_displayed_value()
-                # self.__setup_attribute.clear_value()
-                # self.set_displayed_value("Value")
                 
             # When starting to edit the entered value, unselect all blocks to avoid accidentally deleting them
             self.__entry_value.bind("<FocusIn>", lambda event: self.get_view().unselect_all_items())
@@ -208,9 +216,6 @@ class GUISetupAttribute(GUIModelingBlock):
         
     def get_name(self):
         return self.__configuration_attribute_gui.get_name()
-                
-    # def is_hidden(self):
-        # return self.__configuration_attribute_gui.is_hidden()
         
     def update_text(self):
         text, is_bold = self.__configuration_attribute_gui.get_attribute_text()

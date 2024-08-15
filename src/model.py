@@ -255,39 +255,7 @@ class Model:
                     # Set the new number in each setup class
                     for class_gui in group:
                         class_gui.set_linked_group_number(group_number-1)
-        
-    """
-    def get_configuration_classes(self):
-        configuration_classes = []
-        
-        for existing_view in self.__views:
-            if isinstance(existing_view, ConfigurationView):
-                configuration_classes += existing_view.get_configuration_classes()
-                
-        return configuration_classes
-        
-    def get_matching_setup_classes_gui(self, *, view_name=None, class_configuration_name=None, class_instance_name=None):
-        matching_setup_classes_gui = []
-        
-        for setup_view in self.__setup_views:
-            if view_name == None or setup_view.get_name() == view_name:
-                for setup_class_gui in setup_view.get_matching_setup_classes_gui(class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
-                    matching_setup_classes_gui.append(setup_class_gui)
-                    
-        return matching_setup_classes_gui
-        
-    def get_matching_setup_attributes_gui(self, *, view_name=None, class_configuration_name=None, class_instance_name=None, attribute_name=None):
-        matching_setup_attributes_gui = []
-        
-        for matching_setup_class_gui in self.get_matching_setup_classes_gui(view_name=view_name, class_configuration_name=class_configuration_name, class_instance_name=class_instance_name):
-            for setup_attribute_gui in matching_setup_class_gui.get_setup_attributes_gui():
-                if not setup_attribute_gui.is_hidden():
-                    if attribute_name == None or setup_attribute_gui.get_name() == attribute_name:
-                        matching_setup_attributes_gui.append(setup_attribute_gui)
                         
-        return matching_setup_attributes_gui
-    """
-    
     def get_root(self):
         return self.__root
         
