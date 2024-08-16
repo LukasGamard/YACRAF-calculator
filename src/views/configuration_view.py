@@ -3,7 +3,7 @@ import pickle
 from view import View
 from configuration_class_gui import GUIConfigurationClass
 from configuration_input_gui import GUIConfigurationInput
-from buttons_gui import GUIAddConfigurationClassButton, GUIAddInputButton
+from buttons_gui import ButtonPress
 from connection_gui import GUIConnection
 from helper_functions_general import delete_all
 from config import *
@@ -18,8 +18,8 @@ class ConfigurationView(View):
         self.__configuration_inputs_gui = []
         self.__held_connection = None
         
-        self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, ADD_CLASS_POSITION[0], ADD_CLASS_POSITION[0]) # Button to create a new configuration class
-        self.__add_input_button = GUIAddInputButton(model, self, ADD_INPUT_POSITION[0], ADD_INPUT_POSITION[1]) # Button to create a new input block
+        self.__add_configuration_class_button = ButtonPress.add_configuration_class(model, self) # Button to create a new configuration class
+        self.__add_input_button = ButtonPress.add_input(model, self) # Button to create a new input block
         
         self.get_canvas().bind(MOUSE_MOTION, self.move_held_connection)
          
@@ -30,7 +30,7 @@ class ConfigurationView(View):
         # Create new
         if configuration_class_gui_to_copy == None:
             configuration_class_gui = GUIConfigurationClass.new(self.get_model(), self, x, y)
-            self.get_model().create_add_to_setup_buttons(self.get_model().get_num_configuration_classes(), configuration_class_gui) # Add buttons to add the setup class version
+            self.get_model().create_add_to_setup_buttons(configuration_class_gui, self.get_model().get_num_configuration_classes()) # Add buttons to add the setup class version
             
         # Create linked copy
         else:

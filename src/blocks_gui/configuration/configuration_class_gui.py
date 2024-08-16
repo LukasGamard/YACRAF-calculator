@@ -1,5 +1,5 @@
 from general_gui import GUIClass
-from buttons_gui import GUIAddAttributeButton
+from buttons_gui import ButtonPress
 from options import OptionsConfigurationClass
 from configuration_class_calculation import ConfigurationClass
 from configuration_attribute_gui import GUIConfigurationAttribute
@@ -25,8 +25,8 @@ class GUIConfigurationClass(GUIClass):
         else:
             self.__to_setup_buttons = to_setup_buttons
             
-        self.__add_button = GUIAddAttributeButton(model, view, x+ADD_ATTRIBUTE_OFFSET_POSITION[0], y+ATTRIBUTE_HEIGHT+ADD_ATTRIBUTE_OFFSET_POSITION[1], self)
-        self.add_attached_block(self.__add_button)
+        self.__add_attribute_button = ButtonPress.add_attribute(model, view, self, x+ADD_ATTRIBUTE_OFFSET_POSITION[0], y+ATTRIBUTE_HEIGHT+ADD_ATTRIBUTE_OFFSET_POSITION[1])
+        self.add_attached_block(self.__add_attribute_button)
         
         if configuration_attributes_gui_to_copy != None:
             for configuration_attribute_gui_to_copy in configuration_attributes_gui_to_copy:
@@ -83,7 +83,7 @@ class GUIConfigurationClass(GUIClass):
         self.__configuration_attributes_gui.append(configuration_attribute_gui)
         self.add_attached_block(configuration_attribute_gui)
         
-        self.__add_button.move_block(0, ATTRIBUTE_HEIGHT)
+        self.__add_attribute_button.move_block(0, ATTRIBUTE_HEIGHT)
         
     def remove_attribute(self, configuration_attribute_gui_to_remove):
         index_first_move_up = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_remove)
@@ -94,7 +94,7 @@ class GUIConfigurationClass(GUIClass):
         for configuration_attribute_gui in self.__configuration_attributes_gui[index_first_move_up:]:
             configuration_attribute_gui.move_block(0, -ATTRIBUTE_HEIGHT)
             
-        self.__add_button.move_block(0, -ATTRIBUTE_HEIGHT)
+        self.__add_attribute_button.move_block(0, -ATTRIBUTE_HEIGHT)
         
     def get_configuration_attributes_gui(self):
         return self.__configuration_attributes_gui
@@ -175,8 +175,8 @@ class GUIConfigurationClass(GUIClass):
             setup_class_gui.update_text()
             
         # Update the text of the buttons that add the class to the setup views
-        for add_to_setup_button in self.__to_setup_buttons.values():
-            add_to_setup_button.set_text(name)
+        for to_setup_button in self.__to_setup_buttons.values():
+            to_setup_button.set_text(name)
             
     def update_value_input_types(self, specific_attribute_index=None):
         """

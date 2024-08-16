@@ -1,5 +1,5 @@
 import tkinter as tk
-from buttons_gui import GUIAddChangeViewButton, GUISaveButton, GUISettingsButton, GUIChangeViewButton
+from buttons_gui import ButtonPress
 from connection_with_blocks_gui import GUIConnectionWithBlocks
 from options import OptionsView
 from helper_functions_general import convert_actual_coordinate_to_grid
@@ -25,18 +25,18 @@ class View(tk.Frame):
         
         self.__canvas = tk.Canvas(self, width=settings.get_canvas_width(), height=settings.get_canvas_height(), bg=BACKGROUND_COLOR)
         self.__canvas_size = (settings.get_canvas_width(), settings.get_canvas_height())
-        self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, \
-                                                                             self, \
-                                                                             CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
-                                                                             CHANGE_VIEW_CONFIGURATION_START_POSITION[1], \
-                                                                             True)
-        self.__add_change_setup_view_button = GUIAddChangeViewButton(model, \
-                                                                     self, \
-                                                                     CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
-                                                                     CHANGE_VIEW_SETUP_START_POSITION[1], \
-                                                                     False)
-        self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
-        self.__settings_button = GUISettingsButton(model, self, SETTINGS_POSITION[0], SETTINGS_POSITION[1])
+        self.__add_change_configuration_view_button = ButtonPress.add_view(model, \
+                                                                           self, \
+                                                                           CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
+                                                                           CHANGE_VIEW_CONFIGURATION_START_POSITION[1], \
+                                                                           True)
+        self.__add_change_setup_view_button = ButtonPress.add_view(model, \
+                                                                   self, \
+                                                                   CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
+                                                                   CHANGE_VIEW_SETUP_START_POSITION[1], \
+                                                                   False)
+        self.__save_button = ButtonPress.save(model, self)
+        self.__settings_button = ButtonPress.settings(model, self)
         
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
         self.__canvas.bind(MOUSE_LEFT_DRAG, self.pan_move)
@@ -211,11 +211,11 @@ class View(tk.Frame):
         """
         # Move down the button that adds another view
         if not is_setup_view:
-            self.__configuration_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+            self.__configuration_change_view_buttons[view_to_change_to] = ButtonPress.change_view(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
             self.__add_change_configuration_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
             
         else:
-            self.__setup_change_view_buttons[view_to_change_to] = GUIChangeViewButton(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+            self.__setup_change_view_buttons[view_to_change_to] = ButtonPress.change_view(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
             self.__add_change_setup_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
             
     def remove_change_view_button(self, view_to_remove):

@@ -112,12 +112,12 @@ class Model:
     def is_currently_pressing_key(self, key):
         return key.lower() in self.__currently_pressed_keys
         
-    def create_add_to_setup_buttons(self, current_number_of_buttons, configuration_class_gui):
+    def create_add_to_setup_buttons(self, configuration_class_gui, current_number_of_buttons):
         """
         Creates and adds the button used to create a setup version of a configuration class to each existing setup view
         """
         for existing_setup_view in self.__setup_views:
-            existing_setup_view.create_add_to_setup_button(current_number_of_buttons, configuration_class_gui)
+            existing_setup_view.create_add_to_setup_button(configuration_class_gui, current_number_of_buttons)
             
     def remove_add_to_setup_buttons(self, to_setup_buttons):
         """
@@ -339,7 +339,7 @@ class Model:
                     configuration_class = configuration_class_gui.get_configuration_class()
                     
                     if configuration_class not in seen_configuration_classes:
-                        new_view.create_add_to_setup_button(len(seen_configuration_classes), configuration_class_gui)
+                        new_view.create_add_to_setup_button(configuration_class_gui, len(seen_configuration_classes))
                         seen_configuration_classes.add(configuration_class_gui.get_configuration_class())
                         
         return new_view

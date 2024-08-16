@@ -23,17 +23,19 @@ class GUIBlock:
         self.__draggable = bind_left == MOUSE_DRAG
         self.__pick_up_actual_coordinate = (0, 0)
         
+        canvas = view.get_canvas()
+        
         # Bind mouse actions to the block
         for pressable_item in self.__pressable_items:
             if bind_left in (MOUSE_PRESS, MOUSE_DRAG):
-                view.get_canvas().tag_bind(pressable_item, MOUSE_LEFT_PRESS, self.left_pressed)
+                canvas.tag_bind(pressable_item, MOUSE_LEFT_PRESS, self.left_pressed)
                 
             if bind_left == MOUSE_DRAG:
-                view.get_canvas().tag_bind(pressable_item, MOUSE_LEFT_DRAG, self.left_dragged)
-                view.get_canvas().tag_bind(pressable_item, MOUSE_LEFT_RELEASE, self.left_released)
+                canvas.tag_bind(pressable_item, MOUSE_LEFT_DRAG, self.left_dragged)
+                canvas.tag_bind(pressable_item, MOUSE_LEFT_RELEASE, self.left_released)
                 
             if bind_right == MOUSE_PRESS:
-                view.get_canvas().tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
+                canvas.tag_bind(pressable_item, MOUSE_RIGHT_PRESS, self.right_pressed)
                 
         self.__was_dragged = False
         self.__is_deleted = False
@@ -115,22 +117,22 @@ class GUIBlock:
         Scales the block, typical when zooming
         """
         for pressable_item in self.__pressable_items + self.__shapes_highlight:
-            item_type = self.__view.get_canvas().type(pressable_item)
-            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(pressable_item), last_length_unit)
+            item_type = self.get_canvas().type(pressable_item)
+            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.get_canvas().coords(pressable_item), last_length_unit)
             
             # Scales different items on the canvas differently
             if item_type == "rectangle":
                 x1, y1, x2, y2 = adjusted_actual_coordinates
-                self.__view.get_canvas().coords(pressable_item, x1, y1, x2, y2)
+                self.get_canvas().coords(pressable_item, x1, y1, x2, y2)
                 
             elif item_type == "polygon":
                 x1, y1, x2, y2, x3, y3 = adjusted_actual_coordinates
-                self.__view.get_canvas().coords(pressable_item, x1, y1, x2, y2, x3, y3)
+                self.get_canvas().coords(pressable_item, x1, y1, x2, y2, x3, y3)
                 
             elif item_type == "text":
                 x, y = adjusted_actual_coordinates
-                self.__view.get_canvas().coords(pressable_item, x, y)
-                self.__view.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(label=pressable_item, has_line_break=self.__has_line_break_text))
+                self.get_canvas().coords(pressable_item, x, y)
+                self.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(label=pressable_item, has_line_break=self.__has_line_break_text))
                 
     def highlight(self, color):
         """
@@ -140,19 +142,19 @@ class GUIBlock:
         
         # Creates a slightly larger version of each shape and place it behind
         for pressable_item in self.__pressable_items:
-            item_type = self.__view.get_canvas().type(pressable_item)
-            actual_coordinates = self.__view.get_canvas().coords(pressable_item)
+            item_type = self.get_canvas().type(pressable_item)
+            actual_coordinates = self.get_canvas().coords(pressable_item)
             
             if item_type == "rectangle":
                 x1, y1, x2, y2 = actual_coordinates
-                rect = self.__view.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, \
+                rect = self.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, \
                                                                  y1-HIGHLIGHT_BORDER_WIDTH, \
                                                                  x2+HIGHLIGHT_BORDER_WIDTH, \
                                                                  y2+HIGHLIGHT_BORDER_WIDTH, \
                                                                  width=0, \
                                                                  fill=color)
                 
-                self.__view.get_canvas().tag_lower(rect)
+                self.get_canvas().tag_lower(rect)
                 self.__shapes_highlight.append(rect)
                 
             elif item_type == "polygon":
@@ -170,9 +172,9 @@ class GUIBlock:
                         new_actual_coordinate_pairs.append(old_actual_value + (vector_value / magnitude) * HIGHLIGHT_BORDER_WIDTH * 2)
                         
                 x1, y1, x2, y2, x3, y3 = new_actual_coordinate_pairs
-                triangle = self.__view.get_canvas().create_polygon(x1, y1, x2, y2, x3, y3, width=0, fill=color)
+                triangle = self.get_canvas().create_polygon(x1, y1, x2, y2, x3, y3, width=0, fill=color)
                 
-                self.__view.get_canvas().tag_lower(triangle)
+                self.get_canvas().tag_lower(triangle)
                 self.__shapes_highlight.append(triangle)
                 
     def unhighlight(self):
@@ -180,7 +182,7 @@ class GUIBlock:
         Removes shapes that are used as highlight around the block
         """
         for shape_highlight in self.__shapes_highlight:
-            self.__view.get_canvas().delete(shape_highlight)
+            self.get_canvas().delete(shape_highlight)
             
         self.__shapes_highlight.clear()
         
@@ -413,6 +415,9 @@ class GUIModelingBlock(GUIBlock):
             
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
+        
+    def set_fill_color(self, fill_color):
+        self.get_canvas().itemconfig(self.__rect, fill=fill_color)
         
     def add_attached_block(self, block):
         self.__attached_blocks.append(block)

@@ -2,7 +2,7 @@ import os
 import pickle
 from view import View
 from setup_class_gui import GUISetupClass
-from buttons_gui import GUIAddToSetupButton, GUICalculateValuesButton, GUIAddConnectionButton, GUIRunScriptButton
+from buttons_gui import ButtonPress
 from connection_gui import GUIConnection
 from connection_with_blocks_gui import GUIConnectionWithBlocks
 from helper_functions_general import delete_all
@@ -18,8 +18,8 @@ class SetupView(View):
         self.__connections_with_blocks = []
         self.__to_setup_buttons = []
         
-        self.__add_connection_button = GUIAddConnectionButton(model, self, ADD_CONNECTION_POSITION[0], ADD_CONNECTION_POSITION[1])
-        self.__calculate_value_button = GUICalculateValuesButton(model, self, CALCULATE_VALUES_POSITION[0], CALCULATE_VALUES_POSITION[1])
+        self.__create_connection_button = ButtonPress.create_connection(model, self)
+        self.__calculate_value_button = ButtonPress.calculate_values(model, self)
         
         self.__run_script_buttons = []
         
@@ -34,10 +34,9 @@ class SetupView(View):
                     if file_name != "SCRIPT_TEMPLATE":
                         # If at least one script, add a button for resetting any changes made by scripts
                         if len(self.__run_script_buttons) == 0:
-                            self.__run_script_buttons.append(GUIRunScriptButton(model, self, scripts_path, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
+                            self.__run_script_buttons.append(ButtonPress.clear_script(model, self))
                             
-                        run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
-                        self.__run_script_buttons.append(GUIRunScriptButton(model, self, scripts_path, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
+                        self.__run_script_buttons.append(ButtonPress.run_script(model, self, scripts_path, file_name, len(self.__run_script_buttons)))
                     
     def on_resize(self, event):
         """
@@ -45,7 +44,7 @@ class SetupView(View):
         """
         move_x, move_y = super().on_resize(event)
         
-        self.__add_connection_button.move_block(move_x/2, 0)
+        self.__create_connection_button.move_block(move_x/2, 0)
         self.__calculate_value_button.move_block(move_x/2, 0)
         
         for run_script_button in self.__run_script_buttons:
@@ -142,11 +141,11 @@ class SetupView(View):
         """
         self.__connections_with_blocks.remove(connection)
         
-    def create_add_to_setup_button(self, current_number_of_buttons, configuration_class_gui):
+    def create_add_to_setup_button(self, configuration_class_gui, current_number_of_buttons):
         """
         Creates a button for adding a class from a configuration view to this setup view
         """
-        self.__to_setup_buttons.append(GUIAddToSetupButton(self.get_model(), self, ADD_TO_SETUP_START_POSITION[0], ADD_TO_SETUP_START_POSITION[1]+current_number_of_buttons*ADD_TO_SETUP_HEIGHT, configuration_class_gui))
+        self.__to_setup_buttons.append(ButtonPress.add_to_setup(self.get_model(), self, configuration_class_gui, current_number_of_buttons))
         
     def remove_add_to_setup_button(self, to_setup_button):
         """
