@@ -12,7 +12,6 @@ class Options:
         self.__to_configure = to_configure
         self.__window = tk.Toplevel(root)
         
-        # self.__window.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.__window.title("Options")
         self.__window.config(bg=BACKGROUND_COLOR)
         
@@ -114,6 +113,29 @@ class OptionsView(Options):
         super().delete(to_delete)
         self.__model.delete_view(self.__view)
         
+class OptionsSettings(Options):
+    """
+    Options for general settings of the program
+    """
+    def __init__(self, root):
+        super().__init__(root, None)
+        
+        self.__entry_samples_value = tk.StringVar()
+        self.__entry_samples_value.set(settings.get_num_samples())
+        
+        self.add_label(0, 0, 1, "Number of samples when comparing distributions:")
+        
+        entry_samples = tk.Entry(self.get_window(), textvariable=self.__entry_samples_value, font=FONT)
+        entry_samples.grid(row=0, column=1, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING)
+        
+        self.__entry_samples_value.trace("w", lambda *args: self.set_num_samples(self.__entry_samples_value.get()))
+        
+    def set_num_samples(self, num_samples):
+        try:
+            settings.set_num_samples(abs(int(num_samples)))
+        except:
+            settings.set_num_samples(1)
+            
 class OptionsConfigurationClass(Options):
     """
     Options for configuration classes
@@ -165,10 +187,10 @@ class OptionsConfigurationAttribute(Options):
         self.add_label(3, 0, 2, "Type of value:")
         
         # Radio buttons for selecting the value type of the attribute
-        for i, value_type_symbol_and_text in enumerate(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS):
-            value_type_symbol, text = value_type_symbol_and_text
+        for i, config in enumerate(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS):
+            symbol_value_type, text, _ = config
             
-            radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__value_type, value=value_type_symbol, command=self.set_value_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_ATTRIBUTE_WIDTH, anchor="w")
+            radio_button = tk.Radiobutton(self.get_window(), text=text, font=FONT, variable=self.__value_type, value=symbol_value_type, command=self.set_value_type, bg=BACKGROUND_COLOR, width=OPTION_RADIO_BUTTON_CONFIGURATION_ATTRIBUTE_WIDTH, anchor="w")
             radio_button.grid(row=4+i, columnspan=2, padx=OPTION_FIELDS_PADDING, pady=OPTION_FIELDS_PADDING, sticky=tk.W+tk.E)
             
         row_after_radio_buttons = 5 + len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)
@@ -243,11 +265,10 @@ class OptionsSetupClass(Options):
     """
     Options for setup classes
     """
-    def __init__(self, model, setup_class_gui, configuration_class_gui, setup_views):
+    def __init__(self, model, setup_class_gui, setup_views):
         super().__init__(model.get_root(), setup_class_gui)
         self.__model = model
         self.__setup_class_gui = setup_class_gui
-        self.__configuration_class_gui = configuration_class_gui
         
         self.add_name_entry(0, "Name:")
         
@@ -259,7 +280,7 @@ class OptionsSetupClass(Options):
             link_button.grid(row=2+i, columnspan=2, sticky=tk.W+tk.E)
             
     def create_linked_setup_class_gui(self, setup_view):
-        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, self.__configuration_class_gui, setup_view)
+        self.__model.create_linked_setup_class_gui(self.__setup_class_gui, setup_view)
         
 class OptionsConnection(Options):
     """

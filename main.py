@@ -2,31 +2,34 @@ import tkinter as tk
 import sys
 import os
 
-# Paths to all directories from which modules may be imported elsewhere in the program
-from config import IMPORT_PATHS
+sys.path.append("config")
+from program_paths import IMPORT_PATHS
 
+# Set up the paths for modules that are imported elsewhere in the program
 for path in IMPORT_PATHS:
     sys.path.append(path)
     
+from settings import Settings
+
 def main():
     new_save = False
+    testing = False
     
-    # Force new save
     if len(sys.argv) == 2:
+        # Force new save
         if sys.argv[1] == "new":
             new_save = True
             
-    root = tk.Tk()
+        # Test the program by using specific test views and adding additional test scripts
+        elif sys.argv[1] == "test":
+            testing = True
+            
+    settings = Settings(testing=testing)
+    settings.save()
     
-    with open("settings.py", "w") as file_settings:
-        ratio_of_screen = 0.85
-        canvas_width = int(root.winfo_screenwidth() * ratio_of_screen)
-        canvas_height = int(root.winfo_screenheight() * ratio_of_screen)
-        
-        file_settings.write(f"CANVAS_WIDTH = {canvas_width}\nCANVAS_HEIGHT = {canvas_height}")
-        
     from model import Model
     
+    root = tk.Tk()
     model = Model(root, new_save)
     root.mainloop()
     

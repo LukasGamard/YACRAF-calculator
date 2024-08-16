@@ -1,7 +1,6 @@
 import os
 import pickle
 from view import View
-from configuration_class_calculation import ConfigurationClass
 from configuration_class_gui import GUIConfigurationClass
 from configuration_input_gui import GUIConfigurationInput
 from buttons_gui import GUIAddConfigurationClassButton, GUIAddInputButton
@@ -17,29 +16,26 @@ class ConfigurationView(View):
         super().__init__(model, name)
         self.__configuration_classes_gui = []
         self.__configuration_inputs_gui = []
+        self.__held_connection = None
         
         self.__add_configuration_class_button = GUIAddConfigurationClassButton(model, self, ADD_CLASS_POSITION[0], ADD_CLASS_POSITION[0]) # Button to create a new configuration class
         self.__add_input_button = GUIAddInputButton(model, self, ADD_INPUT_POSITION[0], ADD_INPUT_POSITION[1]) # Button to create a new input block
         
-    def create_configuration_class_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], configuration_class=None, linked_group_number=None):
+        self.get_canvas().bind(MOUSE_MOTION, self.move_held_connection)
+         
+    def create_configuration_class_gui(self, *, configuration_class_gui_to_copy=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         """
         Create a new GUI configuration class that is drawn on the canvas in the view
         """
-        if configuration_class == None:
-            configuration_class = ConfigurationClass("New class")
+        # Create new
+        if configuration_class_gui_to_copy == None:
+            configuration_class_gui = GUIConfigurationClass.new(self.get_model(), self, x, y)
+            self.get_model().create_add_to_setup_buttons(self.get_model().get_num_configuration_classes(), configuration_class_gui) # Add buttons to add the setup class version
             
-        configuration_class_gui = GUIConfigurationClass(self.get_model(), self, configuration_class, x, y, linked_group_number)
-        
-        self.get_model().create_add_to_setup_buttons(self.get_model().get_num_configuration_classes(), configuration_class_gui) # Add buttons to add the setup class version
-        self.__configuration_classes_gui.append(configuration_class_gui)
-        
-        return configuration_class_gui
-        
-    def create_configuration_class_gui_copy(self, configuration_class_gui_to_copy, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
-        """
-        Copy a GUi configuration class and add it to this view
-        """
-        configuration_class_gui = configuration_class_gui_to_copy.copy(self, x=x, y=y)
+        # Create linked copy
+        else:
+            configuration_class_gui = GUIConfigurationClass.linked_copy(self, configuration_class_gui_to_copy, x, y)
+            
         self.__configuration_classes_gui.append(configuration_class_gui)
         
         return configuration_class_gui
@@ -65,6 +61,31 @@ class ConfigurationView(View):
     def get_configuration_inputs_gui(self):
         return self.__configuration_inputs_gui
         
+    def create_connection(self, block, direction, mouse_location=None):
+        """
+        Creates a new held connection that is connected to the specified block and ends at the current mouse location
+        """
+        connection = GUIConnection(self, block.get_view(), block, direction, mouse_location=mouse_location)
+        self.set_held_connection(connection)
+        
+        return connection
+        
+    def move_held_connection(self, event):
+        if self.__held_connection != None:
+            self.__held_connection.create_new_lines((event.x, event.y))
+            
+    def get_held_connection(self):
+        return self.__held_connection
+        
+    def set_held_connection(self, connection):
+        self.__held_connection = connection
+        
+    def reset_held_connection(self, remove_connection=False):
+        if remove_connection:
+            self.__held_connection.delete()
+            
+        self.__held_connection = None
+        
     def get_movable_items(self):
         """
         Returns all items that can be moved around the view, such as during panning
@@ -86,10 +107,10 @@ class ConfigurationView(View):
         saved_states_configuration_classes_gui = [class_gui.save_state() for class_gui in self.__configuration_classes_gui]
         saved_states_configuration_inputs_gui = [input_gui.save_state() for input_gui in self.__configuration_inputs_gui]
         
-        file_path = os.path.join(CONFIGURATION_SAVES_PATH, f"{self.get_name()}.pickle")
+        file_path = os.path.join(CONFIGURATION_SAVES_DIRECTORY, f"{self.get_name()}.pickle")
         
         # Save grid offset and block states to file
-        with open(file_path, "wb") as file_pickle:
+        with open(os.path.join(BASE_PATH, file_path), "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
             
         return file_path
@@ -103,9 +124,6 @@ class ConfigurationView(View):
         
         Returns mapping between IDs of blocks from the save to those recreated in this new view instance
         """
-        if not SHOULD_RESTORE_SAVE:
-            return {}
-            
         try:
             with open(os.path.join(BASE_PATH, file_path), "rb") as file_pickle:
                 grid_offset, saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
@@ -122,13 +140,13 @@ class ConfigurationView(View):
                     if linked_group_number != None and linked_group_number in linked_groups_per_number:
                         configuration_class_gui = self.get_model().create_linked_configuration_class_gui(linked_groups_per_number[linked_group_number][0], \
                                                                                                          self, \
+                                                                                                         linked_group_number=linked_group_number, \
                                                                                                          x=saved_states_configuration_class_gui["x"], \
                                                                                                          y=saved_states_configuration_class_gui["y"])
                         
                     else:
                         configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], \
-                                                                                      y=saved_states_configuration_class_gui["y"], \
-                                                                                      linked_group_number=linked_group_number)
+                                                                                      y=saved_states_configuration_class_gui["y"])
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [configuration_class_gui]
@@ -177,8 +195,8 @@ class ConfigurationView(View):
                                 
                 return mapping_configuration_class_gui
                 
-        except Exception as e:
-            print(f"Could not restore configuration view {file_path}: {e}")
+        except FileNotFoundError as e:
+            print(f"Could not find configuration view {file_path}: {e}")
             
         return {}
         

@@ -1,5 +1,5 @@
 import tkinter as tk
-from buttons_gui import GUIAddChangeViewButton, GUISaveButton, GUIChangeViewButton
+from buttons_gui import GUIAddChangeViewButton, GUISaveButton, GUISettingsButton, GUIChangeViewButton
 from connection_with_blocks_gui import GUIConnectionWithBlocks
 from options import OptionsView
 from helper_functions_general import convert_actual_coordinate_to_grid
@@ -15,7 +15,6 @@ class View(tk.Frame):
         self.__name = name
         self.__configuration_change_view_buttons = {} # View and corresponding button
         self.__setup_change_view_buttons = {} # View and corersponding button
-        self.__held_connection = None
         self.__selected_items = set() # Items that are highlighted by pressing on them
         
         self.__is_panning = False
@@ -24,8 +23,8 @@ class View(tk.Frame):
         self.__length_unit_difference = 0 # How much the length unit has been changed from LENGTH_UNIT
         self.__grid_offset = (0, 0) # How much items are offset from the grid in the range [0, 1) due to panning/zooming
         
-        self.__canvas = tk.Canvas(self, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg=BACKGROUND_COLOR)
-        self.__canvas_size = (CANVAS_WIDTH, CANVAS_HEIGHT)
+        self.__canvas = tk.Canvas(self, width=settings.get_canvas_width(), height=settings.get_canvas_height(), bg=BACKGROUND_COLOR)
+        self.__canvas_size = (settings.get_canvas_width(), settings.get_canvas_height())
         self.__add_change_configuration_view_button = GUIAddChangeViewButton(model, \
                                                                              self, \
                                                                              CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
@@ -37,11 +36,11 @@ class View(tk.Frame):
                                                                      CHANGE_VIEW_SETUP_START_POSITION[1], \
                                                                      False)
         self.__save_button = GUISaveButton(model, self, SAVE_POSITION[0], SAVE_POSITION[1])
+        self.__settings_button = GUISettingsButton(model, self, SETTINGS_POSITION[0], SETTINGS_POSITION[1])
         
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
         self.__canvas.bind(MOUSE_LEFT_DRAG, self.pan_move)
         self.__canvas.bind(MOUSE_LEFT_RELEASE, self.pan_stop)
-        self.__canvas.bind(MOUSE_MOTION, self.move_held_connection)
         
         # Binds two variations to account for Linux, macOS, and Windows
         self.__canvas.bind(MOUSE_WHEEL_UP, self.zoom_in)
@@ -148,6 +147,9 @@ class View(tk.Frame):
             item_to_move_x.move_block(move_x, 0)
             
         self.__save_button.move_block(0, move_y)
+        self.__settings_button.move_block(0, move_y)
+        
+        settings.set_canvas_size(event.width, event.height)
         
         return move_x, move_y
         
@@ -269,22 +271,6 @@ class View(tk.Frame):
         elif view_to_move in self.__setup_change_view_buttons:
             self.__setup_change_view_buttons[view_to_move].move_block(0, to_move)
             
-    def move_held_connection(self, event):
-        if self.__held_connection != None:
-            self.__held_connection.create_new_lines((event.x, event.y))
-            
-    def get_held_connection(self):
-        return self.__held_connection
-        
-    def set_held_connection(self, connection):
-        self.__held_connection = connection
-        
-    def reset_held_connection(self, remove_connection=False):
-        if remove_connection:
-            self.__held_connection.delete()
-            
-        self.__held_connection = None
-        
     def get_selected_items(self):
         return self.__selected_items
         

@@ -1,6 +1,7 @@
 from general_gui import GUIClass
 from buttons_gui import GUIAddAttributeButton
 from options import OptionsConfigurationClass
+from configuration_class_calculation import ConfigurationClass
 from configuration_attribute_gui import GUIConfigurationAttribute
 from helper_functions_general import delete_all
 from config import *
@@ -9,60 +10,81 @@ class GUIConfigurationClass(GUIClass):
     """
     Manages a GUI configuration class
     """
-    def __init__(self, model, view, configuration_class, x, y, linked_group_number=None):
+    def __init__(self, model, view, configuration_class, x, y, *, linked_group_number=None, setup_classes_gui=None, to_setup_buttons=None, configuration_attributes_gui_to_copy=None):
         self.__configuration_class = configuration_class
         super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, True, linked_group_number)
         self.__configuration_attributes_gui = []
         
-        self.__setup_classes_gui = []
-        self.__to_setup_buttons = {} # Key: View, Value: Create setup version button
-        
+        if setup_classes_gui == None:
+            self.__setup_classes_gui = []
+        else:
+            self.__setup_classes_gui = setup_classes_gui
+            
+        if to_setup_buttons == None:
+            self.__to_setup_buttons = {} # Key: View, Value: Create setup version button
+        else:
+            self.__to_setup_buttons = to_setup_buttons
+            
         self.__add_button = GUIAddAttributeButton(model, view, x+ADD_ATTRIBUTE_OFFSET_POSITION[0], y+ATTRIBUTE_HEIGHT+ADD_ATTRIBUTE_OFFSET_POSITION[1], self)
         self.add_attached_block(self.__add_button)
         
-        # Create GUI configuration attributes
-        for configuration_attribute in configuration_class.get_configuration_attributes():
-            self.create_attribute(configuration_attribute=configuration_attribute, update_linked=False)
-            
+        if configuration_attributes_gui_to_copy != None:
+            for configuration_attribute_gui_to_copy in configuration_attributes_gui_to_copy:
+                self.create_attribute(configuration_attribute_gui_to_copy)
+                
+    @staticmethod
+    def new(model, view, x, y):
+        return GUIConfigurationClass(model, view, ConfigurationClass("New class"), x, y)
+        
+    @staticmethod
+    def linked_copy(view, configuration_class_gui, x, y):
+        return GUIConfigurationClass(configuration_class_gui.get_model(), \
+                                     view, \
+                                     configuration_class_gui.get_configuration_class(), \
+                                     x, \
+                                     y, \
+                                     linked_group_number=configuration_class_gui.get_linked_group_number(), \
+                                     setup_classes_gui=configuration_class_gui.get_setup_classes_gui(), \
+                                     to_setup_buttons=configuration_class_gui.get_to_setup_buttons(), \
+                                     configuration_attributes_gui_to_copy=configuration_class_gui.get_configuration_attributes_gui())
+        
     def open_options(self):
         return OptionsConfigurationClass(self.get_model(), self, self.get_model().get_configuration_views())
         
     def get_configuration_class(self):
         return self.__configuration_class
         
-    def create_attribute(self, *, configuration_attribute=None, update_linked=True):
+    def create_attribute(self, configuration_attribute_gui_to_copy=None):
         """
         Create configuration attribute and any corresponding setup attributes
         If given an exisiting configuration attribute, will only create the corresponding GUI blocks
         """
-        # Create new configuration attribute and corresponding setup attributes
-        if configuration_attribute == None:
-            configuration_attribute = self.__configuration_class.create_attribute("New Attribute")
+        # Create linked copy
+        if configuration_attribute_gui_to_copy != None:
+            configuration_attribute_gui = GUIConfigurationAttribute.linked_copy(self.get_view(), configuration_attribute_gui_to_copy, self)
             
-        height_offset = CLASS_HEIGHT + len(self.__configuration_attributes_gui) * ATTRIBUTE_HEIGHT
-        
-        # Create GUI configuration attribute
-        configuration_attribute_gui = GUIConfigurationAttribute(self.get_model(), self.get_view(), configuration_attribute, self, self.get_x(), self.get_y()+height_offset)
-        
+            # Update text to become bold if there is a linked copy with bold text
+            configuration_attribute_gui.update_text(False)
+            
+        # Create new
+        else:
+            configuration_attribute_gui = GUIConfigurationAttribute.new(self.get_model(), self.get_view(), self)
+            
+            # Update any existing linked GUI configuration classes
+            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
+                linked_configuration_class_gui.create_attribute(configuration_attribute_gui)
+                
+            # Create GUI setup attributes
+            if not configuration_attribute_gui.is_hidden():
+                for setup_class_gui in self.__setup_classes_gui:
+                    newest_setup_attribute = setup_class_gui.get_setup_class().get_setup_attributes()[-1]
+                    setup_class_gui.create_setup_attribute_gui(newest_setup_attribute, configuration_attribute_gui)
+                    
         self.__configuration_attributes_gui.append(configuration_attribute_gui)
         self.add_attached_block(configuration_attribute_gui)
         
-        # Update text to get bold if there is a linked copy with bold text
-        configuration_attribute_gui.update_text()
-        
         self.__add_button.move_block(0, ATTRIBUTE_HEIGHT)
         
-        # Create GUI setup attributes
-        if not configuration_attribute.is_hidden():
-            for setup_class_gui in self.__setup_classes_gui:
-                newest_setup_attribute = setup_class_gui.get_setup_class().get_setup_attributes()[-1]
-                setup_class_gui.create_setup_attribute_gui(newest_setup_attribute, configuration_attribute_gui)
-                
-        # Update any existing linked GUI configuration classes
-        if update_linked:
-            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
-                linked_configuration_class_gui.create_attribute(configuration_attribute=configuration_attribute, update_linked=False)
-                
     def remove_attribute(self, configuration_attribute_gui_to_remove):
         index_first_move_up = self.__configuration_attributes_gui.index(configuration_attribute_gui_to_remove)
         self.__configuration_class.remove_attribute(configuration_attribute_gui_to_remove.get_configuration_attribute())
@@ -122,6 +144,9 @@ class GUIConfigurationClass(GUIClass):
         
     def remove_setup_class_gui(self, setup_class_gui):
         self.__setup_classes_gui.remove(setup_class_gui)
+        
+    def get_to_setup_buttons(self):
+        return self.__to_setup_buttons
             
     def add_to_setup_button(self, view, to_setup_button):
         self.__to_setup_buttons[view] = to_setup_button
@@ -160,22 +185,6 @@ class GUIConfigurationClass(GUIClass):
         for setup_class_gui in self.__setup_classes_gui:
             setup_class_gui.update_value_input_types(specific_attribute_index=specific_attribute_index, update_linked=False)
             
-    def copy(self, view_to_copy_to, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
-        """
-        Creates a copy of this GUI configuration class in the specified view
-        """
-        configuration_class_gui = GUIConfigurationClass(self.get_model(), view_to_copy_to, self.__configuration_class, x, y, self.get_linked_group_number())
-        
-        # Copy over stored GUI setup class versions
-        for setup_class_gui in self.__setup_classes_gui:
-            configuration_class_gui.add_setup_class_gui(setup_class_gui)
-            
-        # Copy over stored buttons to add the class to setup views
-        for add_to_setup_button in self.__to_setup_buttons.values():
-            configuration_class_gui.add_to_setup_button(view_to_copy_to, add_to_setup_button)
-            
-        return configuration_class_gui
-        
     def delete(self):
         super().delete()
         

@@ -11,8 +11,8 @@ class GUISetupClass(GUIClass):
     Manages a GUI setup class
     """
     def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
-        self.__configuration_class_gui = configuration_class_gui
         self.__setup_class = setup_class
+        self.__configuration_class_gui = configuration_class_gui
         self.__setup_attributes_gui = []
         self.__connections = [] # Directional connections between setup classes
         self.__script_marker_indicators = [] # Indicators created by scripts
@@ -28,11 +28,26 @@ class GUISetupClass(GUIClass):
                 
         self.update_text()
         
+    @staticmethod
+    def new(model, view, configuration_class_gui, x, y):
+        setup_class = configuration_class_gui.get_configuration_class().create_setup_version()
+        return GUISetupClass(model, view, setup_class, configuration_class_gui, x, y)
+        
+    @staticmethod
+    def linked_copy(view, setup_class_gui, x, y):
+        return GUISetupClass(setup_class_gui.get_model(), \
+                             view, \
+                             setup_class_gui.get_setup_class(), \
+                             setup_class_gui.get_configuration_class_gui(), \
+                             x, \
+                             y, \
+                             setup_class_gui.get_linked_group_number())
+        
     def right_pressed(self, event):
         self.open_options()
         
     def open_options(self):
-        return OptionsSetupClass(self.get_model(), self, self.__configuration_class_gui, self.get_model().get_setup_views())
+        return OptionsSetupClass(self.get_model(), self, self.get_model().get_setup_views())
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -94,9 +109,7 @@ class GUISetupClass(GUIClass):
                                                 self.get_view(), \
                                                 setup_attribute, \
                                                 self, \
-                                                configuration_attribute_gui, \
-                                                self.get_x(), \
-                                                self.get_y()+CLASS_HEIGHT+len(self.__setup_attributes_gui)*ATTRIBUTE_HEIGHT)
+                                                configuration_attribute_gui)
         
         self.__setup_attributes_gui.append(setup_attribute_gui)
         self.add_attached_block(setup_attribute_gui)
@@ -140,6 +153,9 @@ class GUISetupClass(GUIClass):
         
     def get_setup_class(self):
         return self.__setup_class
+        
+    def get_configuration_class_gui(self):
+        return self.__configuration_class_gui
         
     def get_setup_attributes_gui(self):
         return self.__setup_attributes_gui

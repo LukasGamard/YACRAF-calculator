@@ -164,11 +164,15 @@ class GUIConfigurationInput(GUIModelingBlock):
         Sets the mathematical operation of this input block
         """
         self.__symbol_calculation_type = symbol_calculation_type
-        self.set_text(symbol_calculation_type)
         
         if self.is_attached():
             self.__attached_configuration_attribute_gui.set_calculation_type(symbol_calculation_type)
             
+            for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self.__attached_configuration_attribute_gui):
+                if linked_configuration_attribute_gui.has_configuration_input():
+                    linked_configuration_attribute_gui.get_configuration_input().update_symbol_calculation_type()
+                    
+        self.update_symbol_calculation_type()
         self.update_connection_numbers()
         
     def update_symbol_calculation_type(self):

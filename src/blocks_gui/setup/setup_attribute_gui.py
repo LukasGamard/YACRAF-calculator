@@ -6,7 +6,7 @@ class GUISetupAttribute(GUIModelingBlock):
     """
     Manages a GUI setup attribute
     """
-    def __init__(self, model, view, setup_attribute, setup_class_gui, configuration_attribute_gui, x, y):
+    def __init__(self, model, view, setup_attribute, setup_class_gui, configuration_attribute_gui):
         self.__setup_attribute = setup_attribute
         self.__setup_class_gui = setup_class_gui
         self.__configuration_attribute_gui = configuration_attribute_gui
@@ -15,13 +15,24 @@ class GUISetupAttribute(GUIModelingBlock):
         height = ATTRIBUTE_HEIGHT
         text_width = ATTRIBUTE_WIDTH
         
-        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, x+width*3/4, y+height/2)
+        attribute_x = setup_class_gui.get_x()
+        attribute_y = setup_class_gui.get_y() + CLASS_HEIGHT + len(setup_class_gui.get_setup_attributes_gui()) * ATTRIBUTE_HEIGHT
+        
+        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, attribute_x+width*3/4, attribute_y+height/2)
         self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
         
-        super().__init__(model, view, configuration_attribute_gui.get_name(), x, y, width, height, ATTRIBUTE_COLOR, text_width=text_width, \
-                                                                                                                    label_text_x=x+width/4, \
-                                                                                                                    additional_pressable_items=[self.__label_value], \
-                                                                                                                    bind_left=MOUSE_PRESS)
+        super().__init__(model, \
+                         view, \
+                         configuration_attribute_gui.get_name(), \
+                         attribute_x, \
+                         attribute_y, \
+                         width, \
+                         height, \
+                         ATTRIBUTE_COLOR, \
+                         text_width = text_width, \
+                         label_text_x = attribute_x + width / 4, \
+                         additional_pressable_items = [self.__label_value], \
+                         bind_left = MOUSE_PRESS)
         
         # Manual entry field
         self.__entry_value = None

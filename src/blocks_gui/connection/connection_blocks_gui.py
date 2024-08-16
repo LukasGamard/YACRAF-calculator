@@ -20,8 +20,11 @@ class GUIConnectionCorner(GUIBlock):
         
         super().__init__(model, view, [self.__rect], x, y, CORNER_WIDTH, CORNER_HEIGHT, bind_left=MOUSE_DRAG)
         self.__connection = connection
+        self.__was_dragged = False
         
     def left_dragged(self, event):
+        self.__was_dragged = True
+        
         allowed_movement_directions = self.__connection.allowed_corner_movement_directions(self)
         max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y = get_max_directions_movement(allowed_movement_directions)
         
@@ -49,14 +52,15 @@ class GUIConnectionCorner(GUIBlock):
     def left_released(self, event):
         super().left_released(event, False)
         
-        for adjacent_corner in self.__connection.get_adjacent_corners(self):
-            adjacent_corner.snap_to_grid()
+        if self.__was_dragged:
+            for adjacent_corner in self.__connection.get_adjacent_corners(self):
+                adjacent_corner.snap_to_grid()
+                
+            # Adjust lines to match the new position of corners after they have snapped to the grid
+            self.__connection.adjust_lines_to_dragged_corners()
             
-        # Adjust lines to match the new position of corners after they have snapped to the grid
-        self.__connection.adjust_lines_to_dragged_corners()
-        
-        self.get_view().update_shown_order()
-        
+            self.get_view().update_shown_order()
+            
     def open_options(self):
         self.__connection.open_options()
         
@@ -122,6 +126,16 @@ class GUIConnectionTriangle(GUIBlock):
             
             # Attach to class
             if is_adjacent:
+                # If this connection is redundant (another already exist between these two setup classes), delete it
+                if (self.__is_end_block and \
+                    self.__connection.get_start_setup_class() in setup_class_gui.get_setup_class().get_input_setup_classes()) \
+                   or \
+                   (not self.__is_end_block and \
+                    self.__connection.get_end_setup_class() != None and \
+                    setup_class_gui.get_setup_class() in self.__connection.get_end_setup_class().get_input_setup_classes()):
+                    self.delete()
+                    return
+                    
                 setup_class_gui.add_connection(self.__connection)
                 setup_class_gui.add_attached_block(self)
                 self.__attached_setup_class_gui = setup_class_gui

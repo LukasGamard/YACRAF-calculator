@@ -8,22 +8,48 @@ class GUIConfigurationAttribute(GUIModelingBlock):
     """
     Manages a GUI configuration attribute
     """
-    def __init__(self, model, view, configuration_attribute, configuration_class_gui, x, y):
+    def __init__(self, model, view, configuration_attribute, configuration_class_gui, setup_attributes_gui=None):
         self.__configuration_attribute = configuration_attribute
         self.__configuration_class_gui = configuration_class_gui
         
-        super().__init__(model, view, self.__configuration_attribute.get_name(), x, y, ATTRIBUTE_WIDTH, ATTRIBUTE_HEIGHT, ATTRIBUTE_COLOR, bind_left=MOUSE_PRESS, bind_right=MOUSE_PRESS)
+        super().__init__(model, \
+                         view, \
+                         self.__configuration_attribute.get_name(), \
+                         configuration_class_gui.get_x(), \
+                         configuration_class_gui.get_y() + CLASS_HEIGHT + len(configuration_class_gui.get_configuration_attributes_gui()) * ATTRIBUTE_HEIGHT, \
+                         ATTRIBUTE_WIDTH, \
+                         ATTRIBUTE_HEIGHT, \
+                         ATTRIBUTE_COLOR, \
+                         bind_left=MOUSE_PRESS, \
+                         bind_right=MOUSE_PRESS)
+                         
         self.__configuration_input = None
         self.__connections = []
         
-        self.__setup_attributes_gui = []
+        if setup_attributes_gui == None:
+            self.__setup_attributes_gui = []
+        else:
+            self.__setup_attributes_gui = setup_attributes_gui
+            
+    @staticmethod
+    def new(model, view, configuration_class_gui):
+        configuration_attribute = configuration_class_gui.get_configuration_class().create_attribute("New attribute")
+        return GUIConfigurationAttribute(model, view, configuration_attribute, configuration_class_gui)
+        
+    @staticmethod
+    def linked_copy(view, configuration_attribute_gui, configuration_class_gui):
+        return GUIConfigurationAttribute(configuration_attribute_gui.get_model(), \
+                                         view, \
+                                         configuration_attribute_gui.get_configuration_attribute(), \
+                                         configuration_class_gui, \
+                                         configuration_attribute_gui.get_setup_attributes_gui())
         
     def right_pressed(self, event):
         held_connection = self.get_view().get_held_connection()
         
         # Create a new connection when pressing the attribute
         if held_connection == None:
-            held_connection = self.get_model().create_connection(self, self.get_direction(event.x, event.y), (event.x, event.y))
+            held_connection = self.get_view().create_connection(self, self.get_direction(event.x, event.y), (event.x, event.y))
             
     def open_options(self):
         return OptionsConfigurationAttribute(self.get_model().get_root(), self.__configuration_class_gui, self)
@@ -114,6 +140,9 @@ class GUIConfigurationAttribute(GUIModelingBlock):
                         
                 setup_class_gui.update_setup_attribute_gui_order()
                 
+    def get_setup_attributes_gui(self):
+        return self.__setup_attributes_gui
+        
     def add_setup_attribute_gui(self, setup_attribute_gui):
         self.__setup_attributes_gui.append(setup_attribute_gui)
         
@@ -143,10 +172,6 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         """
         self.__configuration_attribute.set_symbol_calculation_type(symbol_calculation_type)
         
-        # Update shown symbol
-        if self.__configuration_input != None:
-            self.__configuration_input.update_symbol_calculation_type()
-            
         # Update value entry type (manual entry or calculated value) of setup versions
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.update_value_input_type()
@@ -193,10 +218,10 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self):
                 linked_configuration_attribute_gui.update_text(False)
                 
-        # Update setup versions
-        for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.update_text()
-            
+            # Update setup versions
+            for setup_attribute_gui in self.__setup_attributes_gui:
+                setup_attribute_gui.update_text()
+                
     def update_value_input_type_setup_attributes_gui(self):
         """
         Update the input type (manual entry or calculated value) of all GUI setup versions
@@ -210,11 +235,17 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             
         super().delete()
         
+        # Delete held connection if it is attached to this attribute
+        held_connection = self.get_view().get_held_connection()
+        
+        if held_connection != None and held_connection.get_start_block() == self:
+            self.get_view().reset_held_connection(True)
+            
         delete_all(self.__connections)
         
         # Only the attribute is deleted, not the class itself
         if manual_delete:
-            delete_all(self.get_model().get_linked_configuration_attributes_gui(self))
+            delete_all(self.get_model().get_linked_configuration_attributes_gui(self), manual_delete)
             self.__configuration_class_gui.remove_attribute(self)
             delete_all(self.__setup_attributes_gui)
             

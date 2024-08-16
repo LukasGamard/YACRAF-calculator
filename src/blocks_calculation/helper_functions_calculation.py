@@ -163,10 +163,10 @@ def calculate_output_value(symbol_calculation_type, input_values):
                 a -= 1e-10
                 
             # Sample current triangle distribution
-            sampled_values.append(np.random.triangular(a, b, c, SAMPLES_TRIANGLE_DISTRIBUTION))
+            sampled_values.append(np.random.triangular(a, b, c, settings.get_num_samples()))
             
         # Compare samples
-        output_value = [np.array(np.sum(sampled_values[0] > sampled_values[1]) / SAMPLES_TRIANGLE_DISTRIBUTION)]
+        output_value = [np.array(np.sum(sampled_values[0] > sampled_values[1]) / settings.get_num_samples())]
         
     else:
         print(f"Error: Did not recognized calculation type {symbol_calculation_type}")
@@ -202,4 +202,11 @@ def combine_values(symbol_calculation_type, symbol_value_type, input_configurati
     else:
         output_value = calculate_output_value(symbol_calculation_type, input_values)
         
+    for check_symbol_value_type, check_text, check_num_values in ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS:
+        if check_symbol_value_type == symbol_value_type:
+            if check_num_values != None and check_num_values != len(output_value):
+                print(f"Error: Found {len(output_value)} values, where value type {symbol_value_type} expected {check_num_values}")
+                
+            break
+            
     return convert_value_to_string(output_value)

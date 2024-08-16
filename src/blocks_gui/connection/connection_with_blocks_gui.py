@@ -103,6 +103,11 @@ class GUIConnectionWithBlocks(GUIConnection):
                 
         return movable_items
         
+    def adjust_lines_to_dragged_corners(self):
+        super().adjust_lines_to_dragged_corners()
+        
+        self.update_input_scalars_indicator()
+        
     def get_input_scalars(self):
         return self.__input_scalars
         

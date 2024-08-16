@@ -24,19 +24,20 @@ class SetupView(View):
         self.__run_script_buttons = []
         
         # Add buttons to run scripts
-        for file_name_full in os.listdir(SCRIPTS_PATH):
-            # Find all .py files
-            if file_name_full.strip()[-3:] == ".py":
-                file_name = file_name_full.strip().replace(".py", "")
-                
-                # Skip the template file
-                if file_name != "SCRIPT_TEMPLATE":
-                    # If at least one script, add a button for resetting any changes made by scripts
-                    if len(self.__run_script_buttons) == 0:
-                        self.__run_script_buttons.append(GUIRunScriptButton(model, self, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
-                        
-                    run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
-                    self.__run_script_buttons.append(GUIRunScriptButton(model, self, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
+        for scripts_path in SCRIPTS_PATHS:
+            for file_name_full in os.listdir(scripts_path):
+                # Find all .py files
+                if file_name_full.strip()[-3:] == ".py":
+                    file_name = file_name_full.strip().replace(".py", "")
+                    
+                    # Skip the template file
+                    if file_name != "SCRIPT_TEMPLATE":
+                        # If at least one script, add a button for resetting any changes made by scripts
+                        if len(self.__run_script_buttons) == 0:
+                            self.__run_script_buttons.append(GUIRunScriptButton(model, self, scripts_path, "Clear script", RUN_SCRIPT_START_POSITION[0], RUN_SCRIPT_START_POSITION[1], True))
+                            
+                        run_script_x = RUN_SCRIPT_START_POSITION[0] - len(self.__run_script_buttons) * RUN_SCRIPT_WIDTH
+                        self.__run_script_buttons.append(GUIRunScriptButton(model, self, scripts_path, file_name, run_script_x, RUN_SCRIPT_START_POSITION[1]))
                     
     def on_resize(self, event):
         """
@@ -50,14 +51,21 @@ class SetupView(View):
         for run_script_button in self.__run_script_buttons:
             run_script_button.move_block(move_x, move_y)
             
-    def create_setup_class_gui(self, configuration_class_gui, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1], setup_class=None, linked_group_number=None):
+    def create_setup_class_gui(self, *, configuration_class_gui=None, setup_class_gui_to_copy=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         """
         Creates a GUI setup class that is drawn on the canvas in the view
         """
-        if setup_class == None:
-            setup_class = configuration_class_gui.get_configuration_class().create_setup_version()
+        if not((configuration_class_gui == None and setup_class_gui_to_copy != None) or \
+               (configuration_class_gui != None and setup_class_gui_to_copy == None)):
+            print("Error: Exactly one of configuration_class_gui and setup_class_gui_to_copy need to be given")
+            return
             
-        setup_class_gui = GUISetupClass(self.get_model(), self, setup_class, configuration_class_gui, x, y, linked_group_number)
+        if setup_class_gui_to_copy != None:
+            setup_class_gui = GUISetupClass.linked_copy(self, setup_class_gui_to_copy, x, y)
+            
+        elif configuration_class_gui != None:
+            setup_class_gui = GUISetupClass.new(self.get_model(), self, configuration_class_gui, x, y)
+            
         self.__setup_classes_gui.append(setup_class_gui)
         
         return setup_class_gui
@@ -161,10 +169,10 @@ class SetupView(View):
         saved_states_setup_classes_gui = [class_gui.save_state() for class_gui in self.__setup_classes_gui]
         saved_states_connections_with_blocks = [connection.save_state() for connection in self.__connections_with_blocks]
         
-        file_path = os.path.join(SETUP_SAVES_PATH, f"{self.get_name()}.pickle")
+        file_path = os.path.join(SETUP_SAVES_DIRECTORY, f"{self.get_name()}.pickle")
         
         # Save grid offset and block states to file
-        with open(file_path, "wb") as file_pickle:
+        with open(os.path.join(BASE_PATH, file_path), "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
         return file_path
@@ -177,9 +185,6 @@ class SetupView(View):
         mapping_configuration_class_gui: Mapping between IDs of blocks from the save to those recreated in this new view instance
         linked_groups_per_number: Dictionary (Key: Group number, Value: List of GUI setup classes) for setup class copies linked to each other
         """
-        if not SHOULD_RESTORE_SAVE:
-            return
-            
         try:
             with open(os.path.join(BASE_PATH, file_path), "rb") as file_pickle:
                 grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
@@ -189,14 +194,19 @@ class SetupView(View):
                 for saved_states_setup_class_gui in saved_states_setup_classes_gui:
                     linked_group_number = saved_states_setup_class_gui["linked_group_number"]
                     
-                    configuration_class_gui = mapping_configuration_class_gui[saved_states_setup_class_gui["configuration_class_gui"]]
-                    
                     # Should bind to already existing setup class
                     if linked_group_number != None and linked_group_number in linked_groups_per_number:
-                        setup_class_gui = self.get_model().create_linked_setup_class_gui(linked_groups_per_number[linked_group_number][0], configuration_class_gui, self, x=saved_states_setup_class_gui["x"], y=saved_states_setup_class_gui["y"])
+                        setup_class_gui = self.get_model().create_linked_setup_class_gui(linked_groups_per_number[linked_group_number][0], \
+                                                                                         self, \
+                                                                                         linked_group_number=linked_group_number, \
+                                                                                         x=saved_states_setup_class_gui["x"], \
+                                                                                         y=saved_states_setup_class_gui["y"])
                         
                     else:
-                        setup_class_gui = self.create_setup_class_gui(configuration_class_gui, x=saved_states_setup_class_gui["x"], y=saved_states_setup_class_gui["y"], linked_group_number=linked_group_number)
+                        configuration_class_gui = mapping_configuration_class_gui[saved_states_setup_class_gui["configuration_class_gui"]]
+                        setup_class_gui = self.create_setup_class_gui(configuration_class_gui=configuration_class_gui, \
+                                                                      x=saved_states_setup_class_gui["x"], \
+                                                                      y=saved_states_setup_class_gui["y"])
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [setup_class_gui]
@@ -220,8 +230,8 @@ class SetupView(View):
                                                                                 input_scalars=saved_states_connection_with_blocks["input_scalars"], \
                                                                                 input_scalars_indicator_coordinate=saved_states_connection_with_blocks["input_scalars_indicator_coordinate"])
                     
-        except Exception as e:
-            print(f"Could not restore setup view {file_path}: {e}")
+        except FileNotFoundError as e:
+            print(f"Could not find setup view {file_path}: {e}")
             
     def delete(self):
         delete_all(self.__setup_classes_gui)

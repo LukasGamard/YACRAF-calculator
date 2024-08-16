@@ -22,12 +22,12 @@ class Model:
         self.__linked_setup_groups_per_number = {}
         
         self.__root.title("Canvas")
-        self.__root.geometry(f"{CANVAS_WIDTH}x{CANVAS_HEIGHT}")
+        self.__root.geometry(f"{settings.get_canvas_width()}x{settings.get_canvas_height()}")
         self.__root.rowconfigure(0, weight=1)
         self.__root.columnconfigure(0, weight=1)
         
         # Create new views
-        if new_save:
+        if new_save or not os.path.exists(FILE_PATHS_SAVES_PATH):
             for i in range(num_configuration_views):
                 self.create_view(True, "Configuration")
                 
@@ -36,21 +36,21 @@ class Model:
                 
         # Restore saved views
         else:
-            with open(os.path.join(BASE_PATH, FILE_PATHS_SAVES_PATH), "r") as file_with_paths:
+            with open(FILE_PATHS_SAVES_PATH, "r") as file_with_paths:
                 mapping_configuration_class_gui = {} # Used to map configuration class IDs from the saves to newly created ones
                 
                 for line in file_with_paths:
                     file_path = line.strip()
-                    view_directory_path, view_name = os.path.split(file_path)
+                    view_directory, view_name = os.path.split(file_path)
                     view_name = view_name.replace(".pickle", "")
                     
                     # Restore saved configuration view
-                    if view_directory_path == CONFIGURATION_SAVES_PATH:
+                    if view_directory == CONFIGURATION_SAVES_DIRECTORY:
                         configuration_view = self.create_view(True, view_name)
                         mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
                         
                     # Restore saved setup view
-                    elif view_directory_path == SETUP_SAVES_PATH:
+                    elif view_directory == SETUP_SAVES_DIRECTORY:
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
                         
@@ -142,17 +142,17 @@ class Model:
             
         return linked_configuration_classes_gui
         
-    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         """
         Creates a linked copy of a configuration class in a specified view
         """
         # Create a new linked group if it does not exist
-        self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number)
+        self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number, linked_group_number)
         
         # Create new linked copy and add it to the group
-        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui_copy(configuration_class_gui_to_copy, x=x, y=y)
+        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui(configuration_class_gui_to_copy=configuration_class_gui_to_copy, x=x, y=y)
         self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
-            
+        
         return linked_configuration_class_gui
         
     def get_linked_configuration_attributes_gui(self, configuration_attribute_gui):
@@ -187,15 +187,15 @@ class Model:
         
         return linked_setup_classes_gui
         
-    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, configuration_class_gui, view_to_copy_to, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
         """
         Creates a linked copy of a setup class in a specified view
         """
         # Create a new linked group if it does not exist
-        self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number)
+        self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number, linked_group_number)
         
         # Create new linked copy and add it to the group
-        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(configuration_class_gui, x=x, y=y, setup_class=setup_class_gui_to_copy.get_setup_class(), linked_group_number=setup_class_gui_to_copy.get_linked_group_number())
+        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(setup_class_gui_to_copy=setup_class_gui_to_copy, x=x, y=y)
         self.__linked_setup_groups_per_number[linked_setup_class_gui.get_linked_group_number()].append(linked_setup_class_gui)
         
         return linked_setup_class_gui
@@ -218,13 +218,14 @@ class Model:
             
         return linked_setup_attributes_gui
         
-    def attempt_to_create_linked_group(self, class_gui_to_copy, view_to_copy_to, linked_groups_per_number):
+    def attempt_to_create_linked_group(self, class_gui_to_copy, view_to_copy_to, linked_groups_per_number, linked_group_number=None):
         """
         Create a new linked group if it does not exist
         """
         if class_gui_to_copy.get_linked_group_number() == None:
-            linked_group_number = len(linked_groups_per_number)
-            
+            if linked_group_number == None:
+                linked_group_number = len(linked_groups_per_number)
+                
             linked_groups_per_number[linked_group_number] = [class_gui_to_copy]
             class_gui_to_copy.set_linked_group_number(linked_group_number)
             
@@ -329,12 +330,18 @@ class Model:
             else:
                 view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], (len(self.__setup_views)-1)*CHANGE_VIEW_HEIGHT, new_view, True)
                 
-        # If setup view, add buttons to add class from configuration views to the setup view 
+        # If setup view, add buttons to add classes from configuration views to the setup view 
         if not is_configuration_view:
+            seen_configuration_classes = set() # To ensure a button for every linked copy of a configuration class is not added
+            
             for configuration_view in self.__configuration_views:
-                for i, configuration_class_gui in enumerate(configuration_view.get_configuration_classes_gui()):
-                    new_view.create_add_to_setup_button(i, configuration_class_gui)
-                     
+                for configuration_class_gui in configuration_view.get_configuration_classes_gui():
+                    configuration_class = configuration_class_gui.get_configuration_class()
+                    
+                    if configuration_class not in seen_configuration_classes:
+                        new_view.create_add_to_setup_button(len(seen_configuration_classes), configuration_class_gui)
+                        seen_configuration_classes.add(configuration_class_gui.get_configuration_class())
+                        
         return new_view
         
     def delete_view(self, view_to_delete):
@@ -367,8 +374,6 @@ class Model:
         """
         self.__current_view = view
         view.tkraise()
-        
-        # view.get_canvas().focus_set()
         
     def get_num_configuration_classes(self):
         """
@@ -415,16 +420,7 @@ class Model:
         """
         for view in self.__configuration_views + self.__setup_views:
             view.set_text_change_view_button(view_with_changed_name, text)
-        
-    def create_connection(self, block, direction, mouse_location=None):
-        """
-        Creates a new held connection that is connected to the specified block in on end and ends at the current mouse location
-        """
-        connection = GUIConnection(self, block.get_view(), block, direction, mouse_location=mouse_location)
-        block.get_view().set_held_connection(connection)
-        
-        return connection
-        
+            
     def update_duplicate_view_name(self, view, existing_view_names):
         """
         Adds a number to the name of the specified view if it overlaps with snother view
@@ -442,7 +438,7 @@ class Model:
         setup_view_names = set()
         
         # Create file where the path and view type of each saved view is stored, also storing the order of the views
-        with open(os.path.join(BASE_PATH, FILE_PATHS_SAVES_PATH), "w") as file_with_paths:
+        with open(FILE_PATHS_SAVES_PATH, "w") as file_with_paths:
             # Need to store configuration views first as they need to be restored before setup views so that they can use the configurations
             for configuration_view in self.__configuration_views:
                 self.update_duplicate_view_name(configuration_view, configuration_view_names)
@@ -457,3 +453,5 @@ class Model:
                 
                 file_path = setup_view.save()
                 file_with_paths.write(f"{file_path}\n")
+                
+        settings.save()

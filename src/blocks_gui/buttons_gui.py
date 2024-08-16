@@ -2,6 +2,7 @@ import os
 import importlib.util
 from general_gui import GUIModelingBlock
 from script_interface import ScriptInterface
+from options import OptionsSettings
 from config import *
 
 class GUIBlockButton(GUIModelingBlock):
@@ -48,6 +49,16 @@ class GUISaveButton(GUIBlockButton):
         
     def left_pressed(self, event):
         self.get_model().save()
+        
+class GUISettingsButton(GUIBlockButton):
+    """
+    Button for opening up general settings
+    """
+    def __init__(self, model, view, x, y):
+        super().__init__(model, view, "Settings", x, y, SETTINGS_WIDTH, SETTINGS_HEIGHT, SETTINGS_COLOR)
+        
+    def left_pressed(self, event):
+        OptionsSettings(self.get_model().get_root())
         
 class GUIChangeViewButton(GUIBlockButton):
     """
@@ -96,7 +107,7 @@ class GUIAddToSetupButton(GUIBlockButton):
         configuration_class_gui.add_to_setup_button(view, self)
         
     def left_pressed(self, event):
-        self.get_view().create_setup_class_gui(self.__configuration_class_gui)
+        self.get_view().create_setup_class_gui(configuration_class_gui=self.__configuration_class_gui)
          
 class GUICalculateValuesButton(GUIBlockButton):
     """
@@ -122,7 +133,7 @@ class GUIRunScriptButton(GUIBlockButton):
     """
     Button for running a script
     """
-    def __init__(self, model, view, script_name, x, y, is_clear_button=False):
+    def __init__(self, model, view, script_path, script_name, x, y, is_clear_button=False):
         # The button runs a script
         if not is_clear_button:
             color = RUN_SCRIPT_COLOR
@@ -137,8 +148,7 @@ class GUIRunScriptButton(GUIBlockButton):
         # The button runs a script
         if not is_clear_button:
             # Import the module of the script
-            script_path = os.path.join(BASE_PATH, SCRIPTS_PATH, f"{script_name}.py")
-            spec = importlib.util.spec_from_file_location(script_name, script_path)
+            spec = importlib.util.spec_from_file_location(script_name, os.path.join(script_path, f"{script_name}.py"))
             self.__script_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.__script_module)
             
