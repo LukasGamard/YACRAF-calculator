@@ -38,13 +38,12 @@ for script_path in SCRIPTS_PATHS:
     
     
 BACKGROUND_COLOR = "white" # Window default value
-GUI_BLOCK_START_COORDINATES = ((10, 10), (12, 12)) # Default grid coordinates when creating new blocks, where subsequent values are used when multiple blocks are created at the same time to avoid stacking
 
 # Available types of attribute values
 SYMBOL_VALUE_TYPE_NUMBER = "N"
 SYMBOL_VALUE_TYPE_TRIANGLE = "T"
 # Symbol, explaining text, and number of values delimited by "/"
-ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [("", "Simple text (no calculations)", None), \
+ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [(None, "Simple text (no calculations)", None), \
                                      (SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)", 1), \
                                      (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)", 3)]
 
@@ -79,12 +78,15 @@ SETUP_WIDTH_MULTIPLIER = 2
 
 DEFAULT_INPUT_SCALAR = 1
 
+SELECT_COLOR = "cyan"
+
 
 
 # Highlight around blocks
 HIGHLIGHT_BORDER_WIDTH = 4
-HIGHLIGHT_SELECTED_COLOR = "cyan" # Selecting a block
+HIGHLIGHT_SELECTED_COLOR = SELECT_COLOR # Selecting a block
 HIGHLIGHT_INPUT_COLOR = "orange" # Showing which currently connected setup attributes are considered when calculating an attribute value
+HIGHLIGHT_OPTIONS = "light green" # Border around options
 
 # Class block
 CLASS_WIDTH = 5
@@ -95,7 +97,7 @@ CLASS_COLOR = "gray"
 ATTRIBUTE_WIDTH = CLASS_WIDTH
 ATTRIBUTE_HEIGHT = 1
 ATTRIBUTE_TEXT_OFFSET = 5
-ATTRIBUTE_COLOR = "lightgray"
+ATTRIBUTE_COLOR = "light gray"
 
 # Input block in configuration views
 INPUT_WIDTH = CLASS_HEIGHT
@@ -118,72 +120,59 @@ CORNER_COLOR = "black"
 # Settings button
 SETTINGS_WIDTH = 4
 SETTINGS_HEIGHT = 1
-SETTINGS_COLOR = "cyan"
-SETTINGS_POSITION = (0, settings.get_canvas_height() / LENGTH_UNIT - SETTINGS_HEIGHT)
+SETTINGS_COLOR = "light green"
 
 # Save button
 SAVE_WIDTH = SETTINGS_WIDTH
 SAVE_HEIGHT = SETTINGS_HEIGHT
 SAVE_COLOR = SETTINGS_COLOR
-SAVE_POSITION = (0, settings.get_canvas_height() / LENGTH_UNIT - SETTINGS_HEIGHT - SAVE_HEIGHT)
 
 # Change view buttons
 CHANGE_VIEW_WIDTH = 5
 CHANGE_VIEW_HEIGHT = 1
 CHANGE_VIEW_COLOR = "orange"
-CHANGE_VIEW_SELECTED_COLOR = "cyan"
-CHANGE_VIEW_CONFIGURATION_START_POSITION = (settings.get_canvas_width() / LENGTH_UNIT - 2 * CHANGE_VIEW_WIDTH, 0)
-CHANGE_VIEW_SETUP_START_POSITION = (settings.get_canvas_width() / LENGTH_UNIT - CHANGE_VIEW_WIDTH, 0)
+CHANGE_VIEW_SELECTED_COLOR = SELECT_COLOR
 
 # Button for create a new configuration class in the current configuration view
 ADD_CLASS_WIDTH = 5
 ADD_CLASS_HEIGHT = 1
 ADD_CLASS_COLOR = "green"
-ADD_CLASS_POSITION = (0, 0)
 
 # Button for creating an input block in the current configuration view
 ADD_INPUT_WIDTH = ADD_CLASS_WIDTH
 ADD_INPUT_HEIGHT = ADD_CLASS_HEIGHT
 ADD_INPUT_COLOR = ADD_CLASS_COLOR
-ADD_INPUT_POSITION = (0, ADD_CLASS_HEIGHT)
 
 # Button for adding class from configuration views to the current setup view
 ADD_TO_SETUP_WIDTH = ADD_CLASS_WIDTH
 ADD_TO_SETUP_HEIGHT = ADD_CLASS_HEIGHT
 ADD_TO_SETUP_COLOR = ADD_CLASS_COLOR
-ADD_TO_SETUP_START_POSITION = (0, 0)
 
 # Add directional connection to setup view
 ADD_CONNECTION_WIDTH = ADD_CLASS_WIDTH
 ADD_CONNECTION_HEIGHT = ADD_CLASS_HEIGHT
-ADD_CONNECTION_COLOR = "cyan"
-ADD_CONNECTION_POSITION = (settings.get_canvas_width() / (2 * LENGTH_UNIT) - ADD_CONNECTION_WIDTH, 0)
+ADD_CONNECTION_COLOR = "light green"
 
 # Button for calculating values in all setup views
 CALCULATE_VALUES_WIDTH = ADD_CLASS_WIDTH
 CALCULATE_VALUES_HEIGHT = ADD_CLASS_HEIGHT
-CALCULATE_VALUES_COLOR = "cyan"
-CALCULATE_VALUES_POSITION = (settings.get_canvas_width() / (2 * LENGTH_UNIT), 0)
+CALCULATE_VALUES_COLOR = "light green"
 
 # Button found at the bottom of a class block that adds another attribute to the class
 ADD_ATTRIBUTE_WIDTH = 1
 ADD_ATTRIBUTE_HEIGHT = 1
 ADD_ATTRIBUTE_COLOR = "green"
-ADD_ATTRIBUTE_OFFSET_POSITION = (ATTRIBUTE_WIDTH // 2, 0)
 
 # Button found at the bottom of all buttons that change view that adds another view
 ADD_CHANGE_VIEW_WIDTH = ADD_ATTRIBUTE_WIDTH
 ADD_CHANGE_VIEW_HEIGHT = ADD_ATTRIBUTE_HEIGHT
 ADD_CHANGE_VIEW_COLOR = ADD_ATTRIBUTE_COLOR
-ADD_CHANGE_VIEW_CONFIGURATION_X = CHANGE_VIEW_CONFIGURATION_START_POSITION[0] + CHANGE_VIEW_WIDTH // 2
-ADD_CHANGE_VIEW_SETUP_X = CHANGE_VIEW_SETUP_START_POSITION[0] + CHANGE_VIEW_WIDTH // 2
 
 # Button for running scripts in setup views
 RUN_SCRIPT_WIDTH = 5
 RUN_SCRIPT_HEIGHT = 1
 RUN_SCRIPT_COLOR = "red"
 RUN_SCRIPT_CLEAR_COLOR = "gray"
-RUN_SCRIPT_START_POSITION = (settings.get_canvas_width() / LENGTH_UNIT - RUN_SCRIPT_WIDTH, settings.get_canvas_height() / LENGTH_UNIT - RUN_SCRIPT_HEIGHT)
 
 
 
@@ -195,7 +184,7 @@ NUM_ORDER_CIRCLE_COLOR = "orange"
 # Indicator for which other classes a class is a copy and linked to
 LINKED_GROUP_CIRCLE_RADIUS = NUM_ORDER_CIRCLE_RADIUS
 LINKED_GROUP_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
-LINKED_GROUP_CIRCLE_COLOR = "cyan"
+LINKED_GROUP_CIRCLE_COLOR = "light green"
 
 # Indicator for scalar applied on input values in configuration views
 INPUT_SCALAR_CIRCLE_RADIUS = ATTRIBUTE_HEIGHT / 2
@@ -214,13 +203,26 @@ SCRIPT_MARKER_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
 
 
 # Used in the option windows that pop up
-OPTION_FIELDS_PADDING = 5
-OPTION_RADIO_BUTTON_CONFIGURATION_ATTRIBUTE_WIDTH = 10
-OPTION_RADIO_BUTTON_CONFIGURATION_INPUT_WIDTH = 50
+OPTIONS_GRID_WIDTH = 7
+OPTIONS_GRID_HEIGHT = 1
+OPTIONS_TITLE_COLOR = "dim gray"
+OPTIONS_HEADER_COLOR = "gray"
+OPTIONS_BUTTON_COLOR = "light gray"
+OPTIONS_BACKGROUND_COLOR = "gainsboro"
+
+
+
+# Circle and square used for radio buttons and toggle buttons, respectively
+BUTTON_SELECT_INDICATOR_COLOR = "white"
+BUTTON_SELECT_INDICATOR_COLOR_SELECTED = "black"
+BUTTON_SELECT_INDICATOR_SIZE = OPTIONS_GRID_HEIGHT * 2 / 3
 
 
 
 # Tags used to find specific items
+TAG_OPTIONS = "options"
+TAG_OPTIONS_TEXT = "options_text"
+TAG_OPTIONS_BACKGROUND = "options_background"
 TAG_BUTTON = "button"
 TAG_BUTTON_TEXT = "button_text"
 TAG_INDICATOR = "number_indicator"

@@ -2,8 +2,8 @@ import tkinter as tk
 import numpy as np
 from connection_blocks_gui import GUIConnectionCorner
 from circle_indicator_gui import GUICircleIndicator
-from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, get_grid_mid_x, get_grid_mid_y
-from options import OptionsConnection
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, get_grid_mid_x, get_grid_mid_y
+from options import Options
 from config import *
 
 class GUIConnection:
@@ -52,26 +52,26 @@ class GUIConnection:
                 
             self.adjust_lines_to_dragged_corners()
             
-    def scale(self, last_length_unit):
+    def scale(self, new_length_unit, last_length_unit):
         """
         Scales items on the canvas when zooming
         """
         # Scale lines
         for line in self.__lines:
-            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.__view.get_canvas().coords(line), last_length_unit)
+            adjusted_actual_coordinates = get_actual_coordinates_after_scale(self.__view.get_canvas().coords(line), new_length_unit, last_length_unit)
             x1, y1, x2, y2 = adjusted_actual_coordinates
             self.__view.get_canvas().coords(line, x1, y1, x2, y2)
             
         # Scale corners        
         for corner in self.__corners:
-            corner.scale(last_length_unit)
+            corner.scale(new_length_unit, last_length_unit)
             
         # Scale connection order indicator
         if self.__num_order_indicator != None:
-            self.__num_order_indicator.scale(last_length_unit)
+            self.__num_order_indicator.scale(new_length_unit, last_length_unit)
             
     def open_options(self):
-        return OptionsConnection(self.__model.get_root(), self)
+        return Options.connection(self.__model, self.__view, self)
             
     def get_start_block(self):
         return self.__start_block
@@ -147,7 +147,7 @@ class GUIConnection:
         elif direction == "RIGHT":
             attached_x -= 0.5
             
-        actual_x, actual_y = convert_grid_coordinate_to_actual(self.__view, attached_x, attached_y)
+        actual_x, actual_y = convert_grid_coordinate_to_actual(attached_x, attached_y, self.__view.get_length_unit())
         
         return actual_x, actual_y
         
@@ -162,7 +162,7 @@ class GUIConnection:
         
         # The lines should follow the mouse around as it has not been connected to a block yet
         if mouse_location != None:
-            end_x, end_y = convert_actual_coordinate_to_grid(self.__view, mouse_location[0], mouse_location[1])
+            end_x, end_y = convert_actual_coordinate_to_grid(mouse_location[0], mouse_location[1], self.__view.get_length_unit())
             end_x -= 0.5
             end_y -= 0.5
             
@@ -244,7 +244,7 @@ class GUIConnection:
                 corner.move_block(move_x, move_y)
                 
             for line in self.__lines:
-                actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
+                actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(move_x, move_y, self.__view.get_length_unit())
                 self.__view.get_canvas().move(line, actual_move_x, actual_move_y)
                 
             if self.__num_order_indicator != None:
@@ -288,7 +288,7 @@ class GUIConnection:
         
         # Get the coordinate of each existing corner
         for corner in self.__corners:
-            actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(self.__view, corner.get_x()+0.5, corner.get_y()+0.5)
+            actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(corner.get_x()+0.5, corner.get_y()+0.5, self.__view.get_length_unit())
             actual_coordinates.append((actual_corner_x, actual_corner_y))
             
         actual_coordinates.append(self.get_actual_attached_coordinates(end_x, end_y, self.__end_direction))

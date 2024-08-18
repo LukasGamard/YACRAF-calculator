@@ -28,48 +28,43 @@ def convert_string_to_value(string):
     """
     return [float(element.strip()) for element in string.split("/")]
     
-def convert_grid_coordinate_to_actual(view, grid_x, grid_y, length_unit=None):
+def convert_grid_coordinate_to_actual(grid_x, grid_y, length_unit):
     """
     Converts/scales a coordinate in the grid to one based on pixels
     """
-    if length_unit == None:
-        length_unit = view.get_length_unit()
-        
     actual_x = round(grid_x * length_unit, 3)
     actual_y = round(grid_y * length_unit, 3)
     
     return actual_x, actual_y
     
-def convert_actual_coordinate_to_grid(view, actual_x, actual_y, length_unit=None):
+def convert_actual_coordinate_to_grid(actual_x, actual_y, length_unit):
     """
     Converts/scales a coordinate based on pixels to one based on the grid
     """
-    if length_unit == None:
-        length_unit = view.get_length_unit()
-        
     grid_x = round(actual_x / length_unit, 3)
     grid_y = round(actual_y / length_unit, 3)
     
     return grid_x, grid_y
     
-def get_actual_coordinates_after_zoom(view, actual_coordinates_before_zoom, last_length_unit):
+def get_actual_coordinates_after_scale(actual_coordinates_before_scale, new_length_unit, last_length_unit):
     """
-    actual_coordinates_before_zoom: A sequence of x and y values (for example, a tuple (x1, y1, x2, y2)) before the view was zoomed
-    last_length_unit: The length unit in the view from before the zoom
+    actual_coordinates_before_scale: A sequence of x and y values (for example, a tuple (x1, y1, x2, y2)) before the coordinate was scaled
+    new_length_unit: The length unit before the scaling
+    last_length_unit: The length unit after the scaling
     
-    Converts the pixel values before zooming the view to the corresponding ones after the zoom
+    Converts the pixel values before scaling (such as zooming a view) to the corresponding ones after the scaling
     """
     adjusted_actual_coordinates = []
     
-    for i in range(0, len(actual_coordinates_before_zoom), 2):
-        previous_actual_x = actual_coordinates_before_zoom[i]
-        previous_actual_y = actual_coordinates_before_zoom[i+1]
+    for i in range(0, len(actual_coordinates_before_scale), 2):
+        previous_actual_x = actual_coordinates_before_scale[i]
+        previous_actual_y = actual_coordinates_before_scale[i+1]
         
-        # Convert to grid coordinates using the length unit before the zoom
-        previous_grid_x, previous_grid_y = convert_actual_coordinate_to_grid(view, previous_actual_x, previous_actual_y, last_length_unit)
+        # Convert to grid coordinates using the length unit before the scaling
+        previous_grid_x, previous_grid_y = convert_actual_coordinate_to_grid(previous_actual_x, previous_actual_y, last_length_unit)
         
         # Convert the grid coordinates back to pixel coordinates using the new length unit after the zoom
-        for value in convert_grid_coordinate_to_actual(view, previous_grid_x, previous_grid_y):
+        for value in convert_grid_coordinate_to_actual(previous_grid_x, previous_grid_y, new_length_unit):
             adjusted_actual_coordinates.append(value)
             
     return adjusted_actual_coordinates
@@ -136,7 +131,7 @@ def get_triangle_coordinates(view, x, y, direction):
     actual_coordinates = []
     
     for i in range(0, len(coordinates), 2):
-        actual_x, actual_y = convert_grid_coordinate_to_actual(view, coordinates[i], coordinates[i+1])
+        actual_x, actual_y = convert_grid_coordinate_to_actual(coordinates[i], coordinates[i+1], view.get_length_unit())
         actual_coordinates += [actual_x, actual_y]
         
     return actual_coordinates
@@ -162,6 +157,40 @@ def get_max_directions_movement(allowed_movement_directions):
         max_negative_move_y = 0
         
     return max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y
+    
+def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
+    """
+    canvas_and_label: Tuple (canvas, label)
+    has_line_break: Whether the text should line break
+    
+    Returns the font size that should be used in a text field on the canvas given considering the current scaling (zoom) level and whether there is a line break (need to lower font size further)
+    """
+    new_font_size = int(FONT[1] * length_unit / LENGTH_UNIT + 0.5)
+    
+    if has_line_break:
+        new_font_size -= FONT_DECREASE_LINE_BREAK
+        
+    if new_font_size < 1:
+        new_font_size = 1
+        
+    if canvas_and_label == None:
+        return (FONT[0], new_font_size)
+        
+    canvas, label = canvas_and_label
+    
+    # Get existing attributes of the font
+    current_font = canvas.itemcget(label, "font").split()
+    
+    if len(current_font) == 2:
+        updated_font = (current_font[0], new_font_size)
+        
+    elif len(current_font) == 3:
+        updated_font = (current_font[0], new_font_size, current_font[2])
+        
+    else:
+        print(f"Error: Found font {current_font}")
+        
+    return updated_font
     
 def delete_all(to_delete_list, manual_delete=False):
     """

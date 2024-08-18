@@ -1,5 +1,6 @@
 from general_gui import GUIBlock, GUIModelingBlock
 from helper_functions_general import convert_grid_coordinate_to_actual, get_triangle_coordinates, get_max_directions_movement
+from default_coordinate_functions import get_block_start_coordinates
 from config import *
 
 class GUIConnectionCorner(GUIBlock):
@@ -7,8 +8,8 @@ class GUIConnectionCorner(GUIBlock):
     Manages the block on a corner of a connection
     """
     def __init__(self, model, view, connection, x, y):
-        actual_x, actual_y = convert_grid_coordinate_to_actual(view, x+0.5-CORNER_WIDTH/2, y+0.5-CORNER_HEIGHT/2)
-        actual_width, actual_height = convert_grid_coordinate_to_actual(view, CORNER_WIDTH, CORNER_HEIGHT)
+        actual_x, actual_y = convert_grid_coordinate_to_actual(x+0.5-CORNER_WIDTH/2, y+0.5-CORNER_HEIGHT/2, view.get_length_unit())
+        actual_width, actual_height = convert_grid_coordinate_to_actual(CORNER_WIDTH, CORNER_HEIGHT, view.get_length_unit())
         self.__rect = view.get_canvas().create_rectangle(actual_x, \
                                                          actual_y, \
                                                          actual_x+actual_width, \
@@ -75,7 +76,18 @@ class GUIConnectionTriangle(GUIBlock):
     """
     Manages the triangle block found at each end of a directional connection in setup views
     """
-    def __init__(self, model, view, x, y, direction, is_end_block):
+    def __init__(self, model, view, direction, is_end_block, position=None):
+        if position == None:
+            coordinates = get_block_start_coordinates(view.get_length_unit(), 2)
+
+            if not is_end_block:
+                x, y = coordinates[0]
+            else:
+                x, y = coordinates[1]
+                
+        else:
+            x, y = position
+            
         self.__is_end_block = is_end_block # This block points into a setup class
         self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction), \
                                                            width=OUTLINE_WIDTH, \
@@ -107,12 +119,12 @@ class GUIConnectionTriangle(GUIBlock):
         if (not self.get_view().is_panning() and not self.get_view().is_zooming()) or not self.__is_end_block:
             self.__connection.move_lines(move_x, move_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         # Scale the connection between the triangle blocks if this is the start block
         if not self.__is_end_block:
-            self.__connection.scale(last_length_unit)
+            self.__connection.scale(new_length_unit, last_length_unit)
             
     def open_options(self):
         self.__connection.open_options()
@@ -148,7 +160,7 @@ class GUIConnectionTriangle(GUIBlock):
                 
                 # Connect the two classes when both of the ends have been connected
                 if start_setup_class != None and end_setup_class != None:
-                    end_setup_class.add_input_setup_class(start_setup_class, self.__connection.get_input_scalars())
+                    end_setup_class.set_input_setup_class(start_setup_class, self.__connection.get_input_scalars())
                     self.__connection.get_end_setup_class_gui().update_value_input_types()
                     
                 break
@@ -213,15 +225,15 @@ class GUIConnectionScalarsIndicator(GUIModelingBlock):
     Manages indicator that shows the input scalars for a directional connection in setup views
     """
     def __init__(self, model, view, connection):
+        super().__init__(model, view, connection.get_input_scalars_string(), \
+                                      INPUT_SCALARS_INDICATOR_WIDTH, \
+                                      INPUT_SCALARS_INDICATOR_HEIGHT, \
+                                      INPUT_SCALARS_INDICATOR_COLOR, \
+                                      position=connection.get_scalars_indicator_start_coordinate(), \
+                                      bind_left=MOUSE_DRAG, \
+                                      tags_rect=(TAG_INDICATOR,), \
+                                      tags_text=(TAG_INDICATOR_TEXT,))
         self.__connection = connection
-        x, y = connection.get_scalars_indicator_start_coordinate()
-        
-        super().__init__(model, view, self.__connection.get_input_scalars_string(), x, y, INPUT_SCALARS_INDICATOR_WIDTH, \
-                                                                                          INPUT_SCALARS_INDICATOR_HEIGHT, \
-                                                                                          INPUT_SCALARS_INDICATOR_COLOR, \
-                                                                                          bind_left=MOUSE_DRAG, \
-                                                                                          tags_rect=(TAG_INDICATOR,), \
-                                                                                          tags_text=(TAG_INDICATOR_TEXT,))
         
     def left_dragged(self, event):
         allowed_movement_directions = self.__connection.allowed_scalars_indicator_movement_directions()

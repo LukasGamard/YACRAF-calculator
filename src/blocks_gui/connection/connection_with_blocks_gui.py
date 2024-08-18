@@ -1,4 +1,4 @@
-from options import OptionsConnectionWithBlocks
+from options import Options
 from connection_gui import GUIConnection
 from connection_blocks_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
 from helper_functions_general import convert_value_to_string, distance_to_closest_grid_intersection
@@ -9,23 +9,25 @@ class GUIConnectionWithBlocks(GUIConnection):
     Manages directional connection with already attached triangle blocks found in setup views
     """
     def __init__(self, model, view, *, start_coordinate=None, end_coordinate=None, input_scalars=None, input_scalars_indicator_coordinate=None):
-        self.__start_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[0][0], GUI_BLOCK_START_COORDINATES[0][1], "RIGHT", False) # Points out from class
-        self.__end_block = GUIConnectionTriangle(model, view, GUI_BLOCK_START_COORDINATES[1][0], GUI_BLOCK_START_COORDINATES[1][1], "RIGHT", True) # Points into class
+        self.__start_block = GUIConnectionTriangle(model, view, "RIGHT", False) # Points out from class
+        self.__end_block = GUIConnectionTriangle(model, view, "RIGHT", True) # Points into class
         
         self.__model = model
         self.__view = view
-        self.__input_scalars = None
+        self.__input_scalars = [DEFAULT_INPUT_SCALAR]
         self.__input_scalars_indicator = None
         super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
         
+        # Move start block to specified coordinate
         if start_coordinate != None:
-            self.__start_block.move_block(start_coordinate[0] - GUI_BLOCK_START_COORDINATES[0][0], \
-                                          start_coordinate[1] - GUI_BLOCK_START_COORDINATES[0][1])
+            self.__start_block.move_block(start_coordinate[0] - self.__start_block.get_x(), \
+                                          start_coordinate[1] - self.__start_block.get_y())
             self.__start_block.put_down_block()
             
+        # Move end block to specified coordinate
         if end_coordinate != None:
-            self.__end_block.move_block(end_coordinate[0] - GUI_BLOCK_START_COORDINATES[1][0], \
-                                        end_coordinate[1] - GUI_BLOCK_START_COORDINATES[1][1])
+            self.__end_block.move_block(end_coordinate[0] - self.__end_block.get_x(), \
+                                        end_coordinate[1] - self.__end_block.get_y())
             self.__end_block.put_down_block()
             
         if input_scalars != None:
@@ -37,11 +39,11 @@ class GUIConnectionWithBlocks(GUIConnection):
             
         self.__is_deleted = False
         
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         if self.__input_scalars_indicator != None:
-            self.__input_scalars_indicator.scale(last_length_unit)
+            self.__input_scalars_indicator.scale(new_length_unit, last_length_unit)
             
     def create_new_lines(self, mouse_location=None):
         super().create_new_lines()
@@ -55,7 +57,7 @@ class GUIConnectionWithBlocks(GUIConnection):
             self.__input_scalars_indicator.move_block(move_x, move_y)
     
     def open_options(self):
-        return OptionsConnectionWithBlocks(self.__model.get_root(), self)
+        return Options.connection_with_blocks(self.__model, self.__view, self)
         
     def get_start_setup_class_gui(self):
         """
@@ -112,31 +114,24 @@ class GUIConnectionWithBlocks(GUIConnection):
         return self.__input_scalars
         
     def set_input_scalars(self, input_scalars):
-        if input_scalars != None and input_scalars[0] == DEFAULT_INPUT_SCALAR:
-            self.reset_input_scalars()
-            return
-            
         self.__input_scalars = input_scalars
         
         start_setup_class_gui = self.get_start_setup_class_gui()
         end_setup_class_gui = self.get_end_setup_class_gui()
         
         if start_setup_class_gui != None and end_setup_class_gui != None:
-            end_setup_class_gui.get_setup_class().set_input_setup_class_scalars(start_setup_class_gui.get_setup_class(), input_scalars)
+            end_setup_class_gui.get_setup_class().set_input_setup_class(start_setup_class_gui.get_setup_class(), input_scalars) # Update input scalars
             
         self.update_input_scalars_indicator()
         
     def reset_input_scalars(self):
-        self.set_input_scalars(None)
+        self.set_input_scalars([DEFAULT_INPUT_SCALAR])
         
     def get_input_scalars_string(self):
         """
         Returns the input scalars as a formatted string
         """
-        if self.__input_scalars != None:
-            return convert_value_to_string(self.__input_scalars)
-            
-        return str(DEFAULT_INPUT_SCALAR)
+        return convert_value_to_string(self.__input_scalars)
         
     def update_input_scalars_indicator(self):
         """
@@ -145,7 +140,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         if self.__input_scalars_indicator != None:
             self.__input_scalars_indicator.delete()
             
-        if self.__input_scalars != None:
+        if not (len(self.__input_scalars) == 1 and self.__input_scalars[0] == DEFAULT_INPUT_SCALAR):
             if (len(self.__input_scalars) == 1 and self.__input_scalars[0] != DEFAULT_INPUT_SCALAR) or len(self.__input_scalars) == 3:
                 self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
                 
@@ -198,22 +193,26 @@ class GUIConnectionWithBlocks(GUIConnection):
         for i in range(1, len(coordinates)):
             first_pos, second_pos = coordinates[i-1], coordinates[i]
             
-            # Vertically aligned
-            if indicator_pos[0] == first_pos[0] == second_pos[0]:
-                if indicator_pos[1] > min(first_pos[1], second_pos[1]):
-                    allowed_directions.append("UP")
-                    
-                if indicator_pos[1] < max(first_pos[1], second_pos[1]):
-                    allowed_directions.append("DOWN")
-                    
-            # Horizontally aligned
-            if indicator_pos[1] == first_pos[1] == second_pos[1]:
-                if indicator_pos[0] > min(first_pos[0], second_pos[0]):
-                    allowed_directions.append("LEFT")
-                    
-                if indicator_pos[0] < max(first_pos[0], second_pos[0]):
-                    allowed_directions.append("RIGHT")
-                    
+            for j in range(2):
+                if max(abs(indicator_pos[j] - first_pos[j]), \
+                       abs(first_pos[j] - second_pos[j]), \
+                       abs(second_pos[j] - indicator_pos[j])) < 0.01:
+                    # Vertically aligned
+                    if j == 0:
+                        if indicator_pos[1] > min(first_pos[1], second_pos[1]):
+                            allowed_directions.append("UP")
+                            
+                        if indicator_pos[1] < max(first_pos[1], second_pos[1]):
+                            allowed_directions.append("DOWN")
+                            
+                    # Horizontally aligned
+                    if j == 1:
+                        if indicator_pos[0] > min(first_pos[0], second_pos[0]):
+                            allowed_directions.append("LEFT")
+                            
+                        if indicator_pos[0] < max(first_pos[0], second_pos[0]):
+                            allowed_directions.append("RIGHT")
+                            
         return allowed_directions
         
     def is_deleted(self):

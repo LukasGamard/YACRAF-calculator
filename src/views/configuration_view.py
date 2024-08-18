@@ -3,7 +3,7 @@ import pickle
 from view import View
 from configuration_class_gui import GUIConfigurationClass
 from configuration_input_gui import GUIConfigurationInput
-from buttons_gui import ButtonPress
+from buttons_gui import TouchButton
 from connection_gui import GUIConnection
 from helper_functions_general import delete_all
 from config import *
@@ -18,23 +18,23 @@ class ConfigurationView(View):
         self.__configuration_inputs_gui = []
         self.__held_connection = None
         
-        self.__add_configuration_class_button = ButtonPress.add_configuration_class(model, self) # Button to create a new configuration class
-        self.__add_input_button = ButtonPress.add_input(model, self) # Button to create a new input block
+        self.__add_configuration_class_button = TouchButton.add_configuration_class(model, self) # Button to create a new configuration class
+        self.__add_input_button = TouchButton.add_input(model, self) # Button to create a new input block
         
         self.get_canvas().bind(MOUSE_MOTION, self.move_held_connection)
-         
-    def create_configuration_class_gui(self, *, configuration_class_gui_to_copy=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+        
+    def create_configuration_class_gui(self, *, configuration_class_gui_to_copy=None, position=None):
         """
         Create a new GUI configuration class that is drawn on the canvas in the view
         """
         # Create new
         if configuration_class_gui_to_copy == None:
-            configuration_class_gui = GUIConfigurationClass.new(self.get_model(), self, x, y)
+            configuration_class_gui = GUIConfigurationClass.new(self.get_model(), self, position)
             self.get_model().create_add_to_setup_buttons(configuration_class_gui, self.get_model().get_num_configuration_classes()) # Add buttons to add the setup class version
             
         # Create linked copy
         else:
-            configuration_class_gui = GUIConfigurationClass.linked_copy(self, configuration_class_gui_to_copy, x, y)
+            configuration_class_gui = GUIConfigurationClass.linked_copy(self, configuration_class_gui_to_copy, position)
             
         self.__configuration_classes_gui.append(configuration_class_gui)
         
@@ -46,11 +46,11 @@ class ConfigurationView(View):
     def get_configuration_classes_gui(self):
         return self.__configuration_classes_gui
         
-    def create_configuration_input_gui(self, *, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_configuration_input_gui(self, position=None):
         """
         Create an input block and add it to the view
         """
-        configuration_input_gui = GUIConfigurationInput(self.get_model(), self, x, y)
+        configuration_input_gui = GUIConfigurationInput(self.get_model(), self, position)
         self.__configuration_inputs_gui.append(configuration_input_gui)
         
         return configuration_input_gui
@@ -135,18 +135,17 @@ class ConfigurationView(View):
                 # Restore configuration classes
                 for saved_states_configuration_class_gui in saved_states_configuration_classes_gui:
                     linked_group_number = saved_states_configuration_class_gui["linked_group_number"]
+                    position = (saved_states_configuration_class_gui["x"], saved_states_configuration_class_gui["y"])
                     
                     # Should bind to already existing configuration class
                     if linked_group_number != None and linked_group_number in linked_groups_per_number:
                         configuration_class_gui = self.get_model().create_linked_configuration_class_gui(linked_groups_per_number[linked_group_number][0], \
                                                                                                          self, \
                                                                                                          linked_group_number=linked_group_number, \
-                                                                                                         x=saved_states_configuration_class_gui["x"], \
-                                                                                                         y=saved_states_configuration_class_gui["y"])
+                                                                                                         position=position)
                         
                     else:
-                        configuration_class_gui = self.create_configuration_class_gui(x=saved_states_configuration_class_gui["x"], \
-                                                                                      y=saved_states_configuration_class_gui["y"])
+                        configuration_class_gui = self.create_configuration_class_gui(position=position)
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [configuration_class_gui]
@@ -164,7 +163,7 @@ class ConfigurationView(View):
                             
                             # Set configuration attribute data
                             configuration_attribute_gui.set_name(saved_states_configuration_attribute_gui["name"])
-                            configuration_attribute_gui.set_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
+                            configuration_attribute_gui.set_symbol_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
                             configuration_attribute_gui.set_input_scalar(saved_states_configuration_attribute_gui["input_scalar"])
                             configuration_attribute_gui.set_hidden(saved_states_configuration_attribute_gui["is_hidden"])
                             
@@ -173,7 +172,7 @@ class ConfigurationView(View):
                 # Restore configuration inputs
                 for saved_states_configuration_input_gui in saved_states_configuration_inputs_gui:
                     # Create configuration input
-                    configuration_input_gui = self.create_configuration_input_gui(x=saved_states_configuration_input_gui["x"], y=saved_states_configuration_input_gui["y"])
+                    configuration_input_gui = self.create_configuration_input_gui(position=(saved_states_configuration_input_gui["x"], saved_states_configuration_input_gui["y"]))
                     
                     # Set configuration input data
                     configuration_input_gui.attempt_to_attach_to_attribute()

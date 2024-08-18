@@ -2,14 +2,15 @@ import tkinter as tk
 import tkinter.font as tkfont
 import numpy as np
 from circle_indicator_gui import GUICircleIndicator
-from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_zoom, distance_to_closest_grid_intersection, delete_all
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, distance_to_closest_grid_intersection, get_font, delete_all
+from default_coordinate_functions import get_block_start_coordinates
 from config import *
 
 class GUIBlock:
     """
     Class managing blocks/buttons shown in views
     """
-    def __init__(self, model, view, pressable_items, x, y, width, height, *, bind_left=None, bind_right=None):
+    def __init__(self, model, view, pressable_items, x, y, width, height, *, ignore_zoom=False, bind_left=None, bind_right=None):
         self.__model = model
         self.__view = view
         self.__pressable_items = pressable_items
@@ -17,8 +18,9 @@ class GUIBlock:
         self.__y = y
         self.__width = width
         self.__height = height
-        self.__has_line_break_text = False
+        self.__ignore_zoom = ignore_zoom
         self.__shapes_highlight = []
+        self.__attached_blocks = [] # Blocks that are attached to this one, also affected by moving, scaling, highlighting, etc
         
         self.__draggable = bind_left == MOUSE_DRAG
         self.__pick_up_actual_coordinate = (0, 0)
@@ -39,8 +41,6 @@ class GUIBlock:
                 
         self.__was_dragged = False
         self.__is_deleted = False
-        
-        GUIBlock.scale(self, view.get_length_unit())
         
         from connection_blocks_gui import GUIConnectionCorner
         
@@ -64,7 +64,7 @@ class GUIBlock:
         """
         if self.__draggable:
             self.__was_dragged = True
-            move_x, move_y = convert_actual_coordinate_to_grid(self.__view, event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1])
+            move_x, move_y = convert_actual_coordinate_to_grid(event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1], self.__view.get_length_unit())
             
             if max_positive_move_x != None and move_x > max_positive_move_x:
                 move_x = max_positive_move_x
@@ -112,13 +112,13 @@ class GUIBlock:
     def right_pressed(self, event):
         pass
         
-    def scale(self, last_length_unit):
+    def scale(self, new_length_unit, last_length_unit):
         """
         Scales the block, typical when zooming
         """
         for pressable_item in self.__pressable_items + self.__shapes_highlight:
             item_type = self.get_canvas().type(pressable_item)
-            adjusted_actual_coordinates = get_actual_coordinates_after_zoom(self.__view, self.get_canvas().coords(pressable_item), last_length_unit)
+            adjusted_actual_coordinates = get_actual_coordinates_after_scale(self.get_canvas().coords(pressable_item), new_length_unit, last_length_unit)
             
             # Scales different items on the canvas differently
             if item_type == "rectangle":
@@ -131,10 +131,20 @@ class GUIBlock:
                 
             elif item_type == "text":
                 x, y = adjusted_actual_coordinates
-                self.get_canvas().coords(pressable_item, x, y)
-                self.get_canvas().itemconfig(pressable_item, font=self.__view.get_updated_font(label=pressable_item, has_line_break=self.__has_line_break_text))
+                has_line_break = "\n" in self.get_canvas().itemcget(pressable_item, "text")
                 
-    def highlight(self, color):
+                self.get_canvas().coords(pressable_item, x, y)
+                self.get_canvas().itemconfig(pressable_item, font=get_font(new_length_unit, \
+                                                                           canvas_and_label=(self.get_canvas(), pressable_item), \
+                                                                           has_line_break=has_line_break))
+                
+        for attached_block in self.__attached_blocks:
+            attached_block.scale(new_length_unit, last_length_unit)
+            
+    def reset_scale(self):
+        self.scale(LENGTH_UNIT, self.__view.get_length_unit())
+        
+    def highlight(self, color, *, highlight_border_width=HIGHLIGHT_BORDER_WIDTH):
         """
         Create a highlight around the block
         """
@@ -147,14 +157,13 @@ class GUIBlock:
             
             if item_type == "rectangle":
                 x1, y1, x2, y2 = actual_coordinates
-                rect = self.get_canvas().create_rectangle(x1-HIGHLIGHT_BORDER_WIDTH, \
-                                                                 y1-HIGHLIGHT_BORDER_WIDTH, \
-                                                                 x2+HIGHLIGHT_BORDER_WIDTH, \
-                                                                 y2+HIGHLIGHT_BORDER_WIDTH, \
-                                                                 width=0, \
-                                                                 fill=color)
+                rect = self.get_canvas().create_rectangle(x1-highlight_border_width, \
+                                                          y1-highlight_border_width, \
+                                                          x2+highlight_border_width, \
+                                                          y2+highlight_border_width, \
+                                                          width=0, \
+                                                          fill=color)
                 
-                self.get_canvas().tag_lower(rect)
                 self.__shapes_highlight.append(rect)
                 
             elif item_type == "polygon":
@@ -169,14 +178,19 @@ class GUIBlock:
                     magnitude = (vector_from_center[0] ** 2 + vector_from_center[1] ** 2) ** 0.5
                     
                     for vector_value, old_actual_value in zip(vector_from_center, (x, y)):
-                        new_actual_coordinate_pairs.append(old_actual_value + (vector_value / magnitude) * HIGHLIGHT_BORDER_WIDTH * 2)
+                        new_actual_coordinate_pairs.append(old_actual_value + (vector_value / magnitude) * highlight_border_width * 2)
                         
                 x1, y1, x2, y2, x3, y3 = new_actual_coordinate_pairs
                 triangle = self.get_canvas().create_polygon(x1, y1, x2, y2, x3, y3, width=0, fill=color)
                 
-                self.get_canvas().tag_lower(triangle)
                 self.__shapes_highlight.append(triangle)
                 
+        for shape in self.__shapes_highlight:
+            self.get_canvas().tag_lower(shape)
+            
+        for attached_block in self.__attached_blocks:
+            attached_block.highlight(color, highlight_border_width=highlight_border_width)
+            
     def unhighlight(self):
         """
         Removes shapes that are used as highlight around the block
@@ -185,6 +199,9 @@ class GUIBlock:
             self.get_canvas().delete(shape_highlight)
             
         self.__shapes_highlight.clear()
+        
+        for attached_block in self.__attached_blocks:
+            attached_block.unhighlight()
         
     def update_highlight(self, color):
         """
@@ -201,13 +218,18 @@ class GUIBlock:
         move_x, move_y = distance_to_closest_grid_intersection(self.__view, self.__x, self.__y)
         
         self.move_block(move_x, move_y)
-        
+         
     def move_block(self, move_x, move_y):
         """
         Moves the block on the canvas based on coordinates of the grid
         """
+        if self.__ignore_zoom:
+            length_unit = LENGTH_UNIT
+        else:
+            length_unit = self.__view.get_length_unit()
+            
         if move_x != 0 or move_y != 0:
-            move_actual_x, move_actual_y = convert_grid_coordinate_to_actual(self.__view, move_x, move_y)
+            move_actual_x, move_actual_y = convert_grid_coordinate_to_actual(move_x, move_y, length_unit)
             
             # Move block
             for pressable_item in self.__pressable_items:
@@ -220,6 +242,10 @@ class GUIBlock:
             self.__x = round(self.__x + move_x, 3)
             self.__y = round(self.__y + move_y, 3)
             
+        for block in self.__attached_blocks:
+            if block != self:
+                block.move_block(move_x, move_y)
+                
     def get_model(self):
         return self.__model
         
@@ -241,11 +267,17 @@ class GUIBlock:
     def get_height(self):
         return self.__height
         
-    def has_line_break_text(self):
-        return self.__has_line_break_text
+    def ignores_zoom(self):
+        return self.__ignore_zoom
         
-    def set_line_break_text(self, has_line_break_text):
-        self.__has_line_break_text = has_line_break_text
+    def add_attached_block(self, block):
+        self.__attached_blocks.append(block)
+        
+    def remove_attached_block(self, block):
+        self.__attached_blocks.remove(block)
+        
+    def has_attached_block(self, block):
+        return block in self.__attached_blocks
         
     def get_text_width(self):
         return self.__text_width
@@ -255,7 +287,7 @@ class GUIBlock:
         Returns the direction out from a block based on the closes edge from the mouse
         """
         direction = "RIGHT"
-        actual_mid_x = convert_grid_coordinate_to_actual(self.__view, self.get_x()+self.get_width()//2, 0)[0]
+        actual_mid_x = convert_grid_coordinate_to_actual(self.get_x()+self.get_width()//2, 0, self.__view.get_length_unit())[0]
         
         if mouse_x < actual_mid_x:
             direction = "LEFT"
@@ -269,6 +301,8 @@ class GUIBlock:
         self.__is_deleted = True
         self.get_view().unselect_item(self)
         
+        delete_all(self.__attached_blocks)
+        
         for pressable_items in self.__pressable_items:
             self.get_canvas().delete(pressable_items)
             
@@ -281,24 +315,36 @@ class GUIModelingBlock(GUIBlock):
     """
     Class for block with text
     """
-    def __init__(self, model, view, text, x, y, width, height, fill_color, *, text_width=None, \
-                                                                              label_text_x=None, \
-                                                                              additional_pressable_items=None, \
-                                                                              bind_left=None, \
-                                                                              bind_right=None, \
-                                                                              tags_rect=(), \
-                                                                              tags_text=()):
+    def __init__(self, model, view, text, width, height, fill_color, *, position=None, \
+                                                                        text_width=None, \
+                                                                        label_text_x=None, \
+                                                                        ignore_zoom=False, \
+                                                                        additional_pressable_items=None, \
+                                                                        bind_left=None, \
+                                                                        bind_right=None, \
+                                                                        tags_rect=(), \
+                                                                        tags_text=()):
+        if position == None:
+            x, y = get_block_start_coordinates(view.get_length_unit())[0]
+        else:
+            x, y = position
+            
+        if ignore_zoom:
+            length_unit = LENGTH_UNIT
+        else:
+            length_unit = view.get_length_unit()
+            
         canvas = view.get_canvas()
-        actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(view, x, y)
-        actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(view, x+width, y+height)
+        actual_rect_x1, actual_rect_y1 = convert_grid_coordinate_to_actual(x, y, length_unit)
+        actual_rect_x2, actual_rect_y2 = convert_grid_coordinate_to_actual(x+width, y+height, length_unit)
         
         self.__rect = canvas.create_rectangle(actual_rect_x1, actual_rect_y1, actual_rect_x2, actual_rect_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=fill_color, tags=tags_rect)
         
         if label_text_x == None:
             label_text_x = x + width / 2
             
-        actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(view, label_text_x, y+height/2)
-        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text=text, font=FONT, justify="center", tags=tags_text)
+        actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(label_text_x, y+height/2, length_unit)
+        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text="", font=FONT, justify="center", tags=tags_text)
         
         pressable_items = [self.__rect, self.__label_text]
         
@@ -308,42 +354,16 @@ class GUIModelingBlock(GUIBlock):
                 
             pressable_items += additional_pressable_items
             
-        super().__init__(model, view, pressable_items, x, y, width, height, bind_left=bind_left, bind_right=bind_right)
+        super().__init__(model, view, pressable_items, x, y, width, height, ignore_zoom=ignore_zoom, bind_left=bind_left, bind_right=bind_right)
         self.__text = text
-        self.__attached_blocks = [] # Blocks that are attached to this one, also affected by moving, scaling, highlighting, etc
         
         if text_width != None:
             self.__text_width = text_width
         else:
             self.__text_width = width
-            
-        self.set_text(text)
-            
-    def move_block(self, move_x, move_y):
-        super().move_block(move_x, move_y)
+             
+        self.set_text(text) # Ensure line break
         
-        for block in self.__attached_blocks:
-            if block != self:
-                block.move_block(move_x, move_y)
-                
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
-        
-        for attached_block in self.__attached_blocks:
-            attached_block.scale(last_length_unit)
-            
-    def highlight(self, color):
-        super().highlight(color)
-        
-        for attached_block in self.__attached_blocks:
-            attached_block.highlight(color)
-            
-    def unhighlight(self):
-        super().unhighlight()
-        
-        for attached_block in self.__attached_blocks:
-            attached_block.unhighlight()
-            
     def is_adjacent(self, coordinates):
         """
         Returns whether any of the specified grid coordinates are considered adjacent to this block, and in such cases which direction goes out from the block
@@ -373,8 +393,13 @@ class GUIModelingBlock(GUIBlock):
         """
         Sets the text on the block
         """
-        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.get_view(), self.__text_width, 0)[0] - 2 * OUTLINE_WIDTH
-        font = self.get_view().get_updated_font(label=self.__label_text)
+        if self.ignores_zoom():
+            length_unit = LENGTH_UNIT
+        else:
+            length_unit = self.get_view().get_length_unit()
+            
+        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.__text_width, 0, length_unit)[0] - 2 * OUTLINE_WIDTH
+        font = get_font(length_unit, canvas_and_label=(self.get_canvas(), self.__label_text))
         
         if is_bold:
             font = (font[0], font[1], "bold")
@@ -385,7 +410,7 @@ class GUIModelingBlock(GUIBlock):
             
         # Should add line break and lower font size
         if actual_text_width >= actual_maximum_text_width:
-            self.set_line_break_text(True)
+            has_line_break_text = True
             
             # Find the space that is closest to the middle and line break there
             words = text.split()
@@ -404,9 +429,9 @@ class GUIModelingBlock(GUIBlock):
                     break
                     
         else:
-            self.set_line_break_text(False)
+            has_line_break_text = False
             
-        font = self.get_view().get_updated_font(label=self.__label_text, has_line_break=self.has_line_break_text())
+        font = get_font(length_unit, canvas_and_label=(self.get_canvas(), self.__label_text), has_line_break=has_line_break_text)
         
         if is_bold:
             font = (font[0], font[1], "bold")
@@ -419,25 +444,12 @@ class GUIModelingBlock(GUIBlock):
     def set_fill_color(self, fill_color):
         self.get_canvas().itemconfig(self.__rect, fill=fill_color)
         
-    def add_attached_block(self, block):
-        self.__attached_blocks.append(block)
-        
-    def remove_attached_block(self, block):
-        self.__attached_blocks.remove(block)
-        
-    def has_attached_block(self, block):
-        return block in self.__attached_blocks
-        
-    def delete(self):
-        delete_all(self.__attached_blocks)
-        super().delete()
-        
 class GUIClass(GUIModelingBlock):
     """
     Manages a configuration or setup class
     """
-    def __init__(self, model, view, text, x, y, width, height, is_configuration_class, linked_group_number=None):
-        super().__init__(model, view, text, x, y, width, height, CLASS_COLOR, bind_left=MOUSE_DRAG)
+    def __init__(self, model, view, text, width, height, is_configuration_class, *, position=None, linked_group_number=None):
+        super().__init__(model, view, text, width, height, CLASS_COLOR, position=position, bind_left=MOUSE_DRAG)
         self.__is_configuration_class = is_configuration_class
         self.__linked_group_number = linked_group_number # If the class belongs to a group of linked copies
         self.__linked_group_indicator = None
@@ -451,11 +463,11 @@ class GUIClass(GUIModelingBlock):
         if self.__linked_group_indicator != None:
             self.__linked_group_indicator.move(move_x, move_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         if self.__linked_group_indicator != None:
-            self.__linked_group_indicator.scale(last_length_unit)
+            self.__linked_group_indicator.scale(new_length_unit, last_length_unit)
             
     def is_linked(self):
         return self.__linked_group_number != None

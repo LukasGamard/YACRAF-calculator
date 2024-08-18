@@ -1,5 +1,5 @@
 from general_gui import GUIModelingBlock
-from helper_functions_general import convert_grid_coordinate_to_actual, get_actual_coordinates_after_zoom
+from helper_functions_general import convert_grid_coordinate_to_actual, get_actual_coordinates_after_scale, get_font
 from config import *
 
 class GUISetupAttribute(GUIModelingBlock):
@@ -18,17 +18,16 @@ class GUISetupAttribute(GUIModelingBlock):
         attribute_x = setup_class_gui.get_x()
         attribute_y = setup_class_gui.get_y() + CLASS_HEIGHT + len(setup_class_gui.get_setup_attributes_gui()) * ATTRIBUTE_HEIGHT
         
-        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(view, attribute_x+width*3/4, attribute_y+height/2)
-        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=FONT)
+        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(attribute_x+width*3/4, attribute_y+height/2, view.get_length_unit())
+        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=get_font(view.get_length_unit()))
         
         super().__init__(model, \
                          view, \
                          configuration_attribute_gui.get_name(), \
-                         attribute_x, \
-                         attribute_y, \
                          width, \
                          height, \
                          ATTRIBUTE_COLOR, \
+                         position=(attribute_x, attribute_y), \
                          text_width = text_width, \
                          label_text_x = attribute_x + width / 4, \
                          additional_pressable_items = [self.__label_value], \
@@ -63,24 +62,24 @@ class GUISetupAttribute(GUIModelingBlock):
         
         # Move entry field if it exists
         if self.__entry_value != None:
-            actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(self.get_view(), move_x, move_y)
+            actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(move_x, move_y, self.get_view().get_length_unit())
             new_actual_x, new_actual_y = self.get_view().get_canvas().coords(self.__entry_value_window)
             new_actual_x += actual_move_x
             new_actual_y += actual_move_y
             
             self.get_view().get_canvas().coords(self.__entry_value_window, new_actual_x, new_actual_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         # Scale entry field if it exists
         if self.__entry_value != None:
             actual_width, actual_height = self.get_entry_size()
-            actual_x, actual_y = get_actual_coordinates_after_zoom(self.get_view(), \
-                                                                   self.get_view().get_canvas().coords(self.__entry_value_window), \
-                                                                   last_length_unit)
+            actual_x, actual_y = get_actual_coordinates_after_scale(self.get_view().get_canvas().coords(self.__entry_value_window), \
+                                                                                                        new_length_unit, \
+                                                                                                        last_length_unit)
             
-            self.__entry_value.config(font=self.get_view().get_updated_font())
+            self.__entry_value.config(font=get_font(self.get_view().get_length_unit()))
             self.get_view().get_canvas().coords(self.__entry_value_window, (actual_x, actual_y))
             self.get_view().get_canvas().itemconfig(self.__entry_value_window, width=actual_width, height=actual_height)
             
@@ -138,11 +137,12 @@ class GUISetupAttribute(GUIModelingBlock):
         """
         if self.__entry_value == None:
             actual_width, actual_height = self.get_entry_size()
-            actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_view(), self.get_x()+self.get_width()/2, self.get_y())
+            actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_x()+self.get_width()/2, self.get_y(), self.get_view().get_length_unit())
             
-            # Create Entry and Window to put Entry in to allow it be put inside the Canvas
-            self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=FONT)
-            self.__entry_value_window = self.get_canvas().create_window((actual_x, actual_y+OUTLINE_WIDTH), \
+            # Create Entry and Window to put the Entry in to allow it be put inside the Canvas
+            self.__entry_value = tk.Entry(self.get_view(), textvariable=self.__entry_text, font=get_font(self.get_view().get_length_unit()))
+            self.__entry_value_window = self.get_canvas().create_window((actual_x, \
+                                                                         actual_y+OUTLINE_WIDTH), \
                                                                          window=self.__entry_value, \
                                                                          anchor="nw", \
                                                                          width=actual_width, \
@@ -160,7 +160,7 @@ class GUISetupAttribute(GUIModelingBlock):
         """
         Returns the pixel width and height that an entry field should be
         """
-        width, height = convert_grid_coordinate_to_actual(self.get_view(), self.get_width()/2, self.get_height())
+        width, height = convert_grid_coordinate_to_actual(self.get_width()/2, self.get_height(), self.get_view().get_length_unit())
         width -= OUTLINE_WIDTH
         height -= OUTLINE_WIDTH * 2
         

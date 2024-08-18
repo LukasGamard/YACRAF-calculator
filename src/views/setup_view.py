@@ -2,7 +2,7 @@ import os
 import pickle
 from view import View
 from setup_class_gui import GUISetupClass
-from buttons_gui import ButtonPress
+from buttons_gui import TouchButton
 from connection_gui import GUIConnection
 from connection_with_blocks_gui import GUIConnectionWithBlocks
 from helper_functions_general import delete_all
@@ -18,8 +18,8 @@ class SetupView(View):
         self.__connections_with_blocks = []
         self.__to_setup_buttons = []
         
-        self.__create_connection_button = ButtonPress.create_connection(model, self)
-        self.__calculate_value_button = ButtonPress.calculate_values(model, self)
+        self.__create_connection_button = TouchButton.create_connection(model, self)
+        self.__calculate_value_button = TouchButton.calculate_values(model, self)
         
         self.__run_script_buttons = []
         
@@ -34,9 +34,9 @@ class SetupView(View):
                     if file_name != "SCRIPT_TEMPLATE":
                         # If at least one script, add a button for resetting any changes made by scripts
                         if len(self.__run_script_buttons) == 0:
-                            self.__run_script_buttons.append(ButtonPress.clear_script(model, self))
+                            self.__run_script_buttons.append(TouchButton.clear_script(model, self))
                             
-                        self.__run_script_buttons.append(ButtonPress.run_script(model, self, scripts_path, file_name, len(self.__run_script_buttons)))
+                        self.__run_script_buttons.append(TouchButton.run_script(model, self, scripts_path, file_name, len(self.__run_script_buttons)))
                     
     def on_resize(self, event):
         """
@@ -50,7 +50,7 @@ class SetupView(View):
         for run_script_button in self.__run_script_buttons:
             run_script_button.move_block(move_x, move_y)
             
-    def create_setup_class_gui(self, *, configuration_class_gui=None, setup_class_gui_to_copy=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_setup_class_gui(self, *, configuration_class_gui=None, setup_class_gui_to_copy=None, position=None):
         """
         Creates a GUI setup class that is drawn on the canvas in the view
         """
@@ -60,10 +60,10 @@ class SetupView(View):
             return
             
         if setup_class_gui_to_copy != None:
-            setup_class_gui = GUISetupClass.linked_copy(self, setup_class_gui_to_copy, x, y)
+            setup_class_gui = GUISetupClass.linked_copy(self, setup_class_gui_to_copy, position)
             
         elif configuration_class_gui != None:
-            setup_class_gui = GUISetupClass.new(self.get_model(), self, configuration_class_gui, x, y)
+            setup_class_gui = GUISetupClass.new(self.get_model(), self, configuration_class_gui, position)
             
         self.__setup_classes_gui.append(setup_class_gui)
         
@@ -145,7 +145,7 @@ class SetupView(View):
         """
         Creates a button for adding a class from a configuration view to this setup view
         """
-        self.__to_setup_buttons.append(ButtonPress.add_to_setup(self.get_model(), self, configuration_class_gui, current_number_of_buttons))
+        self.__to_setup_buttons.append(TouchButton.add_to_setup(self.get_model(), self, configuration_class_gui, current_number_of_buttons))
         
     def remove_add_to_setup_button(self, to_setup_button):
         """
@@ -191,6 +191,7 @@ class SetupView(View):
                 
                 # Restore setup classes
                 for saved_states_setup_class_gui in saved_states_setup_classes_gui:
+                    position = (saved_states_setup_class_gui["x"], saved_states_setup_class_gui["y"])
                     linked_group_number = saved_states_setup_class_gui["linked_group_number"]
                     
                     # Should bind to already existing setup class
@@ -198,14 +199,11 @@ class SetupView(View):
                         setup_class_gui = self.get_model().create_linked_setup_class_gui(linked_groups_per_number[linked_group_number][0], \
                                                                                          self, \
                                                                                          linked_group_number=linked_group_number, \
-                                                                                         x=saved_states_setup_class_gui["x"], \
-                                                                                         y=saved_states_setup_class_gui["y"])
+                                                                                         position=position)
                         
                     else:
                         configuration_class_gui = mapping_configuration_class_gui[saved_states_setup_class_gui["configuration_class_gui"]]
-                        setup_class_gui = self.create_setup_class_gui(configuration_class_gui=configuration_class_gui, \
-                                                                      x=saved_states_setup_class_gui["x"], \
-                                                                      y=saved_states_setup_class_gui["y"])
+                        setup_class_gui = self.create_setup_class_gui(configuration_class_gui=configuration_class_gui, position=position)
                         
                         if linked_group_number != None:
                             linked_groups_per_number[linked_group_number] = [setup_class_gui]

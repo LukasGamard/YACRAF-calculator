@@ -1,7 +1,7 @@
 import tkinter as tk
-from buttons_gui import ButtonPress
+from buttons_gui import TouchButton
 from connection_with_blocks_gui import GUIConnectionWithBlocks
-from options import OptionsView
+from options import Options
 from helper_functions_general import convert_actual_coordinate_to_grid
 from config import *
 
@@ -25,18 +25,12 @@ class View(tk.Frame):
         
         self.__canvas = tk.Canvas(self, width=settings.get_canvas_width(), height=settings.get_canvas_height(), bg=BACKGROUND_COLOR)
         self.__canvas_size = (settings.get_canvas_width(), settings.get_canvas_height())
-        self.__add_change_configuration_view_button = ButtonPress.add_view(model, \
-                                                                           self, \
-                                                                           CHANGE_VIEW_CONFIGURATION_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
-                                                                           CHANGE_VIEW_CONFIGURATION_START_POSITION[1], \
-                                                                           True)
-        self.__add_change_setup_view_button = ButtonPress.add_view(model, \
-                                                                   self, \
-                                                                   CHANGE_VIEW_SETUP_START_POSITION[0]+CHANGE_VIEW_WIDTH//2, \
-                                                                   CHANGE_VIEW_SETUP_START_POSITION[1], \
-                                                                   False)
-        self.__save_button = ButtonPress.save(model, self)
-        self.__settings_button = ButtonPress.settings(model, self)
+        self.__add_change_configuration_view_button = TouchButton.add_view(model, self, True)
+        self.__add_change_setup_view_button = TouchButton.add_view(model, self, False)
+        self.__save_button = TouchButton.save(model, self)
+        self.__settings_button = TouchButton.settings(model, self)
+        
+        self.__currently_open_options = None
         
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
         self.__canvas.bind(MOUSE_LEFT_DRAG, self.pan_move)
@@ -80,7 +74,7 @@ class View(tk.Frame):
         """
         if self.__is_panning:
             # How much to move each item
-            move_x, move_y = convert_actual_coordinate_to_grid(self, event.x-self.__panning_last_mouse_coordinate[0], event.y-self.__panning_last_mouse_coordinate[1])
+            move_x, move_y = convert_actual_coordinate_to_grid(event.x-self.__panning_last_mouse_coordinate[0], event.y-self.__panning_last_mouse_coordinate[1], self.get_length_unit())
             
             self.update_grid_offset(move_x, move_y)
             
@@ -114,7 +108,7 @@ class View(tk.Frame):
         last_length_unit = self.get_length_unit()
         self.__length_unit_difference += length_unit_difference
         
-        scale_origin_x, scale_origin_y = convert_actual_coordinate_to_grid(self, event.x, event.y) # Zoom around where the mouse is
+        scale_origin_x, scale_origin_y = convert_actual_coordinate_to_grid(event.x, event.y, self.get_length_unit()) # Zoom around where the mouse is
         length_unit_change = last_length_unit / self.get_length_unit() - 1
         
         move_x = scale_origin_x * length_unit_change
@@ -123,7 +117,7 @@ class View(tk.Frame):
         self.update_grid_offset(move_x, move_y)
         
         for movable_item in self.get_movable_items():
-            movable_item.scale(last_length_unit) # Scales entire grid and all its components
+            movable_item.scale(self.get_length_unit(), last_length_unit) # Scales the size of the grid and all its components
             movable_item.move_block(move_x, move_y) # Moves all components on the grid to simulate zooming in at the coordinates of the mouse
             
         self.__is_zooming = False
@@ -136,7 +130,7 @@ class View(tk.Frame):
         
         actual_move_x = event.width - self.__canvas_size[0]
         actual_move_y = event.height - self.__canvas_size[1]
-        move_x, move_y = convert_actual_coordinate_to_grid(self, actual_move_x, actual_move_y)
+        move_x, move_y = convert_actual_coordinate_to_grid(actual_move_x, actual_move_y, LENGTH_UNIT)
         
         self.__canvas_size = (event.width, event.height)
         
@@ -149,6 +143,9 @@ class View(tk.Frame):
         self.__save_button.move_block(0, move_y)
         self.__settings_button.move_block(0, move_y)
         
+        if self.__currently_open_options != None:
+            self.__currently_open_options.move(move_x/2, 0)
+        
         settings.set_canvas_size(event.width, event.height)
         
         return move_x, move_y
@@ -157,40 +154,11 @@ class View(tk.Frame):
         """
         Refreshes the order that items should be shown in to make sure some are shown on top of others
         """
-        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_INDICATOR, TAG_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT):
+        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_INDICATOR, TAG_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT, TAG_OPTIONS_BACKGROUND, TAG_OPTIONS, TAG_OPTIONS_TEXT):
             self.__canvas.tag_raise(tag)
             
     def open_options(self):
-        return OptionsView(self.get_model(), self)
-        
-    def get_updated_font(self, *, label=None, has_line_break=False):
-        """
-        Returns the font size that should be used in a text field on the canvas given considering the current zoom level and whether there is a line break (need to lower font size further)
-        """
-        new_font_size = int(FONT[1] * self.get_length_unit() / LENGTH_UNIT + 0.5)
-        
-        if has_line_break:
-            new_font_size -= FONT_DECREASE_LINE_BREAK
-            
-        if new_font_size < 1:
-            new_font_size = 1
-            
-        if label == None:
-            return (FONT[0], new_font_size)
-            
-        # Get existing attributes of the font
-        current_font = self.__canvas.itemcget(label, "font").split()
-        
-        if len(current_font) == 2:
-            updated_font = (current_font[0], new_font_size)
-            
-        elif len(current_font) == 3:
-            updated_font = (current_font[0], new_font_size, current_font[2])
-            
-        else:
-            print(f"Error: Found font {current_font}")
-            
-        return updated_font
+        return Options.view(self.get_model(), self)
         
     def get_model(self):
         return self.__model
@@ -205,17 +173,17 @@ class View(tk.Frame):
     def get_canvas(self):
         return self.__canvas
         
-    def add_change_view_button(self, x, y, view_to_change_to, is_setup_view):
+    def add_change_view_button(self, view_to_change_to, is_configuration_view):
         """
         Adds a button to change to a specified view
         """
         # Move down the button that adds another view
-        if not is_setup_view:
-            self.__configuration_change_view_buttons[view_to_change_to] = ButtonPress.change_view(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+        if is_configuration_view:
+            self.__configuration_change_view_buttons[view_to_change_to] = TouchButton.change_view(self.__model, self, view_to_change_to.get_name(), view_to_change_to, True, len(self.__configuration_change_view_buttons))
             self.__add_change_configuration_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
             
         else:
-            self.__setup_change_view_buttons[view_to_change_to] = ButtonPress.change_view(self.__model, self, x, y, view_to_change_to.get_name(), view_to_change_to)
+            self.__setup_change_view_buttons[view_to_change_to] = TouchButton.change_view(self.__model, self, view_to_change_to.get_name(), view_to_change_to, False, len(self.__setup_change_view_buttons))
             self.__add_change_setup_view_button.move_block(0, CHANGE_VIEW_HEIGHT)
             
     def remove_change_view_button(self, view_to_remove):
@@ -325,6 +293,20 @@ class View(tk.Frame):
         
     def set_grid_offset(self, offset_x, offset_y):
         self.__grid_offset = (offset_x, offset_y)
+        
+    def set_currently_open_options(self, currently_open_options):
+        # Already open
+        if self.__currently_open_options == currently_open_options:
+            return
+            
+        # Close existing
+        if self.__currently_open_options != None:
+            self.__currently_open_options.delete()
+            
+        self.__currently_open_options = currently_open_options
+        
+    def reset_currently_open_options(self):
+        self.__currently_open_options = None
         
     def delete(self):
         self.destroy()

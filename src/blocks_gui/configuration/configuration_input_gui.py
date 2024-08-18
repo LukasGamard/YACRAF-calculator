@@ -1,15 +1,15 @@
 from general_gui import GUIModelingBlock
 from circle_indicator_gui import GUICircleIndicator
-from options import OptionsCalculationInput
-from helper_functions_general import delete_all
+from options import Options
+from helper_functions_general import convert_value_to_string, delete_all
 from config import *
 
 class GUIConfigurationInput(GUIModelingBlock):
     """
     Manages a GUI configuration input block that decides the mathematical operation between connected attributes
     """
-    def __init__(self, model, view, x, y):
-        super().__init__(model, view, "?", x, y, INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS, tags_rect=(TAG_INPUT,), tags_text=(TAG_INPUT_TEXT,))
+    def __init__(self, model, view, position=None):
+        super().__init__(model, view, "?", INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, position=position, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS, tags_rect=(TAG_INPUT,), tags_text=(TAG_INPUT_TEXT,))
         self.__attached_configuration_attribute_gui = None # The attribute it is connectde to
         self.__connections = []
         self.__symbol_calculation_type = None # Symbol representing the mathematical operation of this block
@@ -34,7 +34,7 @@ class GUIConfigurationInput(GUIModelingBlock):
         self.attach_held_connection()
         
     def open_options(self):
-        return OptionsCalculationInput(self.get_model().get_root(), self)
+        return Options.configuration_input(self.get_model(), self.get_view(), self)
         
     def attach_held_connection(self):
         """
@@ -51,9 +51,11 @@ class GUIConfigurationInput(GUIModelingBlock):
                 direction = "RIGHT"
                 
             held_connection.set_end_location(self, direction)
-            
             self.get_view().reset_held_connection()
             
+            if self.__attached_configuration_attribute_gui != None:
+                self.__attached_configuration_attribute_gui.update_value_input_type_setup_attributes_gui()
+                
             return True
             
         return False
@@ -69,11 +71,11 @@ class GUIConfigurationInput(GUIModelingBlock):
         if self.__input_scalar_indicator != None:
             self.__input_scalar_indicator.move(move_x, move_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         if self.__input_scalar_indicator != None:
-            self.__input_scalar_indicator.scale(last_length_unit)
+            self.__input_scalar_indicator.scale(new_length_unit, last_length_unit)
             
     def attempt_to_attach_to_attribute(self):
         """
@@ -207,17 +209,22 @@ class GUIConfigurationInput(GUIModelingBlock):
             
             # Move the input block back to be adjacent with the attribute
             if move_back_input:
-                self.move_block(self.__input_scalar_indicator.get_x()-self.get_x()-0.5, 0)
-                
+                if self.get_x() > self.__attached_configuration_attribute_gui.get_x():
+                    self.move_block(-2 * INPUT_SCALAR_CIRCLE_RADIUS, 0)
+                else:
+                    self.move_block(2 * INPUT_SCALAR_CIRCLE_RADIUS, 0)
+                    
+            self.__input_scalar_indicator = None
+            
         if self.is_attached():
             input_scalar = self.__attached_configuration_attribute_gui.get_input_scalar()
             
             # If the indicator should be shown
-            if input_scalar not in (None, DEFAULT_INPUT_SCALAR):
+            if input_scalar != DEFAULT_INPUT_SCALAR:
                 indicator_x = self.get_x() + 0.5
                 self.move_block(self.get_move_x_due_to_indicator(), 0)
                 
-                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_SCALAR_CIRCLE_RADIUS, INPUT_SCALAR_CIRCLE_COLOR, INPUT_SCALAR_CIRCLE_OUTLINE, input_scalar)
+                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_SCALAR_CIRCLE_RADIUS, INPUT_SCALAR_CIRCLE_COLOR, INPUT_SCALAR_CIRCLE_OUTLINE, convert_value_to_string([input_scalar]))
                 
             # Update linked copies of the attribute that this input block is attached to
             if update_linked:
@@ -230,10 +237,10 @@ class GUIConfigurationInput(GUIModelingBlock):
         Returns the distance in x of the grid that the input block should move to make room for the indicator for the input scalar
         """
         if self.__direction_out_from_block == "LEFT":
-            return -1
+            return -2 * INPUT_SCALAR_CIRCLE_RADIUS
             
         elif self.__direction_out_from_block == "RIGHT":
-            return 1
+            return 2 * INPUT_SCALAR_CIRCLE_RADIUS
             
     def attempt_to_add_connection_to_attribute(self, connection):
         """

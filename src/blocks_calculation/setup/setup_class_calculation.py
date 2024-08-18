@@ -1,11 +1,12 @@
 from setup_attribute_calculation import SetupAttribute
+from config import *
 
 class SetupClass:
     def __init__(self, instance_name, configuration_class):
         self.__instance_name = instance_name
         self.__configuration_class = configuration_class
         self.__setup_attributes = []
-        self.__input_setup_classes = {} # Key: input_setup_class, Value: List of input scalars
+        self.__input_setup_classes = {} # Key: Setup class, Value: List of input scalars
         
         # Create setup versions of each configuration attribute in the specified configuration class
         for configuration_attribute in configuration_class.get_configuration_attributes():
@@ -58,11 +59,17 @@ class SetupClass:
     def get_input_setup_classes(self):
         return self.__input_setup_classes
         
-    def add_input_setup_class(self, input_class, input_setup_class_scalars=None):
-        self.__input_setup_classes[input_class] = input_setup_class_scalars
+    def set_input_setup_class(self, input_class, input_setup_class_scalars=None):
+        """
+        Sets a setup class as input during calculations of attribute values
         
-    def set_input_setup_class_scalars(self, input_class, input_scalars):
-        self.__input_setup_classes[input_class] = input_scalars
+        input_class: Setup class to add as input during calculations
+        input_setup_class_scalars: List of scalars to consider when performing calculations using values from the input class
+        """
+        if input_setup_class_scalars == None:
+            input_setup_class_scalars = [DEFAULT_INPUT_SCALAR]
+            
+        self.__input_setup_classes[input_class] = input_setup_class_scalars
         
     def remove_input_setup_class(self, input_class):
         if input_class in self.__input_setup_classes:

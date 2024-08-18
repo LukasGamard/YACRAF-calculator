@@ -1,6 +1,6 @@
 from general_gui import GUIClass
-from buttons_gui import ButtonPress
-from options import OptionsConfigurationClass
+from buttons_gui import TouchButton
+from options import Options
 from configuration_class_calculation import ConfigurationClass
 from configuration_attribute_gui import GUIConfigurationAttribute
 from helper_functions_general import delete_all
@@ -10,9 +10,9 @@ class GUIConfigurationClass(GUIClass):
     """
     Manages a GUI configuration class
     """
-    def __init__(self, model, view, configuration_class, x, y, *, linked_group_number=None, setup_classes_gui=None, to_setup_buttons=None, configuration_attributes_gui_to_copy=None):
+    def __init__(self, model, view, configuration_class, *, position=None, linked_group_number=None, setup_classes_gui=None, to_setup_buttons=None, configuration_attributes_gui_to_copy=None):
         self.__configuration_class = configuration_class
-        super().__init__(model, view, self.__configuration_class.get_name(), x, y, CLASS_WIDTH, CLASS_HEIGHT, True, linked_group_number)
+        super().__init__(model, view, self.__configuration_class.get_name(), CLASS_WIDTH, CLASS_HEIGHT, True, position=position, linked_group_number=linked_group_number)
         self.__configuration_attributes_gui = []
         
         if setup_classes_gui == None:
@@ -25,7 +25,7 @@ class GUIConfigurationClass(GUIClass):
         else:
             self.__to_setup_buttons = to_setup_buttons
             
-        self.__add_attribute_button = ButtonPress.add_attribute(model, view, self, x+ADD_ATTRIBUTE_OFFSET_POSITION[0], y+ATTRIBUTE_HEIGHT+ADD_ATTRIBUTE_OFFSET_POSITION[1])
+        self.__add_attribute_button = TouchButton.add_attribute(model, view, self)
         self.add_attached_block(self.__add_attribute_button)
         
         if configuration_attributes_gui_to_copy != None:
@@ -33,23 +33,22 @@ class GUIConfigurationClass(GUIClass):
                 self.create_attribute(configuration_attribute_gui_to_copy)
                 
     @staticmethod
-    def new(model, view, x, y):
-        return GUIConfigurationClass(model, view, ConfigurationClass("New class"), x, y)
+    def new(model, view, position=None):
+        return GUIConfigurationClass(model, view, ConfigurationClass("New class"), position=position)
         
     @staticmethod
-    def linked_copy(view, configuration_class_gui, x, y):
+    def linked_copy(view, configuration_class_gui, position=None):
         return GUIConfigurationClass(configuration_class_gui.get_model(), \
                                      view, \
                                      configuration_class_gui.get_configuration_class(), \
-                                     x, \
-                                     y, \
+                                     position=position, \
                                      linked_group_number=configuration_class_gui.get_linked_group_number(), \
                                      setup_classes_gui=configuration_class_gui.get_setup_classes_gui(), \
                                      to_setup_buttons=configuration_class_gui.get_to_setup_buttons(), \
                                      configuration_attributes_gui_to_copy=configuration_class_gui.get_configuration_attributes_gui())
         
     def open_options(self):
-        return OptionsConfigurationClass(self.get_model(), self, self.get_model().get_configuration_views())
+        return Options.configuration_class(self.get_model(), self.get_view(), self, self.get_model().get_configuration_views())
         
     def get_configuration_class(self):
         return self.__configuration_class

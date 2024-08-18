@@ -1,7 +1,7 @@
 from general_gui import GUIModelingBlock
 from configuration_attribute_calculation import ConfigurationAttribute
 from helper_functions_general import delete_all
-from options import OptionsConfigurationAttribute
+from options import Options
 from config import *
 
 class GUIConfigurationAttribute(GUIModelingBlock):
@@ -12,14 +12,16 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_attribute = configuration_attribute
         self.__configuration_class_gui = configuration_class_gui
         
+        x = configuration_class_gui.get_x()
+        y = configuration_class_gui.get_y() + CLASS_HEIGHT + len(configuration_class_gui.get_configuration_attributes_gui()) * ATTRIBUTE_HEIGHT
+        
         super().__init__(model, \
                          view, \
                          self.__configuration_attribute.get_name(), \
-                         configuration_class_gui.get_x(), \
-                         configuration_class_gui.get_y() + CLASS_HEIGHT + len(configuration_class_gui.get_configuration_attributes_gui()) * ATTRIBUTE_HEIGHT, \
                          ATTRIBUTE_WIDTH, \
                          ATTRIBUTE_HEIGHT, \
                          ATTRIBUTE_COLOR, \
+                         position=(x, y), \
                          bind_left=MOUSE_PRESS, \
                          bind_right=MOUSE_PRESS)
                          
@@ -52,7 +54,7 @@ class GUIConfigurationAttribute(GUIModelingBlock):
             held_connection = self.get_view().create_connection(self, self.get_direction(event.x, event.y), (event.x, event.y))
             
     def open_options(self):
-        return OptionsConfigurationAttribute(self.get_model().get_root(), self.__configuration_class_gui, self)
+        return Options.configuration_attribute(self.get_model(), self.get_view(), self.__configuration_class_gui, self)
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -60,11 +62,11 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         for connection in self.__connections:
             connection.move_lines(move_x, move_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         for connection in self.__connections:
-            connection.scale(last_length_unit)
+            connection.scale(new_length_unit, last_length_unit)
         
     def get_configuration_attribute(self):
         return self.__configuration_attribute
@@ -158,8 +160,11 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         """
         self.__configuration_attribute.set_name(name)
         self.update_text()
-            
-    def set_value_type(self, symbol_value_type):
+        
+    def get_symbol_value_type(self):
+        return self.__configuration_attribute.get_symbol_value_type()
+        
+    def set_symbol_value_type(self, symbol_value_type):
         """
         Sets the value type of the attribute, such as a single value or a triangle distribution
         """

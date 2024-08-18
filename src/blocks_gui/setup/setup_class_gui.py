@@ -3,21 +3,21 @@ import numpy as np
 from general_gui import GUIClass
 from setup_attribute_gui import GUISetupAttribute
 from circle_indicator_gui import GUICircleIndicator
-from options import OptionsSetupClass
+from options import Options
 from config import *
 
 class GUISetupClass(GUIClass):
     """
     Manages a GUI setup class
     """
-    def __init__(self, model, view, setup_class, configuration_class_gui, x, y, linked_group_number=None):
+    def __init__(self, model, view, setup_class, configuration_class_gui, *, position=None, linked_group_number=None):
         self.__setup_class = setup_class
         self.__configuration_class_gui = configuration_class_gui
         self.__setup_attributes_gui = []
         self.__connections = [] # Directional connections between setup classes
         self.__script_marker_indicators = [] # Indicators created by scripts
         
-        super().__init__(model, view, self.__setup_class.get_instance_name(), x, y, CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, linked_group_number)
+        super().__init__(model, view, self.__setup_class.get_instance_name(), CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, position=position, linked_group_number=linked_group_number)
         
         configuration_class_gui.add_setup_class_gui(self)
         
@@ -29,25 +29,24 @@ class GUISetupClass(GUIClass):
         self.update_text()
         
     @staticmethod
-    def new(model, view, configuration_class_gui, x, y):
+    def new(model, view, configuration_class_gui, position=None):
         setup_class = configuration_class_gui.get_configuration_class().create_setup_version()
-        return GUISetupClass(model, view, setup_class, configuration_class_gui, x, y)
+        return GUISetupClass(model, view, setup_class, configuration_class_gui, position=position)
         
     @staticmethod
-    def linked_copy(view, setup_class_gui, x, y):
+    def linked_copy(view, setup_class_gui, position=None):
         return GUISetupClass(setup_class_gui.get_model(), \
                              view, \
                              setup_class_gui.get_setup_class(), \
                              setup_class_gui.get_configuration_class_gui(), \
-                             x, \
-                             y, \
-                             setup_class_gui.get_linked_group_number())
+                             position=position, \
+                             linked_group_number=setup_class_gui.get_linked_group_number())
         
     def right_pressed(self, event):
         self.open_options()
         
     def open_options(self):
-        return OptionsSetupClass(self.get_model(), self, self.get_model().get_setup_views())
+        return Options.setup_class(self.get_model(), self.get_view(), self, self.get_model().get_setup_views())
         
     def move_block(self, move_x, move_y):
         super().move_block(move_x, move_y)
@@ -55,11 +54,11 @@ class GUISetupClass(GUIClass):
         for script_marker_indicator in self.__script_marker_indicators:
             script_marker_indicator.move(move_x, move_y)
             
-    def scale(self, last_length_unit):
-        super().scale(last_length_unit)
+    def scale(self, new_length_unit, last_length_unit):
+        super().scale(new_length_unit, last_length_unit)
         
         for script_marker_indicator in self.__script_marker_indicators:
-            script_marker_indicator.scale(last_length_unit)
+            script_marker_indicator.scale(new_length_unit, last_length_unit)
             
     def is_adjacent(self, coordinates):
         """

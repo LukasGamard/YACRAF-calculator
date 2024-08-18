@@ -73,32 +73,35 @@ class Model:
         key = event.keysym
         self.__currently_pressed_keys.add(key.lower())
         
-        # Delete a selected block
-        if key == "BackSpace":
-            items_to_delete = []
-            
-            for selected_item in list(self.__current_view.get_selected_items()):
-                if not isinstance(selected_item, GUISetupAttribute):
-                    items_to_delete.append(selected_item)
-                    
-            delete_all(items_to_delete, True)
-            
-        # Reset a held connection
-        elif key == "Escape":
-            self.__current_view.reset_held_connection(True)
-            
-        # Edit a selected block, or the current view if no block is selected
-        elif key.lower() == "e":
-            selected_items = list(self.__current_view.get_selected_items())
-            
-            if len(selected_items) > 0:
-                for selected_item in selected_items:
-                    selected_item.open_options()
-                    
-            # If the canvas is in focus (not typing in an entry), open the view configuration
-            elif self.__root.focus_get() == self.__current_view.get_canvas():
-                self.__current_view.open_options()
+        # If the canvas is in focus (not typing in an entry)
+        if self.__root.focus_get() == self.__current_view.get_canvas():
+            # Delete a selected block
+            if key == "BackSpace":
+                items_to_delete = []
                 
+                for selected_item in list(self.__current_view.get_selected_items()):
+                    if not isinstance(selected_item, GUISetupAttribute):
+                        items_to_delete.append(selected_item)
+                        
+                delete_all(items_to_delete, True)
+                
+            # Reset a held connection
+            elif key == "Escape":
+                self.__current_view.reset_held_connection(True)
+                
+            # Edit a selected block, or the current view if no block is selected
+            elif key.lower() == "e":
+                selected_items = list(self.__current_view.get_selected_items())
+                
+                # Open the options for the selected block
+                if len(selected_items) > 0:
+                    for selected_item in selected_items:
+                        selected_item.open_options()
+                        
+                # Open the options for the view
+                else:
+                    self.__current_view.open_options()
+                    
     def on_key_release(self, event):
         """
         When releasing a key on the keyboard
@@ -142,7 +145,7 @@ class Model:
             
         return linked_configuration_classes_gui
         
-    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_configuration_class_gui(self, configuration_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, position=None):
         """
         Creates a linked copy of a configuration class in a specified view
         """
@@ -150,7 +153,7 @@ class Model:
         self.attempt_to_create_linked_group(configuration_class_gui_to_copy, view_to_copy_to, self.__linked_configuration_groups_per_number, linked_group_number)
         
         # Create new linked copy and add it to the group
-        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui(configuration_class_gui_to_copy=configuration_class_gui_to_copy, x=x, y=y)
+        linked_configuration_class_gui = view_to_copy_to.create_configuration_class_gui(configuration_class_gui_to_copy=configuration_class_gui_to_copy, position=position)
         self.__linked_configuration_groups_per_number[linked_configuration_class_gui.get_linked_group_number()].append(linked_configuration_class_gui)
         
         return linked_configuration_class_gui
@@ -187,7 +190,7 @@ class Model:
         
         return linked_setup_classes_gui
         
-    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, x=GUI_BLOCK_START_COORDINATES[0][0], y=GUI_BLOCK_START_COORDINATES[0][1]):
+    def create_linked_setup_class_gui(self, setup_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, position=None):
         """
         Creates a linked copy of a setup class in a specified view
         """
@@ -195,7 +198,7 @@ class Model:
         self.attempt_to_create_linked_group(setup_class_gui_to_copy, view_to_copy_to, self.__linked_setup_groups_per_number, linked_group_number)
         
         # Create new linked copy and add it to the group
-        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(setup_class_gui_to_copy=setup_class_gui_to_copy, x=x, y=y)
+        linked_setup_class_gui = view_to_copy_to.create_setup_class_gui(setup_class_gui_to_copy=setup_class_gui_to_copy, position=position)
         self.__linked_setup_groups_per_number[linked_setup_class_gui.get_linked_group_number()].append(linked_setup_class_gui)
         
         return linked_setup_class_gui
@@ -310,11 +313,11 @@ class Model:
         new_view.grid(row=0, column=0, sticky="nswe")
         
         # Add button to change to other view from the new view
-        for i, configuration_view in enumerate(self.__configuration_views):
-            new_view.add_change_view_button(CHANGE_VIEW_CONFIGURATION_START_POSITION[0], CHANGE_VIEW_CONFIGURATION_START_POSITION[1]+i*CHANGE_VIEW_HEIGHT, configuration_view, False)
+        for configuration_view in self.__configuration_views:
+            new_view.add_change_view_button(configuration_view, True)
             
-        for i, setup_view in enumerate(self.__setup_views):
-            new_view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], CHANGE_VIEW_SETUP_START_POSITION[1]+i*CHANGE_VIEW_HEIGHT, setup_view, True)
+        for setup_view in self.__setup_views:
+            new_view.add_change_view_button(setup_view, False)
             
         # Add the new view to the list of existing ones
         if is_configuration_view:
@@ -324,12 +327,8 @@ class Model:
             
         # Add button to change to the new view to all existing views
         for view in self.__configuration_views + self.__setup_views:
-            if is_configuration_view:
-                view.add_change_view_button(CHANGE_VIEW_CONFIGURATION_START_POSITION[0], (len(self.__configuration_views)-1)*CHANGE_VIEW_HEIGHT, new_view, False)
-                
-            else:
-                view.add_change_view_button(CHANGE_VIEW_SETUP_START_POSITION[0], (len(self.__setup_views)-1)*CHANGE_VIEW_HEIGHT, new_view, True)
-                
+            view.add_change_view_button(new_view, is_configuration_view)
+            
         # If setup view, add buttons to add classes from configuration views to the setup view 
         if not is_configuration_view:
             seen_configuration_classes = set() # To ensure a button for every linked copy of a configuration class is not added
