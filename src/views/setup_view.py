@@ -146,6 +146,7 @@ class SetupView(View):
         Creates a button for adding a class from a configuration view to this setup view
         """
         self.__to_setup_buttons.append(TouchButton.add_to_setup(self.get_model(), self, configuration_class_gui, current_number_of_buttons))
+        self.update_add_to_setup_button_order()
         
     def remove_add_to_setup_button(self, to_setup_button):
         """
@@ -160,6 +161,20 @@ class SetupView(View):
         for to_setup_button_to_move in self.__to_setup_buttons[button_index:]:
             to_setup_button_to_move.move_block(0, -ADD_TO_SETUP_HEIGHT)
             
+    def update_add_to_setup_button_order(self):
+        """
+        Updates the stored and displayed order of buttons creating a setup class from a configuration class
+        """
+        to_setup_buttons_with_index = list(enumerate(self.__to_setup_buttons)) # List of tuples (index, to_setup_button)
+        sorted_to_setup_buttons = sorted(to_setup_buttons_with_index, key=lambda x: x[1].get_text())
+        
+        for i, to_setup_button_with_index in enumerate(sorted_to_setup_buttons):
+            previous_index, to_setup_button = to_setup_button_with_index
+            
+            to_setup_button.move_block(0, (i - previous_index) * CHANGE_VIEW_HEIGHT)
+            
+        self.__to_setup_buttons = [to_setup_button for _, to_setup_button in sorted_to_setup_buttons]
+        
     def save(self):
         """
         Saves the state of the view

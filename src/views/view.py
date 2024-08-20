@@ -199,31 +199,17 @@ class View(tk.Frame):
             change_view_buttons = self.__setup_change_view_buttons
             self.__add_change_setup_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
             
-        found_deleted = False
+        button_to_remove = change_view_buttons[view_to_remove]
         
         # Move up all buttons that change view that are after the removed button
-        for current_view, change_view_button in change_view_buttons.items():
-            if current_view == view_to_remove:
-                found_deleted = True
-                
-            # Move up all buttons for changing view
-            elif found_deleted:
+        for change_view_button in change_view_buttons.values():
+            if change_view_button.get_y() > button_to_remove.get_y():
                 change_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
                 
         # Remove the button to change view
-        change_view_buttons[view_to_remove].delete()
+        button_to_remove.delete()
         change_view_buttons.pop(view_to_remove)
         
-    def set_text_change_view_button(self, view_with_changed_name, text):
-        """
-        Change the text of a specific change view button within this view
-        """
-        if view_with_changed_name in self.__configuration_change_view_buttons:
-            self.__configuration_change_view_buttons[view_with_changed_name].set_text(text)
-            
-        elif view_with_changed_name in self.__setup_change_view_buttons:
-            self.__setup_change_view_buttons[view_with_changed_name].set_text(text)
-            
     def move_change_view_button(self, view_to_move, up):
         """
         Moves a change view button up or down a step
@@ -238,6 +224,16 @@ class View(tk.Frame):
             
         elif view_to_move in self.__setup_change_view_buttons:
             self.__setup_change_view_buttons[view_to_move].move_block(0, to_move)
+            
+    def set_text_change_view_button(self, view_with_changed_name, text):
+        """
+        Change the text of a specific change view button within this view
+        """
+        if view_with_changed_name in self.__configuration_change_view_buttons:
+            self.__configuration_change_view_buttons[view_with_changed_name].set_text(text)
+            
+        elif view_with_changed_name in self.__setup_change_view_buttons:
+            self.__setup_change_view_buttons[view_with_changed_name].set_text(text)
             
     def get_selected_items(self):
         return self.__selected_items

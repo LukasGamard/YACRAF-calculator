@@ -1,4 +1,5 @@
 import numpy as np
+import tkinter.font as tkfont
 from config import *
 
 def convert_value_to_string(value):

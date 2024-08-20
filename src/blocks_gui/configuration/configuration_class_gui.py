@@ -177,6 +177,8 @@ class GUIConfigurationClass(GUIClass):
         for to_setup_button in self.__to_setup_buttons.values():
             to_setup_button.set_text(name)
             
+        self.get_model().update_add_to_setup_button_order()
+        
     def update_value_input_types(self, specific_attribute_index=None):
         """
         Update the value input type of setup attributes (entry for manual input or text that is updated when calculating values)

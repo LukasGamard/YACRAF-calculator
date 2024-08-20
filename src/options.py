@@ -161,7 +161,7 @@ class Options:
                                              1, \
                                              setup_view.get_name(), \
                                              lambda setup_view=setup_view: model.create_linked_setup_class_gui(setup_class_gui, setup_view))
-        
+            
     @staticmethod
     def connection(model, view, connection):
         """
@@ -237,8 +237,8 @@ class Options:
         Adds buttons to change the order of objects
         """
         self.add_label(row, column, text)
-        self.add_button(row+1, column, "Move up", command_up)
-        self.add_button(row+2, column, "Move down", command_down)
+        self.add_button(row+1, column, "Up", command_up)
+        self.add_button(row+2, column, "Down", command_down)
         
     def add_radio_button(self, row, column, text, is_selected, command):
         """

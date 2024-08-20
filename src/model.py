@@ -271,7 +271,7 @@ class Model:
         
     def swap_view_places(self, view_to_move, move_up):
         """
-        Switches the order that two views are stored and their corresonding buttons appear in based on whether a specific view should be move up or down
+        Switches the order that two views are stored and the order their buttons appear based on whether a specified view should move up or down
         """
         views_to_consider_moving = []
         
@@ -284,23 +284,23 @@ class Model:
             
         view_index = views_to_consider_moving.index(view_to_move)
         
+        if move_up:
+            view_to_swap_with_index = view_index - 1
+        else:
+            view_to_swap_with_index = view_index + 1
+            
         # Swap views if there is a view to swap position with
         if (move_up and view_index > 0) or (not move_up and view_index < len(views_to_consider_moving) - 1):
             for view in self.__configuration_views + self.__setup_views:
-                if move_up:
-                    view.move_change_view_button(views_to_consider_moving[view_index], True)
-                    view.move_change_view_button(views_to_consider_moving[view_index-1], False)
-                    
-                else:
-                    view.move_change_view_button(views_to_consider_moving[view_index], False)
-                    view.move_change_view_button(views_to_consider_moving[view_index+1], True)
-                    
-            if move_up:
-                views_to_consider_moving[view_index], views_to_consider_moving[view_index-1] = views_to_consider_moving[view_index-1], views_to_consider_moving[view_index]
+                view.move_change_view_button(views_to_consider_moving[view_index], move_up)
+                view.move_change_view_button(views_to_consider_moving[view_to_swap_with_index], not move_up)
                 
-            else:
-                views_to_consider_moving[view_index], views_to_consider_moving[view_index+1] = views_to_consider_moving[view_index+1], views_to_consider_moving[view_index]
-                
+            views_to_consider_moving[view_index], views_to_consider_moving[view_to_swap_with_index] = views_to_consider_moving[view_to_swap_with_index], views_to_consider_moving[view_index]
+            
+    def update_add_to_setup_button_order(self):
+        for setup_view in self.__setup_views:
+            setup_view.update_add_to_setup_button_order()
+            
     def create_view(self, is_configuration_view, view_name):
         """
         Creates a new view, including buttons to navigate to the new view from existing ones

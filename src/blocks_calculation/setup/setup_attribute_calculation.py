@@ -5,7 +5,7 @@ class SetupAttribute:
         self.__setup_class = setup_class
         self.__configuration_attribute = configuration_attribute
         self.__value = None # String or None
-        self.__override_value = None
+        self.__override_value = None # String or None
         
     def has_setup_class(self, setup_class):
         return self.__setup_class == setup_class
@@ -39,12 +39,12 @@ class SetupAttribute:
         return self.__override_value
         
     def set_override_value(self, override_value):
-        self.__override_value = override_value
+        self.__override_value = str(override_value)
         
     def reset_override_value(self):
         self.__override_value = None
         
-    def has_connected_setup_attributes(self, ):
+    def has_connected_setup_attributes(self):
         return len(self.get_connected_setup_attributes()) > 0
         
     def calculate_value(self):

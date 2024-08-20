@@ -19,18 +19,21 @@ class ScriptInterface:
         """
         Returns a list of class names (those specified in configuration views) found in the specified setup views
         """
+        self.check_type([view], str)
         return list(self.__setup_structure.get_names([view]))
         
     def get_class_instance_names(self, class_type, view=None):
         """
         Returns a list of class instance names (those specified in setup views) found in the specified setup views
         """
+        self.check_type([view, class_type], str)
         return list(self.__setup_structure.get_names([view, class_type]))
         
     def get_attribute_names(self, class_type):
         """
         Returns a list of attribute names for a specific class type
         """
+        self.check_type([class_type], str)
         class_instance_name = self.get_class_instance_names(class_type)[0]
         return list(self.__setup_structure.get_names([None, class_type, class_instance_name]))
         
@@ -38,6 +41,7 @@ class ScriptInterface:
         """
         Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input from
         """
+        self.check_type([class_type, class_instance, input_class_type, input_class_instance, view], str)
         input_class_names = set()
         
         for setup_class_gui in self.__setup_structure.get_elements([view, class_type, class_instance]):
@@ -54,6 +58,7 @@ class ScriptInterface:
         """
         Returns the value displayed by a specific setup attribute, which is a list if there are overlapping attribute names for a specific class type
         """
+        self.check_type([class_type, class_instance, attribute, view], str)
         attributes_values = None
         
         for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
@@ -91,12 +96,17 @@ class ScriptInterface:
         if isinstance(attribute_value, (np.ndarray, list)):
             return convert_value_to_string(attribute_value)
             
+        self.check_convert_to_type(attribute_value, str)
+        
         return str(attribute_value)
         
     def override_attribute_values(self, override_value, *, class_type=None, class_instance=None, attribute=None, view=None):
         """
         Overrides the displayed value of matching attributes with a temporary one
         """
+        self.check_type([class_type, class_instance, attribute, view], str)
+        self.check_convert_to_type(override_value, str)
+        
         for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
             setup_attribute_gui.get_setup_attribute().set_override_value(override_value)
             
@@ -104,6 +114,8 @@ class ScriptInterface:
         """
         Resets any override value of matching attributes
         """
+        self.check_type([class_type, class_instance, attribute, view], str)
+        
         for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
             setup_attribute_gui.attempt_to_reset_override_value()
             
@@ -111,6 +123,9 @@ class ScriptInterface:
         """
         Adds a visual marker on all matching class instances
         """
+        self.check_type([class_type, class_instance, view], str)
+        self.check_convert_to_type(value, str)
+        
         for setup_class_gui in self.__setup_structure.get_elements([view, class_type, class_instance]):
             setup_class_gui.create_script_marker_indicator(value, color)
             
@@ -126,7 +141,33 @@ class ScriptInterface:
         """
         self.__model.reset_script_changes()
         
+    def check_type(self, list_to_check, type_to_check):
+        """
+        Checks if each element in a list is of a specified type
+        
+        list_to_check: List of elements to check
+        types_to_check: Type or tuple of types
+        """
+        for element_to_check in list_to_check:
+            if element_to_check != None and not isinstance(element_to_check, type_to_check):
+                raise TypeError(f"Expected type {type_to_check}, but {element_to_check} was {type(element_to_check)}")
+                
+    def check_convert_to_type(self, to_check, type_to_convert_to):
+        """
+        Checks if a variable can be converted to a specified type
+        
+        to_check: Variable to check if it can be correctly converted
+        type_to_convert_to: Type or tuple of types
+        """
+        try:
+            converted_value = type_to_convert_to(to_check)
+        except (TypeError, ValueError):
+            raise TypeError(f"Cannot convert {to_check} of type {type(to_check)} to {type_to_convert_to}")
+            
     def update_setup_structure(self):
+        """
+        Creates a new structure of all blocks within all current views
+        """
         self.__setup_structure = SetupStructureNode()
         
         for setup_view in self.__model.get_setup_views():

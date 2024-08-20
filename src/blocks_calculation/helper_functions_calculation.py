@@ -80,7 +80,7 @@ def extract_input_values(symbol_calculation_type, input_configuration_attributes
         input_symbol_value_type = input_setup_attribute.get_symbol_value_type()
         setup_input_scalars = setup_input_scalars_per_attribute[i]
         
-        # Get currently active value
+        # Get currently active value (represented using a string)
         if input_setup_attribute.has_override_value():
             input_value = input_setup_attribute.get_override_value()
         else:
