@@ -1,4 +1,5 @@
-from helper_functions_calculation import combine_values
+from general_calculations import combine_values
+from config import *
 
 class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):
@@ -32,17 +33,23 @@ class SetupAttribute:
             
         return False
         
-    def has_override_value(self):
-        return self.__override_value != None
-        
     def get_override_value(self):
         return self.__override_value
         
     def set_override_value(self, override_value):
         self.__override_value = str(override_value)
         
+    def has_override_value(self):
+        return self.__override_value != None
+        
     def reset_override_value(self):
         self.__override_value = None
+        
+    def get_current_value(self):
+        if self.__override_value != None:
+            return self.__override_value
+            
+        return self.__value
         
     def has_connected_setup_attributes(self):
         return len(self.get_connected_setup_attributes()) > 0
@@ -65,15 +72,21 @@ class SetupAttribute:
             connected_setup_attribute.calculate_value()
             
         # Then calculate the value of this setup attribute considering all dependent connected setup attributes
-        self.__value = combine_values(self.__configuration_attribute.get_symbol_calculation_type(), \
-                                      self.__configuration_attribute.get_symbol_value_type(), \
-                                      self.__configuration_attribute.get_input_configuration_attributes(), \
-                                      connected_setup_attributes, \
-                                      configuration_input_scalar=self.__configuration_attribute.get_input_scalar(), \
-                                      setup_input_scalars_per_attribute=setup_input_scalars_per_attribute)
+        input_configuration_attributes = list(self.__configuration_attribute.get_input_configuration_attributes().keys())
+        value_type = self.__configuration_attribute.get_value_type()
+        calculation_type = self.__configuration_attribute.get_calculation_type()
         
-    def get_symbol_value_type(self):
-        return self.__configuration_attribute.get_symbol_value_type()
+        if value_type.correctly_connected(calculation_type, input_configuration_attributes) and \
+           calculation_type.correct_input_attribute_value_types(input_configuration_attributes):
+            self.__value = combine_values(value_type, \
+                                          calculation_type, \
+                                          connected_setup_attributes, \
+                                          setup_input_scalars_per_attribute, \
+                                          self.__configuration_attribute, \
+                                          settings.get_num_samples())
+            
+    def get_value_type(self):
+        return self.__configuration_attribute.get_value_type()
         
     def has_configuration_attribute(self, configuration_attribute):
         return self.__configuration_attribute == configuration_attribute

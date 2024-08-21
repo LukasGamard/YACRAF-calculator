@@ -112,7 +112,7 @@ class GUISetupAttribute(GUIModelingBlock):
         
         # No manual entry as it takes input from connected attributes
         if has_currently_connected_inputs and \
-           self.__configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != SYMBOL_CALCULATION_TYPE_QUALITATIVE:
+           self.__configuration_attribute_gui.get_configuration_attribute().get_calculation_type() != CalculationTypeQualitative:
             self.switch_to_value_label(clear_value)
         else:
             self.switch_to_value_entry(clear_value)
@@ -150,7 +150,14 @@ class GUISetupAttribute(GUIModelingBlock):
             
             # Reset any calculated value as the input now should be entered manually, where a default value is entered
             if clear_value:
-                self.__setup_attribute.set_value("Value")
+                value_type = self.__configuration_attribute_gui.get_value_type()
+                
+                if value_type != None:
+                    value = value_type.default_text()
+                else:
+                    value = "Value"
+                    
+                self.__setup_attribute.set_value(value)
                 self.update_displayed_value()
                 
             # When starting to edit the entered value, unselect all blocks to avoid accidentally deleting them

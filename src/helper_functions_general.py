@@ -1,6 +1,5 @@
 import numpy as np
 import tkinter.font as tkfont
-from config import *
 
 def convert_value_to_string(value):
     """
@@ -112,6 +111,8 @@ def get_triangle_coordinates(view, x, y, direction):
     """
     Returns the corner coordinates of a triangle based on the direction which the triangle should point in
     """
+    from config import CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT
+    
     # default coordinates for each corner in a square
     upper_left = [x, y]
     upper_right = [x+CONNECTION_END_WIDTH, y]
@@ -166,6 +167,8 @@ def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
     
     Returns the font size that should be used in a text field on the canvas given considering the current scaling (zoom) level and whether there is a line break (need to lower font size further)
     """
+    from config import LENGTH_UNIT, FONT, FONT_DECREASE_LINE_BREAK
+    
     new_font_size = int(FONT[1] * length_unit / LENGTH_UNIT + 0.5)
     
     if has_line_break:
@@ -197,10 +200,10 @@ def delete_all(to_delete_list, manual_delete=False):
     """
     Calls the delete method of all elements in to_delete_list
     """
+    from configuration_attribute_gui import GUIConfigurationAttribute
+    from connection_blocks_gui import GUIConnectionCorner, GUIConnectionScalarsIndicator
+    
     for i in range(len(to_delete_list)-1, -1, -1):
-        from configuration_attribute_gui import GUIConfigurationAttribute
-        from connection_blocks_gui import GUIConnectionCorner, GUIConnectionScalarsIndicator
-        
         if manual_delete and isinstance(to_delete_list[i], (GUIConfigurationAttribute, GUIConnectionCorner, GUIConnectionScalarsIndicator)):
             to_delete_list[i].delete(True)
         else:

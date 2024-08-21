@@ -161,21 +161,24 @@ class GUIConfigurationAttribute(GUIModelingBlock):
         self.__configuration_attribute.set_name(name)
         self.update_text()
         
-    def get_symbol_value_type(self):
-        return self.__configuration_attribute.get_symbol_value_type()
+    def get_value_type(self):
+        return self.__configuration_attribute.get_value_type()
         
-    def set_symbol_value_type(self, symbol_value_type):
+    def set_value_type(self, value_type):
         """
         Sets the value type of the attribute, such as a single value or a triangle distribution
         """
-        self.__configuration_attribute.set_symbol_value_type(symbol_value_type)
+        self.__configuration_attribute.set_value_type(value_type)
         self.update_text()
         
-    def set_calculation_type(self, symbol_calculation_type):
+    def get_calculation_type(self):
+        return self.__configuration_attribute.get_calculation_type()
+        
+    def set_calculation_type(self, calculation_type):
         """
         Sets the mathematical operation performed between input values
         """
-        self.__configuration_attribute.set_symbol_calculation_type(symbol_calculation_type)
+        self.__configuration_attribute.set_calculation_type(calculation_type)
         
         # Update value entry type (manual entry or calculated value) of setup versions
         for setup_attribute_gui in self.__setup_attributes_gui:
@@ -195,15 +198,26 @@ class GUIConfigurationAttribute(GUIModelingBlock):
     def reset_input_scalar(self):
         self.__configuration_attribute.reset_input_scalar()
         
+    def get_input_offset(self):
+        return self.__configuration_attribute.get_input_offset()
+        
+    def set_input_offset(self, input_offset):
+        self.__configuration_attribute.set_input_offset(input_offset)
+        
+    def reset_input_offset(self):
+        self.__configuration_attribute.reset_input_offset()
+        
     def get_attribute_text(self):
         """
         Returns the text that should be shown on the GUI attribute
         """
         text = ""
-        is_bold = self.__configuration_attribute.get_symbol_calculation_type() != None
+        is_bold = self.get_calculation_type() != None
         
-        if self.__configuration_attribute.get_symbol_value_type() != None:
-            text = f"{self.__configuration_attribute.get_name()} ({self.__configuration_attribute.get_symbol_value_type()})"
+        symbol_value_type = self.__configuration_attribute.get_value_type().symbol()
+        
+        if symbol_value_type != None:
+            text = f"{self.__configuration_attribute.get_name()} ({symbol_value_type})"
         else:
             text = f"{self.__configuration_attribute.get_name()}"
             
@@ -257,6 +271,7 @@ class GUIConfigurationAttribute(GUIModelingBlock):
     def save_state(self):
         return {"configuration_attribute_gui": str(self), \
                 "name": self.get_name(), \
-                "symbol_value_type": self.__configuration_attribute.get_symbol_value_type(), \
+                "value_type": self.__configuration_attribute.get_value_type(), \
                 "input_scalar": self.get_input_scalar(), \
+                "input_offset": self.get_input_offset(), \
                 "is_hidden": self.is_hidden()}

@@ -14,7 +14,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         self.__model = model
         self.__view = view
-        self.__input_scalars = [DEFAULT_INPUT_SCALAR]
+        self.__input_scalars = [1]
         self.__input_scalars_indicator = None
         super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
         
@@ -114,18 +114,30 @@ class GUIConnectionWithBlocks(GUIConnection):
         return self.__input_scalars
         
     def set_input_scalars(self, input_scalars):
-        self.__input_scalars = input_scalars
+        should_reset = True
         
-        start_setup_class_gui = self.get_start_setup_class_gui()
-        end_setup_class_gui = self.get_end_setup_class_gui()
-        
-        if start_setup_class_gui != None and end_setup_class_gui != None:
-            end_setup_class_gui.get_setup_class().set_input_setup_class(start_setup_class_gui.get_setup_class(), input_scalars) # Update input scalars
+        for input_scalar in input_scalars:
+            if input_scalar != 1:
+                should_reset = False
+                break
+                
+        if should_reset:
+            self.reset_input_scalars()
             
-        self.update_input_scalars_indicator()
-        
+        else:
+            self.__input_scalars = input_scalars
+            
+            start_setup_class_gui = self.get_start_setup_class_gui()
+            end_setup_class_gui = self.get_end_setup_class_gui()
+            
+            if start_setup_class_gui != None and end_setup_class_gui != None:
+                end_setup_class_gui.get_setup_class().set_input_setup_class(start_setup_class_gui.get_setup_class(), input_scalars) # Update input scalars
+                
+            self.update_input_scalars_indicator()
+            
     def reset_input_scalars(self):
-        self.set_input_scalars([DEFAULT_INPUT_SCALAR])
+        self.__input_scalars = [1]
+        self.update_input_scalars_indicator()
         
     def get_input_scalars_string(self):
         """
@@ -140,10 +152,11 @@ class GUIConnectionWithBlocks(GUIConnection):
         if self.__input_scalars_indicator != None:
             self.__input_scalars_indicator.delete()
             
-        if not (len(self.__input_scalars) == 1 and self.__input_scalars[0] == DEFAULT_INPUT_SCALAR):
-            if (len(self.__input_scalars) == 1 and self.__input_scalars[0] != DEFAULT_INPUT_SCALAR) or len(self.__input_scalars) == 3:
-                self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
-                
+        # Show indicator unless default value
+        if not (len(self.__input_scalars) == 1 and self.__input_scalars[0] == 1):
+            self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
+            self.correct_scalars_indicator_location()
+            
     def correct_scalars_indicator_location(self):
         """
         Adjusts the position of the input scalars indicator to align with the grid, if the indicator exists

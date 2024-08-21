@@ -89,6 +89,7 @@ class GUIConnection:
         self.__end_block.add_connection(self)
         
         self.create_new_lines()
+        self.__view.update_shown_order()
         
     def update_direction(self, affected_block, new_direction):
         """
@@ -258,7 +259,7 @@ class GUIConnection:
             
             return False
             
-    def attempt_to_set_number(self):
+    def attempt_to_create_number_indicator(self):
         """
         Will add an indicator for the order which this connection has been connected to a specific input block (important for some mathematical operations) if it has a specific number
         """
@@ -272,7 +273,7 @@ class GUIConnection:
             
             self.__num_order_indicator = GUICircleIndicator(self.__view, num_order_x, num_order_y, NUM_ORDER_CIRCLE_RADIUS, NUM_ORDER_CIRCLE_COLOR, NUM_ORDER_CIRCLE_OUTLINE, self.__num_order)
             
-    def attempt_to_remove_number(self):
+    def attempt_to_remove_number_indicator(self):
         """
         Removes indicator for which order the connection has been connected to a specific input block if such an indicator exists
         """
@@ -308,7 +309,7 @@ class GUIConnection:
                 
             self.__lines.append(line)
             
-        self.attempt_to_set_number()
+        self.attempt_to_create_number_indicator()
         
     def convert_direction_to_vector(self, direction):
         """
@@ -453,7 +454,7 @@ class GUIConnection:
         for line in self.__lines:
             self.__view.get_canvas().delete(line)
             
-        self.attempt_to_remove_number()
+        self.attempt_to_remove_number_indicator()
         
         self.__lines.clear()
         
@@ -462,8 +463,11 @@ class GUIConnection:
         Sets the number which is displayed to indicate which order connections have been connected to an input block
         """
         self.__num_order = num_order
-        self.attempt_to_remove_number()
-        self.attempt_to_set_number()
+        self.attempt_to_remove_number_indicator()
+        self.attempt_to_create_number_indicator()
+        
+    def reset_num_order(self):
+        self.set_num_order(None)
         
     def is_external(self):
         """
@@ -480,6 +484,7 @@ class GUIConnection:
                                                                                                                                     not is_external)
         
         self.create_new_lines()
+        self.__view.update_shown_order()
         
     def delete(self):
         if not self.__is_deleted:

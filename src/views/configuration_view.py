@@ -30,7 +30,7 @@ class ConfigurationView(View):
         # Create new
         if configuration_class_gui_to_copy == None:
             configuration_class_gui = GUIConfigurationClass.new(self.get_model(), self, position)
-            self.get_model().create_add_to_setup_buttons(configuration_class_gui, self.get_model().get_num_configuration_classes()) # Add buttons to add the setup class version
+            self.get_model().create_add_to_setup_buttons(configuration_class_gui) # Add buttons to add the setup class version
             
         # Create linked copy
         else:
@@ -129,8 +129,8 @@ class ConfigurationView(View):
                 grid_offset, saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 
-                mapping_configuration_class_gui = {}
-                mapping_configuration_attribute_gui = {}
+                mapping_configuration_class_gui = {} # Maps class IDs of GUI configuration classes from previous save to the IDs of the newly created classes
+                mapping_configuration_attribute_gui = {} # Maps class IDs of GUI configuration attributes from previous save to the IDs of the newly created classes
                 
                 # Restore configuration classes
                 for saved_states_configuration_class_gui in saved_states_configuration_classes_gui:
@@ -143,7 +143,6 @@ class ConfigurationView(View):
                                                                                                          self, \
                                                                                                          linked_group_number=linked_group_number, \
                                                                                                          position=position)
-                        
                     else:
                         configuration_class_gui = self.create_configuration_class_gui(position=position)
                         
@@ -153,8 +152,6 @@ class ConfigurationView(View):
                         # Set configuration class data
                         configuration_class_gui.set_name(saved_states_configuration_class_gui["name"])
                         
-                        mapping_configuration_class_gui[saved_states_configuration_class_gui["configuration_class_gui"]] = configuration_class_gui
-                            
                         # Restore configuration attributes
                         for saved_states_configuration_attribute_gui in saved_states_configuration_class_gui["configuration_attributes_gui"]:
                             # Create configuration attribute
@@ -163,12 +160,16 @@ class ConfigurationView(View):
                             
                             # Set configuration attribute data
                             configuration_attribute_gui.set_name(saved_states_configuration_attribute_gui["name"])
-                            configuration_attribute_gui.set_symbol_value_type(saved_states_configuration_attribute_gui["symbol_value_type"])
+                            configuration_attribute_gui.set_value_type(saved_states_configuration_attribute_gui["value_type"])
                             configuration_attribute_gui.set_input_scalar(saved_states_configuration_attribute_gui["input_scalar"])
+                            configuration_attribute_gui.set_input_offset(saved_states_configuration_attribute_gui["input_offset"])
                             configuration_attribute_gui.set_hidden(saved_states_configuration_attribute_gui["is_hidden"])
                             
-                            mapping_configuration_attribute_gui[saved_states_configuration_attribute_gui["configuration_attribute_gui"]] = configuration_attribute_gui
-                            
+                    mapping_configuration_class_gui[saved_states_configuration_class_gui["configuration_class_gui"]] = configuration_class_gui
+                    
+                    for saved_states_configuration_attribute_gui, configuration_attribute_gui in zip(saved_states_configuration_class_gui["configuration_attributes_gui"], configuration_class_gui.get_configuration_attributes_gui()):
+                        mapping_configuration_attribute_gui[saved_states_configuration_attribute_gui["configuration_attribute_gui"]] = configuration_attribute_gui
+                    
                 # Restore configuration inputs
                 for saved_states_configuration_input_gui in saved_states_configuration_inputs_gui:
                     # Create configuration input
@@ -176,22 +177,22 @@ class ConfigurationView(View):
                     
                     # Set configuration input data
                     configuration_input_gui.attempt_to_attach_to_attribute()
-                    symbol_calculation_type = saved_states_configuration_input_gui["symbol_calculation_type"]
+                    calculation_type = saved_states_configuration_input_gui["calculation_type"]
                     
-                    if symbol_calculation_type != "":
-                        configuration_input_gui.set_symbol_calculation_type(symbol_calculation_type)
+                    if calculation_type != "":
+                        configuration_input_gui.set_calculation_type(calculation_type)
                         
                     # Restore configuration connections
                     for saved_states_connection in saved_states_configuration_input_gui["connections"]:
                         connection = GUIConnection(self.get_model(), \
-                                self, \
-                                mapping_configuration_attribute_gui[saved_states_connection["start_block"]], \
-                                saved_states_connection["start_direction"], \
-                                end_block=configuration_input_gui, \
-                                end_direction=saved_states_connection["end_direction"], \
-                                corner_coordinates=saved_states_connection["corner_coordinates"], \
-                                is_external=saved_states_connection["is_external"])
-                                
+                                                   self, \
+                                                   mapping_configuration_attribute_gui[saved_states_connection["start_block"]], \
+                                                   saved_states_connection["start_direction"], \
+                                                   end_block=configuration_input_gui, \
+                                                   end_direction=saved_states_connection["end_direction"], \
+                                                   corner_coordinates=saved_states_connection["corner_coordinates"], \
+                                                   is_external=saved_states_connection["is_external"])
+                        
                 return mapping_configuration_class_gui
                 
         except FileNotFoundError as e:

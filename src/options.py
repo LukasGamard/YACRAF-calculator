@@ -1,7 +1,7 @@
 import tkinter as tk
 from general_gui import GUIBlock, GUIModelingBlock
 from buttons_gui import TouchButton, RadioButton, ToggleButton
-from helper_functions_general import convert_string_to_value, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_font, delete_all
+from helper_functions_general import convert_value_to_string, convert_string_to_value, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_font, delete_all
 from default_coordinate_functions import get_options_coordinate
 from config import *
 
@@ -86,9 +86,9 @@ class Options:
         """
         Options for configuration attributes
         """
-        symbol_value_type = configuration_attribute_gui.get_configuration_attribute().get_symbol_value_type()
+        value_type = configuration_attribute_gui.get_configuration_attribute().get_value_type()
         
-        options = Options(model, view, max(2, 1+len(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS)), 4, "Attribute")
+        options = Options(model, view, max(2, 1+len(VALUE_TYPES)), 4, "Attribute")
         
         entry_text = options.add_entry(0, 0, "Name:", configuration_attribute_gui.get_name())
         entry_text.trace("w", lambda *args: configuration_attribute_gui.set_name(entry_text.get()))
@@ -100,14 +100,14 @@ class Options:
         options.add_label(0, 2, "Value type:")
         initial_radio_button = None
         
-        for i, config in enumerate(ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS):
-            symbol_value_type, text, _ = config
-            is_selected = symbol_value_type == configuration_attribute_gui.get_symbol_value_type()
+        for i, value_type in enumerate(VALUE_TYPES):
+            text = value_type.explaination()
+            is_selected = value_type == configuration_attribute_gui.get_value_type()
             
             if i == 0:
-                initial_radio_button = options.add_radio_button(1, 2, text, is_selected, lambda symbol_value_type=symbol_value_type: configuration_attribute_gui.set_symbol_value_type(symbol_value_type))
+                initial_radio_button = options.add_radio_button(1, 2, text, is_selected, lambda value_type=value_type: configuration_attribute_gui.set_value_type(value_type))
             else:
-                options.add_linked_radio_button(initial_radio_button, text, is_selected, lambda symbol_value_type=symbol_value_type: configuration_attribute_gui.set_symbol_value_type(symbol_value_type))
+                options.add_linked_radio_button(initial_radio_button, text, is_selected, lambda value_type=value_type: configuration_attribute_gui.set_value_type(value_type))
                 
         options.add_label(0, 3, "Hide from setup views:")
         options.add_toggle_button(1, 3, "Hide", configuration_attribute_gui.is_hidden(), \
@@ -119,29 +119,34 @@ class Options:
         """
         Options for configuration inputs
         """
-        options = Options(model, view, max(1+len(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS), 2), 2, "Input")
+        options = Options(model, view, max(1+len(CALCULATION_TYPES), 2), 3, "Input")
         
         options.add_label(0, 0, "Operation:")
         
-        for i, config in enumerate(ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS):
-            calculation_symbol, text = config
-            is_selected = calculation_symbol == configuration_input.get_symbol_calculation_type()
+        for i, calculation_type in enumerate(CALCULATION_TYPES):
+            text = calculation_type.explaination()
+            is_selected = calculation_type == configuration_input.get_calculation_type()
             
             if i == 0:
-                initial_radio_button = options.add_radio_button(1, 0, text, is_selected, lambda calculation_symbol=calculation_symbol: configuration_input.set_symbol_calculation_type(calculation_symbol))
+                initial_radio_button = options.add_radio_button(1, 0, text, is_selected, lambda calculation_type=calculation_type: configuration_input.set_calculation_type(calculation_type))
             else:
-                options.add_linked_radio_button(initial_radio_button, text, is_selected, lambda calculation_symbol=calculation_symbol: configuration_input.set_symbol_calculation_type(calculation_symbol))
+                options.add_linked_radio_button(initial_radio_button, text, is_selected, lambda calculation_type=calculation_type: configuration_input.set_calculation_type(calculation_type))
                 
         # Add an entry field where the input scalar is specified, and set its default value
         attached_configuration_attribute_gui = configuration_input.get_attached_configuration_attribute_gui()
         
         if attached_configuration_attribute_gui != None:
-            entry_text = attached_configuration_attribute_gui.get_configuration_attribute().get_input_scalar()
+            text_scalar = convert_value_to_string([attached_configuration_attribute_gui.get_input_scalar()])
+            text_offset = convert_value_to_string([attached_configuration_attribute_gui.get_input_offset()])
         else:
-            entry_text = 1
+            text_scalar = "1"
+            text_offset = "0"
             
-        entry_text = options.add_entry(0, 1, "Scalar (float):", entry_text)
-        entry_text.trace("w", lambda *args: set_configuration_scalar(configuration_input, entry_text.get()))
+        entry_text_scalar = options.add_entry(0, 1, "Scalar (float or integer):", text_scalar)
+        entry_text_scalar.trace("w", lambda *args: set_configuration_scalar(configuration_input, entry_text_scalar.get()))
+        
+        entry_text_offset = options.add_entry(0, 2, "Offset (float or integer):", text_offset)
+        entry_text_offset.trace("w", lambda *args: set_configuration_offset(configuration_input, entry_text_offset.get()))
         
     @staticmethod
     def setup_class(model, view, setup_class_gui, setup_views):
@@ -179,7 +184,7 @@ class Options:
         entry_text = connection.get_input_scalars_string()
         
         if entry_text == None:
-            entry_text = DEFAULT_INPUT_SCALAR
+            entry_text = "1"
             
         entry_text = options.add_entry(0, 0, "Scalar (number or a / b / c):", entry_text)
         entry_text.trace("w", lambda *args: set_setup_scalars(connection, entry_text.get()))
@@ -293,11 +298,18 @@ def set_configuration_scalar(configuration_input, input_scalar_string):
         
     configuration_input.set_input_scalar(input_scalar)
     
+def set_configuration_offset(configuration_input, input_offset_string):
+    try:
+        input_offset = convert_string_to_value(input_offset_string)[0]
+    except:
+        input_offset = 0
+        
+    configuration_input.set_input_offset(input_offset)
+    
 def set_setup_scalars(connection, input_scalars_string):
     try:
         input_scalars = convert_string_to_value(input_scalars_string)
         connection.set_input_scalars(input_scalars)
-        connection.correct_scalars_indicator_location()
     except:
         connection.reset_input_scalars()
 

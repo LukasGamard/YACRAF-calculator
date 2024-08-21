@@ -7,10 +7,11 @@ class ConfigurationAttribute:
     def __init__(self, name, configuration_class):
         self.__name = name
         self.__configuration_class = configuration_class
-        self.__symbol_value_type = None
-        self.__symbol_calculation_type = None
+        self.__value_type = ValueTypeString
+        self.__calculation_type = None
         self.__input_configuration_attributes = {} # Key: input_configuration_attribute, Value: is_internal
-        self.__input_scalar = DEFAULT_INPUT_SCALAR # Float
+        self.__input_scalar = 1 # Float or integer
+        self.__input_offset = 0 # Float or integer
         self.__is_hidden = False
         
     def get_name(self):
@@ -22,17 +23,17 @@ class ConfigurationAttribute:
     def get_configuration_class(self):
         return self.__configuration_class
         
-    def get_symbol_value_type(self):
-        return self.__symbol_value_type
+    def get_value_type(self):
+        return self.__value_type
         
-    def set_symbol_value_type(self, symbol_value_type):
-        self.__symbol_value_type = symbol_value_type
+    def set_value_type(self, value_type):
+        self.__value_type = value_type
         
-    def get_symbol_calculation_type(self):
-        return self.__symbol_calculation_type
+    def get_calculation_type(self):
+        return self.__calculation_type
         
-    def set_symbol_calculation_type(self, symbol_calculation_type):
-        self.__symbol_calculation_type = symbol_calculation_type
+    def set_calculation_type(self, calculation_type):
+        self.__calculation_type = calculation_type
         
     def get_input_configuration_attributes(self):
         return self.__input_configuration_attributes
@@ -57,7 +58,16 @@ class ConfigurationAttribute:
         self.__input_scalar = input_scalar
         
     def reset_input_scalar(self):
-        self.__input_scalar = DEFAULT_INPUT_SCALAR
+        self.__input_scalar = 1
+        
+    def get_input_offset(self):
+        return self.__input_offset
+        
+    def set_input_offset(self, input_offset):
+        self.__input_offset = input_offset
+        
+    def reset_input_offset(self):
+        self.__input_offset = 0
         
     def is_hidden(self):
         return self.__is_hidden

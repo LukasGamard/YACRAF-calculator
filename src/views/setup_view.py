@@ -141,11 +141,11 @@ class SetupView(View):
         """
         self.__connections_with_blocks.remove(connection)
         
-    def create_add_to_setup_button(self, configuration_class_gui, current_number_of_buttons):
+    def create_add_to_setup_button(self, configuration_class_gui):
         """
         Creates a button for adding a class from a configuration view to this setup view
         """
-        self.__to_setup_buttons.append(TouchButton.add_to_setup(self.get_model(), self, configuration_class_gui, current_number_of_buttons))
+        self.__to_setup_buttons.append(TouchButton.add_to_setup(self.get_model(), self, configuration_class_gui, len(self.__to_setup_buttons)))
         self.update_add_to_setup_button_order()
         
     def remove_add_to_setup_button(self, to_setup_button):

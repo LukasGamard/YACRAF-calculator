@@ -48,11 +48,13 @@ class Model:
                     if view_directory == CONFIGURATION_SAVES_DIRECTORY:
                         configuration_view = self.create_view(True, view_name)
                         mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
+                        configuration_view.update_shown_order()
                         
                     # Restore saved setup view
                     elif view_directory == SETUP_SAVES_DIRECTORY:
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
+                        setup_view.update_shown_order()
                         
                 self.calculate_values()
                 
@@ -115,12 +117,12 @@ class Model:
     def is_currently_pressing_key(self, key):
         return key.lower() in self.__currently_pressed_keys
         
-    def create_add_to_setup_buttons(self, configuration_class_gui, current_number_of_buttons):
+    def create_add_to_setup_buttons(self, configuration_class_gui):
         """
         Creates and adds the button used to create a setup version of a configuration class to each existing setup view
         """
         for existing_setup_view in self.__setup_views:
-            existing_setup_view.create_add_to_setup_button(configuration_class_gui, current_number_of_buttons)
+            existing_setup_view.create_add_to_setup_button(configuration_class_gui)
             
     def remove_add_to_setup_buttons(self, to_setup_buttons):
         """
@@ -338,7 +340,7 @@ class Model:
                     configuration_class = configuration_class_gui.get_configuration_class()
                     
                     if configuration_class not in seen_configuration_classes:
-                        new_view.create_add_to_setup_button(configuration_class_gui, len(seen_configuration_classes))
+                        new_view.create_add_to_setup_button(configuration_class_gui)
                         seen_configuration_classes.add(configuration_class_gui.get_configuration_class())
                         
         return new_view

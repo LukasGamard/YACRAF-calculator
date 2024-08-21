@@ -12,8 +12,9 @@ class GUIConfigurationInput(GUIModelingBlock):
         super().__init__(model, view, "?", INPUT_WIDTH, INPUT_HEIGHT, INPUT_COLOR, position=position, bind_left=MOUSE_DRAG, bind_right=MOUSE_PRESS, tags_rect=(TAG_INPUT,), tags_text=(TAG_INPUT_TEXT,))
         self.__attached_configuration_attribute_gui = None # The attribute it is connectde to
         self.__connections = []
-        self.__symbol_calculation_type = None # Symbol representing the mathematical operation of this block
+        self.__calculation_type = None # The mathematical operation of this block
         self.__input_scalar_indicator = None
+        self.__input_offset_indicator = None
         self.__direction_out_from_block = None
         
     def left_pressed(self, event):
@@ -68,15 +69,17 @@ class GUIConfigurationInput(GUIModelingBlock):
             for connection in self.__connections:
                 connection.move_lines(move_x, move_y)
                 
-        if self.__input_scalar_indicator != None:
-            self.__input_scalar_indicator.move(move_x, move_y)
-            
+        for input_indicator in (self.__input_scalar_indicator, self.__input_offset_indicator):
+            if input_indicator != None:
+                input_indicator.move(move_x, move_y)
+                
     def scale(self, new_length_unit, last_length_unit):
         super().scale(new_length_unit, last_length_unit)
         
-        if self.__input_scalar_indicator != None:
-            self.__input_scalar_indicator.scale(new_length_unit, last_length_unit)
-            
+        for input_indicator in (self.__input_scalar_indicator, self.__input_offset_indicator):
+            if input_indicator != None:
+                input_indicator.scale(new_length_unit, last_length_unit)
+                
     def attempt_to_attach_to_attribute(self):
         """
         Attempt to attach to an adjacent GUI configuration attribute
@@ -96,12 +99,12 @@ class GUIConfigurationInput(GUIModelingBlock):
                     
                     # Update calculation type of input block but not the attribute
                     if self.__attached_configuration_attribute_gui.get_configuration_class_gui().is_linked() and \
-                       self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type() != None:
-                        self.update_symbol_calculation_type()
+                       self.__attached_configuration_attribute_gui.get_calculation_type() != None:
+                        self.update_calculation_type()
                         
                     # Updated calculation type of attribute according to the input block
                     else:
-                        self.__attached_configuration_attribute_gui.set_calculation_type(self.__symbol_calculation_type)
+                        self.__attached_configuration_attribute_gui.set_calculation_type(self.__calculation_type)
                         
                     for connection in self.__connections:
                         self.attempt_to_add_connection_to_attribute(connection)
@@ -110,7 +113,7 @@ class GUIConfigurationInput(GUIModelingBlock):
                         connection.update_direction(self, self.__direction_out_from_block)
                         
                     self.__attached_configuration_attribute_gui.update_value_input_type_setup_attributes_gui()
-                    self.update_input_scalar()
+                    self.update_input_indicators()
                     break
                     
     def attempt_to_detach_from_attribute(self):
@@ -132,6 +135,7 @@ class GUIConfigurationInput(GUIModelingBlock):
             if linked_configuration_attributes_with_input == 0:
                 self.__attached_configuration_attribute_gui.reset_calculation_type()
                 self.__attached_configuration_attribute_gui.reset_input_scalar()
+                self.__attached_configuration_attribute_gui.reset_input_offset()
                 
             for connection in self.__connections:
                 input_configuration_attribute = connection.get_start_block().get_configuration_attribute()
@@ -141,7 +145,7 @@ class GUIConfigurationInput(GUIModelingBlock):
             self.__attached_configuration_attribute_gui = None
             self.__direction_out_from_block = None
             
-            self.update_input_scalar(move_back_input=False)
+            self.update_input_indicators(move_back_input=False)
             
     def is_attached(self):
         """
@@ -155,92 +159,112 @@ class GUIConfigurationInput(GUIModelingBlock):
         """
         return self.__attached_configuration_attribute_gui
         
-    def get_symbol_calculation_type(self):
+    def get_calculation_type(self):
         """
         Returns the mathematical operation of this input block
         """
-        return self.__symbol_calculation_type
+        return self.__calculation_type
         
-    def set_symbol_calculation_type(self, symbol_calculation_type):
+    def set_calculation_type(self, calculation_type):
         """
         Sets the mathematical operation of this input block
         """
-        self.__symbol_calculation_type = symbol_calculation_type
+        self.__calculation_type = calculation_type
         
         if self.is_attached():
-            self.__attached_configuration_attribute_gui.set_calculation_type(symbol_calculation_type)
+            self.__attached_configuration_attribute_gui.set_calculation_type(calculation_type)
             
             for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self.__attached_configuration_attribute_gui):
                 if linked_configuration_attribute_gui.has_configuration_input():
-                    linked_configuration_attribute_gui.get_configuration_input().update_symbol_calculation_type()
+                    linked_configuration_attribute_gui.get_configuration_input().update_calculation_type()
                     
-        self.update_symbol_calculation_type()
+        self.update_calculation_type()
         self.update_connection_numbers()
         
-    def update_symbol_calculation_type(self):
+    def update_calculation_type(self):
         """
         Update the employed mathematical operation based on the configured operation for the connected configuration attribute
         """
         if self.is_attached():
-            self.__symbol_calculation_type = self.__attached_configuration_attribute_gui.get_configuration_attribute().get_symbol_calculation_type()
-            text = self.__symbol_calculation_type
+            self.__calculation_type = self.__attached_configuration_attribute_gui.get_calculation_type()
+            symbol = self.__calculation_type.symbol()
             
-            if text == None:
-                text = "?"
+            if symbol == None:
+                symbol = "?"
                 
-            self.set_text(text)
+            self.set_text(symbol)
             
     def set_input_scalar(self, input_scalar):
         """
-        Sets a float scalar that scales the final output value from the mathematical operation between input values before being added to the setup version of this attribute
+        Sets a float scalar that scales the output value from the mathematical operation between input values before being added to the setup version of this attribute
         """
         if self.is_attached():
             self.__attached_configuration_attribute_gui.set_input_scalar(float(input_scalar))
+            self.update_input_indicators()
             
-            self.update_input_scalar()
-            
-    def update_input_scalar(self, *, move_back_input=True, update_linked=True):
+    def set_input_offset(self, input_offset):
         """
-        Updates the shown scalar that scales the final output value from the mathematical operation between input values
+        Sets a float offset that offsets the output value after any scalar have been applied
         """
-        # Remove any existing indicator
-        if self.__input_scalar_indicator != None:
-            self.__input_scalar_indicator.remove()
+        if self.is_attached():
+            self.__attached_configuration_attribute_gui.set_input_offset(float(input_offset))
+            self.update_input_indicators()
             
-            # Move the input block back to be adjacent with the attribute
-            if move_back_input:
-                if self.get_x() > self.__attached_configuration_attribute_gui.get_x():
-                    self.move_block(-2 * INPUT_SCALAR_CIRCLE_RADIUS, 0)
-                else:
-                    self.move_block(2 * INPUT_SCALAR_CIRCLE_RADIUS, 0)
+    def update_input_indicators(self, *, move_back_input=True, update_linked=True):
+        """
+        Updates the shown indicators showing the input scalar that scales the final output value from the mathematical operation and the subsequent offset added to the scaled value
+        """
+        move_x_to_fit_indicator = self.get_move_x_due_to_indicator()
+        
+        # Remove any existing indicators
+        for input_indicator in (self.__input_scalar_indicator, self.__input_offset_indicator):
+            if input_indicator != None:
+                input_indicator.remove()
+                
+                # Move the input block back to be adjacent with the attribute
+                if move_back_input:
+                    self.move_block(-move_x_to_fit_indicator, 0)
                     
-            self.__input_scalar_indicator = None
-            
+        self.__input_scalar_indicator = None
+        self.__input_offset_indicator = None
+        
         if self.is_attached():
             input_scalar = self.__attached_configuration_attribute_gui.get_input_scalar()
-            
-            # If the indicator should be shown
-            if input_scalar != DEFAULT_INPUT_SCALAR:
+            input_offset = self.__attached_configuration_attribute_gui.get_input_offset()
+             
+            # If the scalar indicator should be shown
+            if input_scalar != 1:
                 indicator_x = self.get_x() + 0.5
-                self.move_block(self.get_move_x_due_to_indicator(), 0)
+                self.move_block(move_x_to_fit_indicator, 0)
                 
-                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_SCALAR_CIRCLE_RADIUS, INPUT_SCALAR_CIRCLE_COLOR, INPUT_SCALAR_CIRCLE_OUTLINE, convert_value_to_string([input_scalar]))
+                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_SCALAR_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string([input_scalar]))
+                
+            # If the scalar offset should be shown
+            if input_offset != 0:
+                indicator_x = self.get_x() + 0.5
+                
+                if self.__input_scalar_indicator != None:
+                    indicator_x -= move_x_to_fit_indicator
+                
+                self.move_block(move_x_to_fit_indicator, 0)
+                
+                self.__input_offset_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_OFFSET_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string([input_offset]))
                 
             # Update linked copies of the attribute that this input block is attached to
             if update_linked:
                 for linked_configuration_attribute_gui in self.get_model().get_linked_configuration_attributes_gui(self.__attached_configuration_attribute_gui):
                     if linked_configuration_attribute_gui.has_configuration_input():
-                        linked_configuration_attribute_gui.get_configuration_input().update_input_scalar(update_linked=False)
+                        linked_configuration_attribute_gui.get_configuration_input().update_input_indicators(update_linked=False)
                         
     def get_move_x_due_to_indicator(self):
         """
         Returns the distance in x of the grid that the input block should move to make room for the indicator for the input scalar
         """
         if self.__direction_out_from_block == "LEFT":
-            return -2 * INPUT_SCALAR_CIRCLE_RADIUS
+            return -2 * INPUT_INDICATOR_CIRCLE_RADIUS
             
         elif self.__direction_out_from_block == "RIGHT":
-            return 2 * INPUT_SCALAR_CIRCLE_RADIUS
+            return 2 * INPUT_INDICATOR_CIRCLE_RADIUS
             
     def attempt_to_add_connection_to_attribute(self, connection):
         """
@@ -279,12 +303,22 @@ class GUIConfigurationInput(GUIModelingBlock):
         """
         Updates the number showning the order which inputs are considered, if applicable
         """
-        for i, connection in enumerate(self.__connections):
-            # The mathematical operation is dependent on the order of the inputs
-            if self.__symbol_calculation_type in ENUMERATED_INPUT_CALCULATION_TYPE_SYMBOLS:
-                connection.set_num_order(i+1)
-            else:
-                connection.set_num_order(None)
+        for connection in self.__connections:
+            found_number = False
+            
+            # If applicable
+            if self.__calculation_type != None and self.__calculation_type.number_of_inputs() != None and self.__attached_configuration_attribute_gui != None:
+                start_configuration_attribute = connection.get_start_block().get_configuration_attribute()
+                
+                # Find the order number to set, based on the order the attributes were connected
+                for i, connected_configuration_attribute in enumerate(self.__attached_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes().keys()):
+                    if connected_configuration_attribute == start_configuration_attribute:
+                        connection.set_num_order(i+1)
+                        found_number = True
+                        break
+                        
+            if not found_number:
+                connection.reset_num_order()
                 
     def delete(self):
         super().delete()
@@ -298,10 +332,14 @@ class GUIConfigurationInput(GUIModelingBlock):
             
     def save_state(self):
         saved_states = super().save_state() | \
-                       {"symbol_calculation_type": self.get_symbol_calculation_type(), \
+                       {"calculation_type": self.get_calculation_type(), \
                         "connections": [connection.save_state() for connection in self.__connections]}
         
-        if self.is_attached() and self.__attached_configuration_attribute_gui.get_input_scalar() not in (None, DEFAULT_INPUT_SCALAR):
-            saved_states["x"] -= self.get_move_x_due_to_indicator()
+        if self.is_attached():
+            moved_x_due_to_indicator = -self.get_move_x_due_to_indicator()
             
+            for input_indicator in (self.__input_scalar_indicator, self.__input_offset_indicator):
+                if input_indicator != None:
+                    saved_states["x"] += moved_x_due_to_indicator
+                    
         return saved_states

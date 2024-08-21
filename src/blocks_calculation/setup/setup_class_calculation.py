@@ -67,7 +67,7 @@ class SetupClass:
         input_setup_class_scalars: List of scalars to consider when performing calculations using values from the input class
         """
         if input_setup_class_scalars == None:
-            input_setup_class_scalars = [DEFAULT_INPUT_SCALAR]
+            input_setup_class_scalars = [1]
             
         self.__input_setup_classes[input_class] = input_setup_class_scalars
         

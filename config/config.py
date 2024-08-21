@@ -3,6 +3,7 @@ import tkinter as tk
 
 from program_paths import *
 from settings import Settings
+from general_calculations import *
 
 settings = Settings()
 
@@ -37,33 +38,16 @@ for script_path in SCRIPTS_PATHS:
     
     
     
-BACKGROUND_COLOR = "white" # Window default value
 
 # Available types of attribute values
-SYMBOL_VALUE_TYPE_NUMBER = "N"
-SYMBOL_VALUE_TYPE_TRIANGLE = "T"
-# Symbol, explaining text, and number of values delimited by "/"
-ACTIVE_VALUE_TYPE_SYMBOLS_CONFIGS = [(None, "Simple text (no calculations)", None), \
-                                     (SYMBOL_VALUE_TYPE_NUMBER, "Number (integer or float)", 1), \
-                                     (SYMBOL_VALUE_TYPE_TRIANGLE, "Triangle distribution (a / b / c)", 3)]
+VALUE_TYPES = (ValueTypeString, ValueTypeNumber, ValueTypeTriangleDistribution)
 
 # Available types of calculation operations between input attribute values
-SYMBOL_CALCULATION_TYPE_MEAN = "M"
-SYMBOL_CALCULATION_TYPE_AND = "&"
-SYMBOL_CALCULATION_TYPE_OR = "|"
-SYMBOL_CALCULATION_TYPE_MULTIPLICATION = "*"
-SYMBOL_CALCULATION_TYPE_TRIANGLE = "T"
-SYMBOL_CALCULATION_TYPE_QUALITATIVE = "Q"
-# Symbol and explaining text
-ACTIVE_CALCULATION_TYPE_SYMBOLS_CONFIGS = [(SYMBOL_CALCULATION_TYPE_MEAN, "Mean of inputs"), \
-                                           (SYMBOL_CALCULATION_TYPE_AND, "AND (addition) of inputs"), \
-                                           (SYMBOL_CALCULATION_TYPE_OR, "OR (minimum) of inputs"), \
-                                           (SYMBOL_CALCULATION_TYPE_MULTIPLICATION, "Multiplication of input values"), \
-                                           (SYMBOL_CALCULATION_TYPE_TRIANGLE, "Sample two triangle distributions - ratio of input (1) > (2)"), \
-                                           (SYMBOL_CALCULATION_TYPE_QUALITATIVE, "Manual and qualitative evaluation of inputs")]
+CALCULATION_TYPES = (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeSampleTriangle, CalculationTypeQualitative)
 
-# Which calculation operations rely on the order of inputs
-ENUMERATED_INPUT_CALCULATION_TYPE_SYMBOLS = [SYMBOL_CALCULATION_TYPE_TRIANGLE]
+
+
+BACKGROUND_COLOR = "white" # Window default value
 
 # Default text values
 FONT = ("Arial", 11)
@@ -75,8 +59,6 @@ OUTLINE_COLOR = "black"
 
 # The width of class blocks in setup views compared to configuration views
 SETUP_WIDTH_MULTIPLIER = 2
-
-DEFAULT_INPUT_SCALAR = 1
 
 SELECT_COLOR = "cyan"
 
@@ -186,10 +168,11 @@ LINKED_GROUP_CIRCLE_RADIUS = NUM_ORDER_CIRCLE_RADIUS
 LINKED_GROUP_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
 LINKED_GROUP_CIRCLE_COLOR = "light green"
 
-# Indicator for scalar applied on input values in configuration views
-INPUT_SCALAR_CIRCLE_RADIUS = ATTRIBUTE_HEIGHT / 2
-INPUT_SCALAR_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
-INPUT_SCALAR_CIRCLE_COLOR = "red"
+# Indicator for scalar and offset applied on input values in configuration views
+INPUT_INDICATOR_CIRCLE_RADIUS = ATTRIBUTE_HEIGHT / 2
+INPUT_INDICATOR_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
+INPUT_SCALAR_INDICATOR_CIRCLE_COLOR = "red"
+INPUT_OFFSET_INDICATOR_CIRCLE_COLOR = "yellow"
 
 # Indicator for scalars applied on input values in setup views
 INPUT_SCALARS_INDICATOR_WIDTH = 3

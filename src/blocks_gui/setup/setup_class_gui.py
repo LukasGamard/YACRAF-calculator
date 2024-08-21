@@ -133,18 +133,21 @@ class GUISetupClass(GUIClass):
         
     def get_connected_setup_attributes_gui(self, setup_attribute):
         """
-        Returns all setup attributes that the specified setup attribute currently takes as input
+        Returns all GUI setup attributes that the specified setup attribute currently takes as input
         """
         connected_setup_attributes_gui = []
         
         for connected_setup_attribute in setup_attribute.get_connected_setup_attributes():
             for connected_setup_class_gui in self.get_connected_setup_classes_gui() + [self]:
+                # Found the setup class that has the currently sought connected setup attribute
                 if connected_setup_attribute.has_setup_class(connected_setup_class_gui.get_setup_class()):
                     if not connected_setup_attribute.is_hidden():
-                        attribute_index = connected_setup_attribute.get_attribute_index()
-                        connected_setup_attribute_gui = connected_setup_class_gui.get_setup_attributes_gui()[attribute_index]
-                        
-                        connected_setup_attributes_gui.append(connected_setup_attribute_gui)
+                        for i, setup_attribute_gui in enumerate(connected_setup_class_gui.get_setup_attributes_gui()):
+                            if setup_attribute_gui.get_setup_attribute() == connected_setup_attribute:
+                                connected_setup_attributes_gui.append(connected_setup_class_gui.get_setup_attributes_gui()[i])
+                                break
+                                
+                    # Adds the attributes connected to the hidden one
                     else:
                         connected_setup_attributes_gui += connected_setup_class_gui.get_connected_setup_attributes_gui(connected_setup_attribute)
                         
