@@ -12,11 +12,14 @@ def convert_value_to_string(value):
     final_value = []
     
     for element in value:
-        rounded_value = round(float(element), 3)
-        
-        # If the float does not have any decimal numbers, convert it to an integer for a better looking output
-        if rounded_value == int(rounded_value):
-            rounded_value = int(rounded_value)
+        try:
+            rounded_value = round(float(element), 3)
+            
+            # If the float does not have any decimal numbers, convert it to an integer for a better looking output
+            if rounded_value == int(rounded_value):
+                rounded_value = int(rounded_value)
+        except:
+            rounded_value = element
             
         final_value.append(str(rounded_value))
         

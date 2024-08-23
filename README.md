@@ -18,11 +18,11 @@ Meanwhile, NumPy can be installed using:
 pip install numpy
 ```
 
-Make sure Python is not outdated. Required is at least Python 3.7, where 3.10 was used during the development of the program.
+Make sure Python is not outdated. The known minimum requirement is at least Python 3.7, where 3.10 was used during the program's development.
 
 ## How to use
 
-Run the program using:
+After navigating to the main directory, run the program using:
 
 ```
 python3 main.py

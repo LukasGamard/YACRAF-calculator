@@ -62,7 +62,7 @@ class View(tk.Frame):
         else:
             self.__is_panning = True
             
-        self.__canvas.focus_set()
+        self.focus()
         
         if self.__is_panning:
             self.unselect_all_items()
@@ -154,7 +154,7 @@ class View(tk.Frame):
         """
         Refreshes the order that items should be shown in to make sure some are shown on top of others
         """
-        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_INDICATOR, TAG_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT, TAG_OPTIONS_BACKGROUND, TAG_OPTIONS, TAG_OPTIONS_TEXT):
+        for tag in (TAG_INPUT, TAG_INPUT_TEXT, TAG_CONNECTION_LINE, TAG_CONNECTION_CORNER, TAG_INDICATOR, TAG_INDICATOR_TEXT, TAG_BUTTON, TAG_BUTTON_TEXT, TAG_OPTIONS_HIGHLIGHT, TAG_OPTIONS_BACKGROUND, TAG_OPTIONS, TAG_OPTIONS_TEXT):
             self.__canvas.tag_raise(tag)
             
     def open_options(self):

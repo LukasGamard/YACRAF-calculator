@@ -65,15 +65,17 @@ def script_logic(script_if):
     # Insert logic here
     script_if.calculate_values()
     
-    num_input_to_per_instance = {}
-    colors = ("red", "blue", "green", "yellow", "orange", "magenta", "gray")
+    num_input_to_per_instance = {} # How many attack events each attack event is connected to, Key: Tuple (class_type, class_instance), Value: number attack events that takes it as input
+    colors = ("red", "light blue", "green", "yellow", "orange", "magenta", "gray")
     
     for attack_event_type in ("Attack event AND", "Attack event OR"):
         for attack_event_instance in script_if.get_class_instance_names(attack_event_type):
             if (attack_event_type, attack_event_instance) not in num_input_to_per_instance:
                 num_input_to_per_instance[(attack_event_type, attack_event_instance)] = 0
                 
-            for input_class_names in script_if.get_input_class_names(attack_event_type, attack_event_instance, input_class_type=attack_event_type):
+            for input_class_names in script_if.get_input_class_names(attack_event_type, attack_event_instance, input_class_type="Attack event AND") + \
+                                     script_if.get_input_class_names(attack_event_type, attack_event_instance, input_class_type="Attack event OR"):
+                # print(f"{input_class_names} are input to {(attack_event_type, attack_event_instance)}")
                 if input_class_names not in num_input_to_per_instance:
                     num_input_to_per_instance[input_class_names] = 1
                 else:
@@ -89,6 +91,5 @@ def script_logic(script_if):
             current_end_point += 1
             
 def script_control(script_if):
-    script_if.update_setup_structure()
     script_if.reset_script_changes()
     script_logic(script_if)

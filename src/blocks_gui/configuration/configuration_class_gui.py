@@ -165,9 +165,8 @@ class GUIConfigurationClass(GUIClass):
         self.set_text(name)
         
         # Update linked GUI configuration classes
-        if self.is_linked():
-            for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
-                linked_configuration_class_gui.set_text(name)
+        for linked_configuration_class_gui in self.get_model().get_linked_configuration_classes_gui(self):
+            linked_configuration_class_gui.set_text(name)
                 
         # Update GUI setup classes containing the name of the configuration class in their headers
         for setup_class_gui in self.__setup_classes_gui:

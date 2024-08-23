@@ -7,32 +7,30 @@ def combine_values(value_type, calculation_type, input_setup_attributes, setup_i
     
     number_of_inputs = calculation_type.number_of_inputs()
     
-    if number_of_inputs != None:
-        for i in range(number_of_inputs):
-            input_values.append(calculation_type.default_input_value())
-            
+    # Missing connected setup attributes for the given calculation type to be correctly calculated
+    if number_of_inputs != None and len(input_setup_attributes) != number_of_inputs:
+        return "-"
+        
     for i, input_setup_attribute in enumerate(input_setup_attributes):
         input_value_type = input_setup_attribute.get_value_type()
         input_value_string = input_setup_attribute.get_current_value()
         
+        if input_value_string == "-":
+            return "-"
+        
         value = input_value_type.extract_input_value(input_value_string)
         
         if value == None:
-            return None
+            return "ERROR"
             
+        value = np.array(value)
         setup_input_scalars = setup_input_scalars_per_attribute[i]
         
         if setup_input_scalars != None:
-            value = apply_setup_input_scalars(np.array(value), np.array(setup_input_scalars), input_value_type.allowed_number_of_values())
+            value = apply_setup_input_scalars(value, np.array(setup_input_scalars), input_value_type.allowed_number_of_scalars())
             
-        if number_of_inputs != None:
-            for i, input_configuration_attribute in enumerate(configuration_attribute.get_input_configuration_attributes().keys()):
-                if input_setup_attribute.has_configuration_attribute(input_configuration_attribute):
-                    input_values[i] = value
-                    break
-        else:
-            input_values.append(value)
-            
+        input_values.append(value)
+        
     if len(input_values) > 0:
         calculated_value = calculation_type.calculate_output_value(input_values, num_samples) * configuration_attribute.get_input_scalar() + configuration_attribute.get_input_offset()
         
@@ -95,7 +93,7 @@ class ValueTypeNumber:
         return np.zeros(1)
         
     @staticmethod
-    def allowed_number_of_values():
+    def allowed_number_of_scalars():
         return (1,)
         
     @staticmethod
@@ -120,7 +118,7 @@ class ValueTypeNumber:
         try:
             value = [float(input_value_string)]
         except:
-            print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeNumber.symbol()} from attribute {input_setup_attribute.get_name()}")
+            print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeNumber.symbol()}")
             
         return value
         
@@ -142,7 +140,7 @@ class ValueTypeTriangleDistribution:
         return np.zeros(3)
         
     @staticmethod
-    def allowed_number_of_values():
+    def allowed_number_of_scalars():
         return (1, 3)
         
     @staticmethod
@@ -182,10 +180,10 @@ class ValueTypeTriangleDistribution:
 class CalculationType:
     @staticmethod
     def number_of_inputs():
-        return None
-        
-    @staticmethod
-    def default_input_value():
+        """
+        Returns the number of inputs this calculation type requires, where the order of inputs also matters (the appearing number at each connection)
+        Returns None if the inputs are not enumerated and their order does not matter
+        """
         return None
         
     @staticmethod
@@ -198,7 +196,7 @@ class CalculationType:
         
         for input_value_type in get_attribute_value_types(input_configuration_attributes):
             if last_type != None and last_type != input_value_type:
-                print(f"Warning: all input attributes were not of the same value type, found {get_attribute_value_types(input_configuration_attributes)}")
+                print(f"Warning: All input attributes in configuration were not of the same value type, found {get_attribute_value_types(input_configuration_attributes)}")
                 return False
                 
             last_type = input_value_type
@@ -270,6 +268,27 @@ class CalculationTypeMultiplication(CalculationType):
             
         return output_value
         
+class CalculationTypeDivision(CalculationType):
+    @staticmethod
+    def symbol():
+        return "/"
+        
+    @staticmethod
+    def explaination():
+        return "Division between two values, (1) / (2)"
+        
+    @staticmethod
+    def number_of_inputs():
+        return 2
+        
+    @staticmethod
+    def correct_input_attribute_value_types(input_configuration_attributes):
+        value_types = get_attribute_value_types(input_configuration_attributes)
+        
+        if len(value_types) > CalculationTypeDivision.number_of_inputs():
+            print(f"Warning: Calculation type {CalculationTypeDivision.symbol()} require exactly {CalculationTypeDivision.number_of_inputs()} input attributes in the configuration")
+            return False
+            
 class CalculationTypeSampleTriangle(CalculationType):
     @staticmethod
     def symbol():
@@ -284,20 +303,20 @@ class CalculationTypeSampleTriangle(CalculationType):
         return 2
         
     @staticmethod
-    def default_input_value():
-        return np.zeros(3)
-        
-    @staticmethod
     def correct_input_attribute_value_types(input_configuration_attributes):
         # Only triangle distributions allowed as input, with at most two inputs
         if CalculationType.correct_input_attribute_value_types(input_configuration_attributes):
             if len(input_configuration_attributes) == 0:
                 return True
                 
-            elif len(input_configuration_attributes) <= 2 and input_configuration_attributes[0].get_value_type() == ValueTypeTriangleDistribution:
+            elif len(input_configuration_attributes) <= CalculationTypeSampleTriangle.number_of_inputs() and input_configuration_attributes[0].get_value_type() == ValueTypeTriangleDistribution:
                 return True
                 
-        print(f"Warning: Calculation type {CalculationTypeSampleTriangle.symbol()} only support at most two input attributes, where all most be of value type {ValueTypeTriangleDistribution.symbol()}")
+            print(f"Warning: All input attributes for calculation type {CalculationTypeSampleTriangle.symbol()} need to be of value type {ValueTypeTriangleDistribution.symbol()} in the configuration")
+                
+        else:
+            print(f"Warning: Calculation type {CalculationTypeSampleTriangle.symbol()} require exactly {CalculationTypeSampleTriangle.number_of_inputs()} input attributes in the configuration")
+            
         return False
         
     @staticmethod

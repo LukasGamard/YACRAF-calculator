@@ -1,58 +1,67 @@
 import numpy as np
 from helper_functions_general import convert_value_to_string, convert_string_to_value
-
+    
 class ScriptInterface:
     """
     Methods that scripts can interact with to manipulate the program
     
-    Meaning of values passed to methods for finding/matching blocks in setup views, where None considers all:
+    Meaning of values passed to methods for finding/matching blocks in setup views, where None matches with all of the specific type:
     class_type: Name of class type (for example, Attack event)
     class_instance: Name of class instance (for example, DoS attack)
     attribute: Name of attribute (for example, Local difficulty)
-    view: Setup view name to consider, where None considers all
+    view: Setup view name to consider
     """
     def __init__(self, model):
         self.__model = model
-        self.__setup_structure = None # Structure of all blocks in setup views
+        self.__cache = {} # To improve performance when getting the same elements multiple times
         
     def get_class_type_names(self, view=None):
         """
         Returns a list of class names (those specified in configuration views) found in the specified setup views
         """
         self.check_type([view], str)
-        return list(self.__setup_structure.get_names([view]))
+        return [setup_class_gui.get_configuration_name() for setup_class_gui in self.get_setup_classes_gui(view, None)]
         
     def get_class_instance_names(self, class_type, view=None):
         """
         Returns a list of class instance names (those specified in setup views) found in the specified setup views
         """
         self.check_type([view, class_type], str)
-        return list(self.__setup_structure.get_names([view, class_type]))
+        return [setup_class_gui.get_name() for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, None)]
         
     def get_attribute_names(self, class_type):
         """
         Returns a list of attribute names for a specific class type
         """
         self.check_type([class_type], str)
-        class_instance_name = self.get_class_instance_names(class_type)[0]
-        return list(self.__setup_structure.get_names([None, class_type, class_instance_name]))
+        
+        setup_class_gui = self.get_first_setup_class_gui(class_type)
+        
+        if setup_class_gui == None:
+            return []
+            
+        return [setup_attribute_gui.get_name() for setup_attribute_gui in setup_class_gui.get_setup_attributes_gui()]
         
     def get_input_class_names(self, class_type, class_instance, *, input_class_type=None, input_class_instance=None, view=None):
         """
-        Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input from
+        input_class_type: Name of class type (for example, Attack event) that should only be considered when finding connected input classes, None considering all
+        input_class_instance: Name of class instance (for example, DoS attack) that should only be considered when finding connected input classes, None considering all
+        
+        Returns a list of tuples (input_class_type, input_class_instance) including the class type and class instance names of all classes which the specified setup class instance takes input from
         """
         self.check_type([class_type, class_instance, input_class_type, input_class_instance, view], str)
-        input_class_names = set()
+        input_class_names = []
         
-        for setup_class_gui in self.__setup_structure.get_elements([view, class_type, class_instance]):
+        for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, class_instance):
             # Add any newly found input class name that had not been previously added
             for input_setup_class in setup_class_gui.get_setup_class().get_input_setup_classes():
-                # Filter input setup classes
-                if (input_class_type == None or input_setup_class.get_configuration_name() == input_class_type) and \
-                   (input_class_instance == None or input_setup_class.get_instance_name() == input_class_instance):
-                    input_class_names.add((input_setup_class.get_configuration_name(), input_setup_class.get_instance_name()))
+                if input_class_type in (None, input_setup_class.get_configuration_name()) and input_class_instance in (None, input_setup_class.get_instance_name()):
+                    to_add = (input_setup_class.get_configuration_name(), input_setup_class.get_instance_name())
                     
-        return list(input_class_names)
+                    if not to_add in input_class_names:
+                        input_class_names.append(to_add)
+                        
+        return input_class_names
         
     def get_attribute_value(self, class_type, class_instance, attribute, view=None):
         """
@@ -61,19 +70,14 @@ class ScriptInterface:
         self.check_type([class_type, class_instance, attribute, view], str)
         attributes_values = None
         
-        for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
-            setup_attribute = setup_attribute_gui.get_setup_attribute()
+        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
+            value_string = setup_attribute_gui.get_setup_attribute().get_current_value()
             
-            if setup_attribute.has_override_value():
-                value_string = setup_attribute.get_override_value()
-            else:
-                value_string = setup_attribute.get_value()
-                
-            # Convert string value into a single value, list of values if a distribution, or keep as string
+            # Convert string value into a list of values
             try:
                 value = convert_string_to_value(value_string)
             except:
-                value = value_string
+                value = [value_string]
                 
             # First attribute
             if attributes_values == None:
@@ -81,7 +85,7 @@ class ScriptInterface:
                 
             # If there is a second attribute, convert to list
             elif not isinstance(attributes_values, list):
-                attributes_values = [attribute_value, value]
+                attributes_values = [attributes_values, value]
                 
             # More than two attributes
             else:
@@ -107,7 +111,7 @@ class ScriptInterface:
         self.check_type([class_type, class_instance, attribute, view], str)
         self.check_convert_to_type(override_value, str)
         
-        for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
+        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             setup_attribute_gui.get_setup_attribute().set_override_value(override_value)
             
     def reset_override_attribute_values(self, *, class_type=None, class_instance=None, attribute=None, view=None):
@@ -116,7 +120,7 @@ class ScriptInterface:
         """
         self.check_type([class_type, class_instance, attribute, view], str)
         
-        for setup_attribute_gui in self.__setup_structure.get_elements([view, class_type, class_instance, attribute]):
+        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             setup_attribute_gui.attempt_to_reset_override_value()
             
     def set_class_marker(self, value, color, *, class_type=None, class_instance=None, view=None):
@@ -126,7 +130,7 @@ class ScriptInterface:
         self.check_type([class_type, class_instance, view], str)
         self.check_convert_to_type(value, str)
         
-        for setup_class_gui in self.__setup_structure.get_elements([view, class_type, class_instance]):
+        for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, class_instance):
             setup_class_gui.create_script_marker_indicator(value, color)
             
     def calculate_values(self):
@@ -140,6 +144,89 @@ class ScriptInterface:
         Reset any changes made by scripts, such as override values and markers
         """
         self.__model.reset_script_changes()
+        
+    def get_from_cache(self, identifier):
+        if identifier in self.__cache:
+            return self.__cache[identifier]
+            
+        return None
+        
+    def get_setup_views(self, view):
+        cache_result = self.get_from_cache(view)
+        
+        if cache_result != None:
+            return cache_result
+            
+        setup_views = []
+        
+        for setup_view in self.__model.get_setup_views():
+            if view in (None, setup_view.get_name()):
+                setup_views.append(setup_view)
+                
+        return setup_views
+        
+    def get_setup_classes_gui(self, view, class_type):
+        cache_result = self.get_from_cache((view, class_type))
+        
+        if cache_result != None:
+            return cache_result
+            
+        setup_classes_gui = []
+        seen_setup_classes = set()
+        
+        for setup_view in self.get_setup_views(view):
+            for setup_class_gui in setup_view.get_setup_classes_gui():
+                if class_type in (None, setup_class_gui.get_configuration_name()):
+                    setup_class = setup_class_gui.get_setup_class()
+                    
+                    if not setup_class in seen_setup_classes:
+                        setup_classes_gui.append(setup_class_gui)
+                        seen_setup_classes.add(setup_class)
+                        
+        return setup_classes_gui
+        
+    def get_first_setup_class_gui(self, class_type):
+        cache_result = self.get_from_cache(class_type)
+        
+        if cache_result != None:
+            return cache_result
+            
+        for setup_view in self.get_setup_views(None):
+            for setup_class_gui in setup_view.get_setup_classes_gui():
+                if class_type in (None, setup_class_gui.get_configuration_name()):
+                    return setup_class_gui
+                    
+        return None
+        
+    def get_instances_setup_class_gui(self, view, class_type, class_instance):
+        cache_result = self.get_from_cache((view, class_type, class_instance))
+        
+        if cache_result != None:
+            return cache_result
+            
+        instance_setup_classes_gui = []
+        
+        for setup_class_gui in self.get_setup_classes_gui(view, class_type):
+            if class_type in (None, setup_class_gui.get_configuration_name()) and class_instance in (None, setup_class_gui.get_name()):
+                instance_setup_classes_gui.append(setup_class_gui)
+                
+        return instance_setup_classes_gui
+        
+    def get_setup_attributes_gui(self, view, class_type, class_instance, attribute):
+        cache_result = self.get_from_cache((view, class_type, class_instance, attribute))
+        
+        if cache_result != None:
+            return cache_result
+            
+        setup_attributes_gui = []
+        
+        for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, class_instance):
+            if class_instance in (None, setup_class_gui.get_name()):
+                for setup_attribute_gui in setup_class_gui.get_setup_attributes_gui():
+                    if attribute in (None, setup_attribute_gui.get_name()):
+                        setup_attributes_gui.append(setup_attribute_gui)
+                        
+        return setup_attributes_gui
         
     def check_type(self, list_to_check, type_to_check):
         """
@@ -163,111 +250,3 @@ class ScriptInterface:
             converted_value = type_to_convert_to(to_check)
         except (TypeError, ValueError):
             raise TypeError(f"Cannot convert {to_check} of type {type(to_check)} to {type_to_convert_to}")
-            
-    def update_setup_structure(self):
-        """
-        Creates a new structure of all blocks within all current views
-        """
-        self.__setup_structure = SetupStructureNode()
-        
-        for setup_view in self.__model.get_setup_views():
-            view_node = self.__setup_structure.add_next_node(setup_view, setup_view.get_name())
-            
-            for setup_class_gui in setup_view.get_setup_classes_gui():
-                class_node = view_node.add_next_node(setup_class_gui, setup_class_gui.get_configuration_name())
-                class_instance_node = class_node.add_next_node(setup_class_gui, setup_class_gui.get_name())
-                
-                for setup_attribute_gui in setup_class_gui.get_setup_attributes_gui():
-                    class_instance_node.add_element(setup_attribute_gui, setup_attribute_gui.get_name())
-                    
-class SetupStructureNode:
-    """
-    Structure containing all setup blocks
-    """
-    def __init__(self):
-        self.__next_node_per_name = {} # Key: Name of element, Value: Element (for example, a class instance)
-        self.__elements = {} # Stores all elements (for example, all class instances), where Key: Element, Value: Name
-        self.__names = [] # Stores all unique names of elements (for example, names of all class instances)
-        
-    def add_next_node(self, element, name):
-        """
-        Creates a new node if is the first occurrence of the name, but also storing the element and (potentially) name in this node
-        """
-        first_name_occurence = True
-        
-        # Is first occurrence
-        if name not in self.__names:
-            next_node = SetupStructureNode()
-            self.__next_node_per_name[name] = next_node
-            
-        # Not first occurrence
-        else:
-            next_node = self.__next_node_per_name[name]
-            first_name_occurence = False
-            
-        self.add_element(element, name, first_name_occurence)
-        
-        return next_node
-        
-    def add_element(self, element, name, knows_it_is_first_name_occurence=False):
-        self.__elements[element] = name
-        
-        if knows_it_is_first_name_occurence or name not in self.__names:
-            self.__names.append(name)
-            
-    def get_next_nodes(self, name):
-        # Matches with all nodes
-        if name == None:
-            return list(self.__next_node_per_name.values())
-            
-        # Matches with specific node
-        elif name in self.__next_node_per_name:
-            return [self.__next_node_per_name[name]]
-            
-        else:
-            return []
-            
-    def get_elements(self, names):
-        """
-        names: List of names to match on the format [view, class_type, class_instance, attribute] that is recursively matched one name per node at a time, stopping early if there are less names and matches everything in a layer if None (for example, [None, class_type] matches all class types in all setup views)
-        
-        Returns a list of all matched elements of the specific layer (for example, [None, class_type] would get all class types of all setup views
-        """
-        # Sought elements does not exist at this node
-        if len(names) > 1:
-            found_elements = []
-            
-            for next_node in self.get_next_nodes(names[0]):
-                found_elements += next_node.get_elements(names[1:])
-                
-            return found_elements
-            
-        # At final specified layer
-        elif len(names) == 1 and names[0] != None:
-            elements = []
-            
-            # Find the specified element
-            for element, name in self.__elements.items():
-                if name == names[0]:
-                    elements.append(element)
-                    
-            return elements
-            
-        return list(self.__elements.keys())
-        
-    def get_names(self, names):
-        """
-        names: List of names to match on the format [view, class_type, class_instance, attribute] that is recursively matched one name per node at a time, stopping early if there are less names and matches everything in a layer if None (for example, [None, class_type] matches all class types in all setup views)
-        
-        Returns a list of all matched names of the next layer (for example, [None, class_type] would get all class instance names of all setup views
-        """
-        
-        if len(names) > 0:
-            found_names = []
-            
-            for next_node in self.get_next_nodes(names[0]):
-                found_names += next_node.get_names(names[1:])
-                
-            return found_names
-            
-        return self.__names

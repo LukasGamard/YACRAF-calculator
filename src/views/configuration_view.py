@@ -81,7 +81,7 @@ class ConfigurationView(View):
         self.__held_connection = connection
         
     def reset_held_connection(self, remove_connection=False):
-        if remove_connection:
+        if remove_connection and self.__held_connection != None:
             self.__held_connection.delete()
             
         self.__held_connection = None
@@ -110,7 +110,7 @@ class ConfigurationView(View):
         file_path = os.path.join(CONFIGURATION_SAVES_DIRECTORY, f"{self.get_name()}.pickle")
         
         # Save grid offset and block states to file
-        with open(os.path.join(BASE_PATH, file_path), "wb") as file_pickle:
+        with open(os.path.join(SAVES_PATH, file_path), "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui), file_pickle)
             
         return file_path
@@ -125,7 +125,7 @@ class ConfigurationView(View):
         Returns mapping between IDs of blocks from the save to those recreated in this new view instance
         """
         try:
-            with open(os.path.join(BASE_PATH, file_path), "rb") as file_pickle:
+            with open(os.path.join(SAVES_PATH, file_path), "rb") as file_pickle:
                 grid_offset, saved_states_configuration_classes_gui, saved_states_configuration_inputs_gui = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 

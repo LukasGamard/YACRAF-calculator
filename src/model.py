@@ -10,7 +10,7 @@ class Model:
     """
     Class that tracks all views and other objects that spans multiple views
     """
-    def __init__(self, root, new_save, *, num_configuration_views=1, num_setup_views=3):
+    def __init__(self, root, *, force_new_save=False, num_configuration_views=1, num_setup_views=3):
         self.__root = root
         self.__configuration_views = []
         self.__setup_views = []
@@ -27,7 +27,7 @@ class Model:
         self.__root.columnconfigure(0, weight=1)
         
         # Create new views
-        if new_save or not os.path.exists(FILE_PATHS_SAVES_PATH):
+        if not os.path.exists(FILE_PATHS_SAVES_PATH) or force_new_save:
             for i in range(num_configuration_views):
                 self.create_view(True, "Configuration")
                 
@@ -43,6 +43,8 @@ class Model:
                     file_path = line.strip()
                     view_directory, view_name = os.path.split(file_path)
                     view_name = view_name.replace(".pickle", "")
+                    
+                    view_directory = os.path.split(view_directory)[1]
                     
                     # Restore saved configuration view
                     if view_directory == CONFIGURATION_SAVES_DIRECTORY:
@@ -76,7 +78,7 @@ class Model:
         self.__currently_pressed_keys.add(key.lower())
         
         # If the canvas is in focus (not typing in an entry)
-        if self.__root.focus_get() == self.__current_view.get_canvas():
+        if self.__root.focus_get() == self.__current_view:
             # Delete a selected block
             if key == "BackSpace":
                 items_to_delete = []
@@ -89,8 +91,9 @@ class Model:
                 
             # Reset a held connection
             elif key == "Escape":
-                self.__current_view.reset_held_connection(True)
-                
+                if isinstance(self.__current_view, ConfigurationView):
+                    self.__current_view.reset_held_connection(True)
+                    
             # Edit a selected block, or the current view if no block is selected
             elif key.lower() == "e":
                 selected_items = list(self.__current_view.get_selected_items())
@@ -167,10 +170,13 @@ class Model:
         if configuration_attribute_gui.get_configuration_class_gui().get_linked_group_number() == None:
             return []
             
-        linked_configuration_attributes_gui = []
-        
         # Index that the specified attribute has in its class
-        attribute_index = configuration_attribute_gui.get_configuration_class_gui().get_configuration_attributes_gui().index(configuration_attribute_gui)
+        try:
+            attribute_index = configuration_attribute_gui.get_configuration_class_gui().get_configuration_attributes_gui().index(configuration_attribute_gui)
+        except:
+            return []
+            
+        linked_configuration_attributes_gui = []
         
         # Find the corresponding attribute of each linked configuration class
         for linked_configuration_class_gui in self.get_linked_configuration_classes_gui(configuration_attribute_gui.get_configuration_class_gui()):
@@ -188,8 +194,12 @@ class Model:
             return []
             
         linked_setup_classes_gui = self.__linked_setup_groups_per_number[linked_group_number].copy()
-        linked_setup_classes_gui.remove(setup_class_gui) # Do not include itself
         
+        try:
+            linked_setup_classes_gui.remove(setup_class_gui) # Do not include itself
+        except:
+            pass
+            
         return linked_setup_classes_gui
         
     def create_linked_setup_class_gui(self, setup_class_gui_to_copy, view_to_copy_to, *, linked_group_number=None, position=None):
@@ -212,10 +222,13 @@ class Model:
         if setup_attribute_gui.get_setup_class_gui().get_linked_group_number() == None:
             return []
             
-        linked_setup_attributes_gui = []
-        
         # Index that the specified attribute has in its class
-        attribute_index = setup_attribute_gui.get_setup_class_gui().get_setup_attributes_gui().index(setup_attribute_gui)
+        try:
+            attribute_index = setup_attribute_gui.get_setup_class_gui().get_setup_attributes_gui().index(setup_attribute_gui)
+        except:
+            return []
+            
+        linked_setup_attributes_gui = []
         
         # Find the corresponding attribute of each linked configuration class
         for linked_setup_class_gui in self.get_linked_setup_classes_gui(setup_attribute_gui.get_setup_class_gui()):
@@ -435,6 +448,9 @@ class Model:
         """
         Saves all configuration and setup views
         """
+        for directory in [CONFIGURATION_SAVES_DIRECTORY, SETUP_SAVES_DIRECTORY]:
+            os.makedirs(os.path.join(SAVES_PATH, directory), exist_ok=True)
+            
         configuration_view_names = set()
         setup_view_names = set()
         

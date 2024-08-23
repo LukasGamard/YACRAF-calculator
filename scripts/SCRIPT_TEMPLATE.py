@@ -45,6 +45,5 @@ def script_logic(script_if):
     script_if.calculate_values()
     
 def script_control(script_if):
-    script_if.update_setup_structure()
     script_if.reset_script_changes()
     script_logic(script_if)

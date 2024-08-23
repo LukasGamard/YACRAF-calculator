@@ -24,19 +24,18 @@ class SetupView(View):
         self.__run_script_buttons = []
         
         # Add buttons to run scripts
-        for scripts_path in SCRIPTS_PATHS:
-            for file_name_full in os.listdir(scripts_path):
-                # Find all .py files
-                if file_name_full.strip()[-3:] == ".py":
-                    file_name = file_name_full.strip().replace(".py", "")
-                    
-                    # Skip the template file
-                    if file_name != "SCRIPT_TEMPLATE":
-                        # If at least one script, add a button for resetting any changes made by scripts
-                        if len(self.__run_script_buttons) == 0:
-                            self.__run_script_buttons.append(TouchButton.clear_script(model, self))
-                            
-                        self.__run_script_buttons.append(TouchButton.run_script(model, self, scripts_path, file_name, len(self.__run_script_buttons)))
+        for file_name_full in os.listdir(SCRIPTS_PATH):
+            # Find all .py files
+            if file_name_full.strip()[-3:] == ".py":
+                file_name = file_name_full.strip().replace(".py", "")
+                
+                # Skip the template file
+                if file_name != "SCRIPT_TEMPLATE":
+                    # If at least one script, add a button for resetting any changes made by scripts
+                    if len(self.__run_script_buttons) == 0:
+                        self.__run_script_buttons.append(TouchButton.clear_script(model, self))
+                        
+                    self.__run_script_buttons.append(TouchButton.run_script(model, self, SCRIPTS_PATH, file_name, len(self.__run_script_buttons)))
                     
     def on_resize(self, event):
         """
@@ -186,7 +185,7 @@ class SetupView(View):
         file_path = os.path.join(SETUP_SAVES_DIRECTORY, f"{self.get_name()}.pickle")
         
         # Save grid offset and block states to file
-        with open(os.path.join(BASE_PATH, file_path), "wb") as file_pickle:
+        with open(os.path.join(SAVES_PATH, file_path), "wb") as file_pickle:
             pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
         return file_path
@@ -200,7 +199,7 @@ class SetupView(View):
         linked_groups_per_number: Dictionary (Key: Group number, Value: List of GUI setup classes) for setup class copies linked to each other
         """
         try:
-            with open(os.path.join(BASE_PATH, file_path), "rb") as file_pickle:
+            with open(os.path.join(SAVES_PATH, file_path), "rb") as file_pickle:
                 grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 

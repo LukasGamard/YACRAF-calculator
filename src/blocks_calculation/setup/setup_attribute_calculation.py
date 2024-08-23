@@ -84,6 +84,8 @@ class SetupAttribute:
                                           setup_input_scalars_per_attribute, \
                                           self.__configuration_attribute, \
                                           settings.get_num_samples())
+        else:
+            self.__value = "ERROR"
             
     def get_value_type(self):
         return self.__configuration_attribute.get_value_type()

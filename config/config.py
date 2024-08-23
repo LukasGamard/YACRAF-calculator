@@ -14,36 +14,23 @@ LENGTH_UNIT_ZOOM_LIMITS = (5, 50)
 
 
 # File paths
-SAVES_DIRECTORY = "saved_views"
-SCRIPTS_PATHS = [os.path.join(BASE_PATH, "scripts")]
+SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, settings.get_save_name())
 
-if settings.is_testing():
-    TESTING_DIRECTORY = "testing"
-    TESTING_PATH = os.path.join(BASE_PATH, TESTING_DIRECTORY)
-    
-    SAVES_DIRECTORY = os.path.join(TESTING_DIRECTORY, SAVES_DIRECTORY)
-    SCRIPTS_PATHS.append(os.path.join(TESTING_PATH, "scripts"))
-    
 SAVES_PATH = os.path.join(BASE_PATH, SAVES_DIRECTORY)
 FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.csv")
-CONFIGURATION_SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, "configurations")
-SETUP_SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, "setups")
+CONFIGURATION_SAVES_DIRECTORY = "configurations"
+SETUP_SAVES_DIRECTORY = "setups"
 
-# Ensure directories exist
-for saves_directory in [CONFIGURATION_SAVES_DIRECTORY, SETUP_SAVES_DIRECTORY]:
-    os.makedirs(os.path.join(BASE_PATH, saves_directory), exist_ok=True)
-    
-for script_path in SCRIPTS_PATHS:
-    os.makedirs(script_path, exist_ok=True)
-    
-    
-    
+# Ensure directory exists
+os.makedirs(SCRIPTS_PATH, exist_ok=True)
+
+
 
 # Available types of attribute values
 VALUE_TYPES = (ValueTypeString, ValueTypeNumber, ValueTypeTriangleDistribution)
 
 # Available types of calculation operations between input attribute values
-CALCULATION_TYPES = (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeSampleTriangle, CalculationTypeQualitative)
+CALCULATION_TYPES = (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeDivision, CalculationTypeSampleTriangle, CalculationTypeQualitative)
 
 
 
@@ -73,7 +60,7 @@ HIGHLIGHT_OPTIONS = "light green" # Border around options
 # Class block
 CLASS_WIDTH = 5
 CLASS_HEIGHT = 1
-CLASS_COLOR = "gray"
+CLASS_COLOR = "slate gray"
 
 # Attribute block
 ATTRIBUTE_WIDTH = CLASS_WIDTH
@@ -96,6 +83,9 @@ CONNECTION_DASH = (5, 2) # Used for external connections in configuration view
 CORNER_WIDTH = CLASS_HEIGHT / 4
 CORNER_HEIGHT = CLASS_HEIGHT / 4
 CORNER_COLOR = "black"
+
+# Appearing Entry fields
+ENTRY_COLOR = "white"
 
 
 
@@ -206,6 +196,7 @@ BUTTON_SELECT_INDICATOR_SIZE = OPTIONS_GRID_HEIGHT * 2 / 3
 TAG_OPTIONS = "options"
 TAG_OPTIONS_TEXT = "options_text"
 TAG_OPTIONS_BACKGROUND = "options_background"
+TAG_OPTIONS_HIGHLIGHT = "options_highlight"
 TAG_BUTTON = "button"
 TAG_BUTTON_TEXT = "button_text"
 TAG_INDICATOR = "number_indicator"

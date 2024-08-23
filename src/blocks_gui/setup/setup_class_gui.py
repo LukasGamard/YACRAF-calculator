@@ -276,12 +276,16 @@ class GUISetupClass(GUIClass):
         self.__setup_class.set_instance_name(name)
         self.update_text()
         
-    def update_text(self):
+    def update_text(self, update_linked=True):
         """
         Updates the displayed text according to the set configuration class and setup class names
         """
         self.set_text(f"{self.__configuration_class_gui.get_name()}: {self.__setup_class.get_instance_name()}")
         
+        if update_linked:
+            for linked_setup_class_gui in self.get_model().get_linked_setup_classes_gui(self):
+                linked_setup_class_gui.update_text(False)
+                
     def delete(self):
         super().delete()
         

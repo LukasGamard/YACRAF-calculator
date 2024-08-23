@@ -3,6 +3,7 @@ from general_gui import GUIBlock, GUIModelingBlock
 from buttons_gui import TouchButton, RadioButton, ToggleButton
 from helper_functions_general import convert_value_to_string, convert_string_to_value, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_font, delete_all
 from default_coordinate_functions import get_options_coordinate
+from pressable_entry import PressableEntry
 from config import *
 
 class Options:
@@ -28,12 +29,10 @@ class Options:
         self.__background_rect = view.get_canvas().create_rectangle(actual_x1, actual_y1, actual_x2, actual_y2, width=OUTLINE_WIDTH, outline=OUTLINE_COLOR, fill=OPTIONS_BACKGROUND_COLOR, tags=(TAG_OPTIONS_BACKGROUND,))
         self.__background_block = GUIBlock(model, view, [self.__background_rect], self.__x, self.__y, width, height, ignore_zoom=True)
         
-        self.__items = []
-        
         self.add_label(-1, columns/2-0.5, f"Options: {text}", color=OPTIONS_TITLE_COLOR) # Title
         self.add_button(rows, columns/2-0.5, "Close", self.delete) # Close button
         
-        self.__background_block.highlight(HIGHLIGHT_OPTIONS, highlight_border_width=2*HIGHLIGHT_BORDER_WIDTH)
+        self.__background_block.highlight(HIGHLIGHT_OPTIONS, highlight_border_width=2*HIGHLIGHT_BORDER_WIDTH, highlight_tags=(TAG_OPTIONS_HIGHLIGHT))
         
         view.set_currently_open_options(self)
         
@@ -44,8 +43,8 @@ class Options:
         """
         options = Options(model, view, 3, 3, "View")
         
-        entry_text = options.add_entry(0, 0, "Name:", view.get_name())
-        entry_text.trace("w", lambda *args: view.set_name(entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Name:", view.get_name(), lambda: view.set_name(entry_text.get()), entry_text)
         
         options.add_move_buttons(0, 1, "Move view button:", lambda: model.swap_view_places(view, True), lambda: model.swap_view_places(view, False))
         
@@ -57,10 +56,10 @@ class Options:
         """
         Options for general settings to the program
         """
-        options = Options(model, view, 2, 1, "Settings")
+        options = Options(model, view, 2, 1, "General settings")
         
-        entry_text = options.add_entry(0, 0, "Number of samples when comparing distributions:", settings.get_num_samples())
-        entry_text.trace("w", lambda *args: set_num_samples(entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Number of samples when comparing distributions:", settings.get_num_samples(), lambda: set_num_samples(entry_text.get()), entry_text)
         
     @staticmethod
     def configuration_class(model, view, configuration_class_gui, configuration_views):
@@ -69,8 +68,8 @@ class Options:
         """
         options = Options(model, view, max(2, 1+len(configuration_views)), 2, "Class")
         
-        entry_text = options.add_entry(0, 0, "Name:", configuration_class_gui.get_name())
-        entry_text.trace("w", lambda *args: configuration_class_gui.set_name(entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Name:", configuration_class_gui.get_name(), lambda: configuration_class_gui.set_name(entry_text.get()), entry_text)
         
         options.add_label(0, 1, "Add linked copy to setup view:")
         
@@ -90,8 +89,8 @@ class Options:
         
         options = Options(model, view, max(2, 1+len(VALUE_TYPES)), 4, "Attribute")
         
-        entry_text = options.add_entry(0, 0, "Name:", configuration_attribute_gui.get_name())
-        entry_text.trace("w", lambda *args: configuration_attribute_gui.set_name(entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Name:", configuration_attribute_gui.get_name(), lambda: configuration_attribute_gui.set_name(entry_text.get()), entry_text)
         
         options.add_move_buttons(0, 1, "Move view button", \
                                  lambda: configuration_class_gui.swap_attribute_places(configuration_attribute_gui, True), \
@@ -142,11 +141,11 @@ class Options:
             text_scalar = "1"
             text_offset = "0"
             
-        entry_text_scalar = options.add_entry(0, 1, "Scalar (float or integer):", text_scalar)
-        entry_text_scalar.trace("w", lambda *args: set_configuration_scalar(configuration_input, entry_text_scalar.get()))
+        entry_text_scalar = tk.StringVar()
+        options.add_entry(0, 1, "Scalar (float or integer):", text_scalar, lambda: set_configuration_scalar(configuration_input, entry_text_scalar.get()), entry_text_scalar)
         
-        entry_text_offset = options.add_entry(0, 2, "Offset (float or integer):", text_offset)
-        entry_text_offset.trace("w", lambda *args: set_configuration_offset(configuration_input, entry_text_offset.get()))
+        entry_text_offset = tk.StringVar()
+        options.add_entry(0, 2, "Offset (float or integer):", text_offset, lambda: set_configuration_offset(configuration_input, entry_text_offset.get()), entry_text_offset)
         
     @staticmethod
     def setup_class(model, view, setup_class_gui, setup_views):
@@ -155,8 +154,8 @@ class Options:
         """
         options = Options(model, view, max(2, 1+len(setup_views)), 2, "Class")
         
-        entry_text = options.add_entry(0, 0, "Name:", setup_class_gui.get_name())
-        entry_text.trace("w", lambda *args: setup_class_gui.set_name(entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Name:", setup_class_gui.get_name(), lambda: setup_class_gui.set_name(entry_text.get()), entry_text)
         
         options.add_label(0, 1, "Add linked copy to setup view:")
         
@@ -181,13 +180,13 @@ class Options:
         Options for directional connection in setup views
         """
         options = Options(model, view, 2, 1, "Connection")
-        entry_text = connection.get_input_scalars_string()
+        default_text = connection.get_input_scalars_string()
         
-        if entry_text == None:
-            entry_text = "1"
+        if default_text == None:
+            default_text = "1"
             
-        entry_text = options.add_entry(0, 0, "Scalar (number or a / b / c):", entry_text)
-        entry_text.trace("w", lambda *args: set_setup_scalars(connection, entry_text.get()))
+        entry_text = tk.StringVar()
+        options.add_entry(0, 0, "Scalar (number or a / b / c):", default_text, lambda: set_setup_scalars(connection, entry_text.get()), entry_text)
         
     def get_grid_coordinate(self, row, column):
         """
@@ -205,30 +204,14 @@ class Options:
         position = self.get_grid_coordinate(row, column)
         self.__background_block.add_attached_block(GUIModelingBlock(self.__model, self.__view, text, OPTIONS_GRID_WIDTH, OPTIONS_GRID_HEIGHT, color, position=position, ignore_zoom=True, tags_rect=(TAG_OPTIONS,), tags_text=(TAG_OPTIONS_TEXT,)))
         
-    def add_entry(self, row, column, text, default_text):
+    def add_entry(self, row, column, text, default_text, command, entry_text=None):
         """
         Adds a field for entrering text with a text field above that explains what should be entered
         """
-        entry_text = tk.StringVar()
-        entry_text.set(default_text)
-        
         self.add_label(row, column, text)
         
-        self.add_label(row+1, column, "", OPTIONS_BACKGROUND_COLOR)
         x, y = self.get_grid_coordinate(row+1, column)
-        actual_x, actual_y = convert_grid_coordinate_to_actual(x, y, LENGTH_UNIT)
-        actual_width, actual_height = convert_grid_coordinate_to_actual(OPTIONS_GRID_WIDTH, OPTIONS_GRID_HEIGHT, LENGTH_UNIT)
-        
-        actual_x += OUTLINE_WIDTH
-        actual_y += OUTLINE_WIDTH
-        actual_width -= 2 * OUTLINE_WIDTH
-        actual_height -= 2 * OUTLINE_WIDTH
-        
-        # Create Entry and Window to put the Entry in to allow it be put inside the Canvas
-        entry = tk.Entry(self.__view, textvariable=entry_text, font=get_font(LENGTH_UNIT))
-        self.__items.append(self.__view.get_canvas().create_window((actual_x, actual_y), window=entry, anchor="nw", width=actual_width, height=actual_height))
-        
-        return entry_text
+        self.__background_block.add_attached_block(PressableEntry(self.__model, self.__view, x, y, OPTIONS_GRID_WIDTH, OPTIONS_GRID_HEIGHT, command, text=default_text, entry_text=entry_text, ignore_zoom=True, tags_rect=(TAG_OPTIONS,), tags_text=(TAG_OPTIONS_TEXT,)))
         
     def add_button(self, row, column, text, command):
         """
@@ -273,21 +256,9 @@ class Options:
         Moves the option window
         """
         self.__background_block.move_block(move_x, move_y)
-        actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(move_x, move_y, LENGTH_UNIT)
-        
-        for item in self.__items:
-            new_actual_x, new_actual_y = self.__view.get_canvas().coords(item)
-            new_actual_x += actual_move_x
-            new_actual_y += actual_move_y
-            
-            self.__view.get_canvas().coords(item, new_actual_x, new_actual_y)
         
     def delete(self):
         self.__background_block.delete()
-        
-        for item in self.__items:
-            self.__view.get_canvas().delete(item)
-            
         self.__view.reset_currently_open_options()
         
 def set_configuration_scalar(configuration_input, input_scalar_string):

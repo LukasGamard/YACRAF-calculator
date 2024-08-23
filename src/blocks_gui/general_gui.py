@@ -64,7 +64,7 @@ class GUIBlock:
         """
         if self.__draggable:
             self.__was_dragged = True
-            move_x, move_y = convert_actual_coordinate_to_grid(event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1], self.__view.get_length_unit())
+            move_x, move_y = convert_actual_coordinate_to_grid(event.x-self.__pick_up_actual_coordinate[0], event.y-self.__pick_up_actual_coordinate[1], self.get_length_unit())
             
             if max_positive_move_x != None and move_x > max_positive_move_x:
                 move_x = max_positive_move_x
@@ -141,10 +141,7 @@ class GUIBlock:
         for attached_block in self.__attached_blocks:
             attached_block.scale(new_length_unit, last_length_unit)
             
-    def reset_scale(self):
-        self.scale(LENGTH_UNIT, self.__view.get_length_unit())
-        
-    def highlight(self, color, *, highlight_border_width=HIGHLIGHT_BORDER_WIDTH):
+    def highlight(self, color, *, highlight_border_width=HIGHLIGHT_BORDER_WIDTH, update_shown_order=True, highlight_tags=()):
         """
         Create a highlight around the block
         """
@@ -162,7 +159,8 @@ class GUIBlock:
                                                           x2+highlight_border_width, \
                                                           y2+highlight_border_width, \
                                                           width=0, \
-                                                          fill=color)
+                                                          fill=color, \
+                                                          tags=highlight_tags)
                 
                 self.__shapes_highlight.append(rect)
                 
@@ -185,11 +183,15 @@ class GUIBlock:
                 
                 self.__shapes_highlight.append(triangle)
                 
-        for shape in self.__shapes_highlight:
-            self.get_canvas().tag_lower(shape)
-            
+        if highlight_tags == ():
+            for shape in self.__shapes_highlight:
+                self.get_canvas().tag_lower(shape)
+                
         for attached_block in self.__attached_blocks:
-            attached_block.highlight(color, highlight_border_width=highlight_border_width)
+            attached_block.highlight(color, highlight_border_width=highlight_border_width, update_shown_order=False, highlight_tags=highlight_tags)
+            
+        if highlight_tags != () and update_shown_order:
+            self.__view.update_shown_order()
             
     def unhighlight(self):
         """
@@ -270,6 +272,12 @@ class GUIBlock:
     def ignores_zoom(self):
         return self.__ignore_zoom
         
+    def get_length_unit(self):
+        if self.__ignore_zoom:
+            return LENGTH_UNIT
+        else:
+            return self.__view.get_length_unit()
+            
     def add_attached_block(self, block):
         self.__attached_blocks.append(block)
         
@@ -324,6 +332,7 @@ class GUIModelingBlock(GUIBlock):
                                                                         bind_right=None, \
                                                                         tags_rect=(), \
                                                                         tags_text=()):
+        
         if position == None:
             x, y = get_block_start_coordinates(view.get_length_unit())[0]
         else:
@@ -344,7 +353,7 @@ class GUIModelingBlock(GUIBlock):
             label_text_x = x + width / 2
             
         actual_label_text_x, actual_label_text_y = convert_grid_coordinate_to_actual(label_text_x, y+height/2, length_unit)
-        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text="", font=FONT, justify="center", tags=tags_text)
+        self.__label_text = canvas.create_text(actual_label_text_x, actual_label_text_y, text="", font=FONT, anchor="center", justify="center", tags=tags_text)
         
         pressable_items = [self.__rect, self.__label_text]
         
@@ -393,11 +402,8 @@ class GUIModelingBlock(GUIBlock):
         """
         Sets the text on the block
         """
-        if self.ignores_zoom():
-            length_unit = LENGTH_UNIT
-        else:
-            length_unit = self.get_view().get_length_unit()
-            
+        length_unit = self.get_length_unit()
+        
         actual_maximum_text_width = convert_grid_coordinate_to_actual(self.__text_width, 0, length_unit)[0] - 2 * OUTLINE_WIDTH
         font = get_font(length_unit, canvas_and_label=(self.get_canvas(), self.__label_text))
         
