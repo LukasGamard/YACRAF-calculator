@@ -88,10 +88,6 @@ class PressableEntry(GUIModelingBlock):
         self.__entry_text.set(text)
         self.set_text(text)
         
-        if self.__entry != None:
-            self.__entry.delete(0, "end")
-            self.__entry.insert(0, text)
-            
     def get_entry_size(self):
         """
         Returns the pixel width and height that an entry field should have

@@ -17,7 +17,7 @@ def combine_values(value_type, calculation_type, input_setup_attributes, setup_i
         
         if input_value_string == "-":
             return "-"
-        
+            
         value = input_value_type.extract_input_value(input_value_string)
         
         if value == None:
@@ -285,10 +285,16 @@ class CalculationTypeDivision(CalculationType):
     def correct_input_attribute_value_types(input_configuration_attributes):
         value_types = get_attribute_value_types(input_configuration_attributes)
         
-        if len(value_types) > CalculationTypeDivision.number_of_inputs():
+        if len(value_types) != CalculationTypeDivision.number_of_inputs():
             print(f"Warning: Calculation type {CalculationTypeDivision.symbol()} require exactly {CalculationTypeDivision.number_of_inputs()} input attributes in the configuration")
             return False
             
+        return True
+        
+    @staticmethod
+    def calculate_output_value(input_values, num_samples):
+        return input_values[0] / input_values[1]
+        
 class CalculationTypeSampleTriangle(CalculationType):
     @staticmethod
     def symbol():
@@ -305,17 +311,14 @@ class CalculationTypeSampleTriangle(CalculationType):
     @staticmethod
     def correct_input_attribute_value_types(input_configuration_attributes):
         # Only triangle distributions allowed as input, with at most two inputs
-        if CalculationType.correct_input_attribute_value_types(input_configuration_attributes):
-            if len(input_configuration_attributes) == 0:
-                return True
-                
-            elif len(input_configuration_attributes) <= CalculationTypeSampleTriangle.number_of_inputs() and input_configuration_attributes[0].get_value_type() == ValueTypeTriangleDistribution:
-                return True
-                
-            print(f"Warning: All input attributes for calculation type {CalculationTypeSampleTriangle.symbol()} need to be of value type {ValueTypeTriangleDistribution.symbol()} in the configuration")
-                
-        else:
+        if len(input_configuration_attributes) != CalculationTypeSampleTriangle.number_of_inputs():
             print(f"Warning: Calculation type {CalculationTypeSampleTriangle.symbol()} require exactly {CalculationTypeSampleTriangle.number_of_inputs()} input attributes in the configuration")
+            
+        elif CalculationType.correct_input_attribute_value_types(input_configuration_attributes) and input_configuration_attributes[0].get_value_type() == ValueTypeTriangleDistribution:
+            return True
+            
+        else:
+            print(f"Warning: All input attributes for calculation type {CalculationTypeSampleTriangle.symbol()} need to be of value type {ValueTypeTriangleDistribution.symbol()} in the configuration")
             
         return False
         

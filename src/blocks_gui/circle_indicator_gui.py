@@ -18,6 +18,8 @@ class GUICircleIndicator:
         self.create(text)
         self.update_font_size()
         
+        view.update_shown_order()
+        
     def move(self, move_x, move_y):
         """
         Moves the indicator on the canvas

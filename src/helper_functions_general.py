@@ -199,6 +199,54 @@ def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
         
     return updated_font
     
+def get_text_that_fits(canvas, label, text, text_width, is_bold, length_unit):
+    """
+    Returns the text and its corresponding font required for the specified text to fit within the specified grid text width
+    """
+    from config import OUTLINE_WIDTH
+    
+    actual_maximum_text_width = convert_grid_coordinate_to_actual(text_width, 0, length_unit)[0] - 2 * OUTLINE_WIDTH
+    font = get_font(length_unit, canvas_and_label=(canvas, label))
+    
+    if is_bold:
+        font = (font[0], font[1], "bold")
+        actual_text_width = tkfont.Font(family=font[0], size=font[1], weight=font[2]).measure(text)
+    else:
+        font = (font[0], font[1])
+        actual_text_width = tkfont.Font(family=font[0], size=font[1]).measure(text)
+        
+    # Should add line break and lower font size
+    if actual_text_width >= actual_maximum_text_width:
+        has_line_break_text = True
+        
+        # Find the space that is closest to the middle and line break there
+        words = text.split()
+        mid_index = len(text) // 2
+        current_number_of_characters = 0
+        
+        for i, word in enumerate(words):
+            current_number_of_characters += len(word) + 1
+            
+            if current_number_of_characters >= mid_index:
+                if current_number_of_characters - mid_index < len(word) // 2:
+                    text = " ".join(words[:i+1]) + "\n" + " ".join(words[i+1:])
+                else:
+                    text = " ".join(words[:i]) + "\n" + " ".join(words[i:])
+                    
+                break
+                
+    else:
+        has_line_break_text = False
+        
+    font = get_font(length_unit, canvas_and_label=(canvas, label), has_line_break=has_line_break_text)
+    
+    if is_bold:
+        font = (font[0], font[1], "bold")
+    else:
+        font = (font[0], font[1])
+        
+    return text, font
+    
 def delete_all(to_delete_list, manual_delete=False):
     """
     Calls the delete method of all elements in to_delete_list

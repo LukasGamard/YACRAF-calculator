@@ -2,7 +2,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 import numpy as np
 from circle_indicator_gui import GUICircleIndicator
-from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, distance_to_closest_grid_intersection, get_font, delete_all
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, distance_to_closest_grid_intersection, get_font, get_text_that_fits, delete_all
 from default_coordinate_functions import get_block_start_coordinates
 from config import *
 
@@ -402,53 +402,17 @@ class GUIModelingBlock(GUIBlock):
         """
         Sets the text on the block
         """
-        length_unit = self.get_length_unit()
-        
-        actual_maximum_text_width = convert_grid_coordinate_to_actual(self.__text_width, 0, length_unit)[0] - 2 * OUTLINE_WIDTH
-        font = get_font(length_unit, canvas_and_label=(self.get_canvas(), self.__label_text))
-        
-        if is_bold:
-            font = (font[0], font[1], "bold")
-            actual_text_width = tkfont.Font(family=font[0], size=font[1], weight=font[2]).measure(text)
-        else:
-            font = (font[0], font[1])
-            actual_text_width = tkfont.Font(family=font[0], size=font[1]).measure(text)
-            
-        # Should add line break and lower font size
-        if actual_text_width >= actual_maximum_text_width:
-            has_line_break_text = True
-            
-            # Find the space that is closest to the middle and line break there
-            words = text.split()
-            mid_index = len(text) // 2
-            current_number_of_characters = 0
-            
-            for i, word in enumerate(words):
-                current_number_of_characters += len(word) + 1
-                
-                if current_number_of_characters >= mid_index:
-                    if current_number_of_characters - mid_index < len(word) // 2:
-                        text = " ".join(words[:i+1]) + "\n" + " ".join(words[i+1:])
-                    else:
-                        text = " ".join(words[:i]) + "\n" + " ".join(words[i:])
-                        
-                    break
-                    
-        else:
-            has_line_break_text = False
-            
-        font = get_font(length_unit, canvas_and_label=(self.get_canvas(), self.__label_text), has_line_break=has_line_break_text)
-        
-        if is_bold:
-            font = (font[0], font[1], "bold")
-        else:
-            font = (font[0], font[1])
+        text, font = get_text_that_fits(self.get_canvas(), self.__label_text, text, self.__text_width, is_bold, self.get_length_unit())
             
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
         
+    def get_text_width(self):
+        return self.__text_width
+        
     def set_fill_color(self, fill_color):
         self.get_canvas().itemconfig(self.__rect, fill=fill_color)
+        self.get_canvas().update_idletasks() # Ensure that the color is changed immediately and not after other
         
 class GUIClass(GUIModelingBlock):
     """
@@ -492,6 +456,7 @@ class GUIClass(GUIModelingBlock):
                 
         # Add or update indicator
         if self.__linked_group_number != None:
+            # Create new indicator
             if self.__linked_group_indicator == None:
                 self.__linked_group_indicator = GUICircleIndicator(self.get_view(), \
                                                                    self.get_x()+self.get_width(), \
@@ -500,9 +465,12 @@ class GUIClass(GUIModelingBlock):
                                                                    LINKED_GROUP_CIRCLE_COLOR, \
                                                                    LINKED_GROUP_CIRCLE_OUTLINE, \
                                                                    self.__linked_group_number)
+            # Update existing one
             else:
                 self.__linked_group_indicator.create(self.__linked_group_number)
-                
+        else:
+            self.__linked_group_indicator = None
+            
     def delete(self):
         super().delete()
         

@@ -12,21 +12,35 @@ class Button(GUIModelingBlock):
         self.__command = command
         self.__fill_color = fill_color
         
+        self.__completed_command = False
+        self.__was_released = False
+        
     def left_pressed(self, event):
         self.change_to_select_color()
         
         if self.__command != None:
             self.__command()
             
+        self.__completed_command = True
+        self.reset_select_color()
+        
     def left_dragged(self, event):
         pass
         
     def left_released(self, event):
-        self.set_fill_color(self.__fill_color)
+        self.__was_released = True
+        self.reset_select_color()
         
     def change_to_select_color(self):
         self.set_fill_color(SELECT_COLOR)
         
+    def reset_select_color(self):
+        if self.__completed_command and self.__was_released:
+            self.set_fill_color(self.__fill_color)
+            
+            self.__completed_command = False
+            self.__was_released = False
+            
 class TouchButton(Button):
     """
     Class managing a custom button

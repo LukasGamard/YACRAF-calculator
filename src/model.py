@@ -50,14 +50,15 @@ class Model:
                     if view_directory == CONFIGURATION_SAVES_DIRECTORY:
                         configuration_view = self.create_view(True, view_name)
                         mapping_configuration_class_gui.update(configuration_view.restore_save(file_path, self.__linked_configuration_groups_per_number))
-                        configuration_view.update_shown_order()
                         
                     # Restore saved setup view
                     elif view_directory == SETUP_SAVES_DIRECTORY:
                         setup_view = self.create_view(False, view_name)
                         setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
-                        setup_view.update_shown_order()
                         
+                for view in self.__configuration_views + self.__setup_views:
+                    view.update_shown_order()
+                    
                 self.calculate_values()
                 
         # Attempt to find and set a suitable default view

@@ -1,5 +1,5 @@
 from general_gui import GUIModelingBlock
-from helper_functions_general import convert_grid_coordinate_to_actual, get_font
+from helper_functions_general import convert_grid_coordinate_to_actual, get_font, get_text_that_fits
 from pressable_entry import PressableEntry
 from config import *
 
@@ -20,7 +20,7 @@ class GUISetupAttribute(GUIModelingBlock):
         attribute_y = setup_class_gui.get_y() + CLASS_HEIGHT + len(setup_class_gui.get_setup_attributes_gui()) * ATTRIBUTE_HEIGHT
         
         actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(attribute_x+width*3/4, attribute_y+height/2, view.get_length_unit())
-        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=get_font(view.get_length_unit()))
+        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=get_font(view.get_length_unit()), anchor="center", justify="center")
         
         super().__init__(model, \
                          view, \
@@ -149,7 +149,8 @@ class GUISetupAttribute(GUIModelingBlock):
             
         # Set value in Label
         if self.__entry_value == None:
-            self.get_view().get_canvas().itemconfig(self.__label_value, text=str(value), fill=color)
+            text, font = get_text_that_fits(self.get_canvas(), self.__label_value, str(value), self.get_text_width(), False, self.get_length_unit())
+            self.get_view().get_canvas().itemconfig(self.__label_value, text=text, font=font, fill=color)
             
         # Set value in Entry
         else:
