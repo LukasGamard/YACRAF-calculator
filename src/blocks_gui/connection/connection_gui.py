@@ -121,16 +121,14 @@ class GUIConnection:
         # The lines should follow the mouse around as it has not been connected to a block yet
         if mouse_location != None:
             end_x, end_y = convert_actual_coordinate_to_grid(mouse_location[0], mouse_location[1], self.__view.get_length_unit())
-            end_x -= 0.5
-            end_y -= 0.5
             
             # Direction which the line should attach to the mouse
             if end_x > start_x:
                 self.__end_direction = "LEFT"
-                end_x -= 1
+                end_x -= 0.5
             else:
                 self.__end_direction = "RIGHT"
-                end_x += 1
+                end_x += 0.5
         else:
             end_x, end_y = self.__end_block.get_connection_grid_start(self.__end_direction)
             
@@ -141,18 +139,17 @@ class GUIConnection:
             self.__corners.append(GUIConnectionCorner(self.__model, self.__view, self, corner_x, corner_y))
             
         # Draw lines based on the created corners
-        self.create_lines_from_corners(start_x, start_y, end_x, end_y)
-        
+        if mouse_location != None:
+            self.create_lines_from_corners((end_x, end_y+0.5))
+        else:
+            self.create_lines_from_corners()
+            
     def adjust_lines_to_dragged_corners(self):
         """
         Corrects the lines to match the new position of corners as they have been dragged around
         """
         self.remove_lines()
-        
-        start_x, start_y = self.__start_block.get_connection_grid_start(self.__start_direction)
-        end_x, end_y = self.__start_block.get_connection_grid_start(self.__end_direction)
-        
-        self.create_lines_from_corners(start_x, start_y, end_x, end_y)
+        self.create_lines_from_corners()
         
     def get_corners(self):
         return self.__corners
@@ -238,7 +235,7 @@ class GUIConnection:
             self.__num_order_indicator.remove()
             self.__num_order_indicator = None
             
-    def create_lines_from_corners(self, start_x, start_y, end_x, end_y):
+    def create_lines_from_corners(self, end_grid_location=None):
         """
         Creates the lines that connect previously created corners
         """
@@ -249,8 +246,11 @@ class GUIConnection:
             actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(corner.get_x()+0.5, corner.get_y()+0.5, self.__view.get_length_unit())
             actual_coordinates.append((actual_corner_x, actual_corner_y))
             
-        actual_coordinates.append(self.__end_block.get_connection_actual_start(self.__end_direction))
-        
+        if end_grid_location != None:
+            actual_coordinates.append(convert_grid_coordinate_to_actual(end_grid_location[0], end_grid_location[1], self.__view.get_length_unit()))
+        else:
+            actual_coordinates.append(self.__end_block.get_connection_actual_start(self.__end_direction))
+            
         # Draw lines between each corner coordinate
         for i in range(1, len(actual_coordinates)):
             from_x = actual_coordinates[i-1][0]

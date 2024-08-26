@@ -181,7 +181,7 @@ def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
         updated_font = (current_font[0], new_font_size, current_font[2])
         
     else:
-        print(f"Error: Found font {current_font}")
+        return (FONT[0], new_font_size)
         
     return updated_font
     

@@ -78,8 +78,8 @@ class Model:
         key = event.keysym
         self.__currently_pressed_keys.add(key.lower())
         
-        # If the canvas is in focus (not typing in an entry)
-        if self.__root.focus_get() == self.__current_view:
+        # If the view or nothing (only root) is in focus (not typing in an entry)
+        if self.__root.focus_get() in (self.__root, self.__current_view):
             # Delete a selected block
             if key == "BackSpace":
                 items_to_delete = []
