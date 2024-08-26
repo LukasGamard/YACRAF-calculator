@@ -2,6 +2,9 @@ import numpy as np
 from helper_functions_general import convert_value_to_string, convert_string_to_value
 
 def combine_values(value_type, calculation_type, input_setup_attributes, setup_input_scalars_per_attribute, configuration_attribute, num_samples):
+    """
+    Returns a string of the calculated value by combining the value of all input setup attributes according to the calculation type
+    """
     calculated_value = value_type.default_value()
     input_values = []
     
@@ -15,17 +18,20 @@ def combine_values(value_type, calculation_type, input_setup_attributes, setup_i
         input_value_type = input_setup_attribute.get_value_type()
         input_value_string = input_setup_attribute.get_current_value()
         
+        # If an input value could not previously be calculated, this value cannot be calculated either
         if input_value_string == "-":
             return "-"
             
         value = input_value_type.extract_input_value(input_value_string)
         
+        # Could not extract input value
         if value == None:
             return "ERROR"
             
         value = np.array(value)
         setup_input_scalars = setup_input_scalars_per_attribute[i]
         
+        # Apply input scalars
         if setup_input_scalars != None:
             value = apply_setup_input_scalars(value, np.array(setup_input_scalars), input_value_type.allowed_number_of_scalars())
             
@@ -33,10 +39,14 @@ def combine_values(value_type, calculation_type, input_setup_attributes, setup_i
         
     if len(input_values) > 0:
         calculated_value = calculation_type.calculate_output_value(input_values, num_samples) * configuration_attribute.get_input_scalar() + configuration_attribute.get_input_offset()
+        calculated_value = value_type.adjust_to_range(calculated_value)
         
     return convert_value_to_string(calculated_value)
     
 def get_attribute_value_types(configuration_attributes):
+    """
+    Returns a list of value types corresponding to each input configuration attribute
+    """
     value_types = []
     
     for configuration_attribute in configuration_attributes:
@@ -45,17 +55,43 @@ def get_attribute_value_types(configuration_attributes):
     return value_types
     
 def apply_setup_input_scalars(values, input_scalars, allowed_scalar_values):
+    """
+    Applies setup input scalars to the specified value, but also checks if the number of scalars are allowed
+    """
     if len(input_scalars) in allowed_scalar_values:
         values *= input_scalars
     else:
         print(f"Warning: Could not apply input setup scalars {input_scalars} to {values}, expected a number of values equal to a value in {allowed_scalar_values}")
+        
     return values
     
-class ValueTypeString:
+class ValueType:
     @staticmethod
     def symbol():
         return None
         
+    @staticmethod
+    def correctly_connected(calculation_type, input_configuration_attributes):
+        """
+        Checks if the configuration is correct considering a specific calculation type and its input configuration attributes
+        """
+        return True
+        
+    @staticmethod
+    def extract_input_value(input_value_string):
+        """
+        Returns a list of all found individual values in a formatted string, returning None if the string is incorrectly formatted
+        """
+        return []
+        
+    @staticmethod
+    def adjust_to_range(value):
+        """
+        Adjusts the specified value to fit within the allowed range of the value type
+        """
+        return value
+        
+class ValueTypeString(ValueType):
     @staticmethod
     def explaination():
         return "Simple text (no calculations)"
@@ -75,14 +111,14 @@ class ValueTypeString:
             
         return True
         
-class ValueTypeNumber:
+class ValueTypeNumber(ValueType):
     @staticmethod
     def symbol():
         return "N"
         
     @staticmethod
     def explaination():
-        return "Number (integer or float)"
+        return "Number (integer or decimal number)"
         
     @staticmethod
     def default_text():
@@ -98,14 +134,11 @@ class ValueTypeNumber:
         
     @staticmethod
     def correctly_connected(calculation_type, input_configuration_attributes):
-        if calculation_type == CalculationTypeQualitative:
-            return True
-            
-        elif calculation_type in (CalculationTypeSampleTriangle, CalculationTypeQualitative):
+        if calculation_type in (CalculationTypeSampleTriangle, CalculationTypeQualitative):
             return True
             
         for input_value_type in get_attribute_value_types(input_configuration_attributes):
-            if input_value_type != ValueTypeNumber:
+            if input_value_type == ValueTypeTriangleDistribution:
                 print(f"Warning: Attribute value type {ValueTypeNumber.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
                 return False
                 
@@ -122,7 +155,65 @@ class ValueTypeNumber:
             
         return value
         
-class ValueTypeTriangleDistribution:
+class ValueTypeProbability(ValueType):
+    @staticmethod
+    def symbol():
+        return "P"
+        
+    @staticmethod
+    def explaination():
+        return "Probability, value in [0, 1]"
+        
+    @staticmethod
+    def default_text():
+        return "Probability"
+        
+    @staticmethod
+    def default_value():
+        return np.zeros(1)
+        
+    @staticmethod
+    def allowed_number_of_scalars():
+        return (1,)
+        
+    @staticmethod
+    def correctly_connected(calculation_type, input_configuration_attributes):
+        if calculation_type in (CalculationTypeSampleTriangle, CalculationTypeQualitative):
+            return True
+            
+        for input_value_type in get_attribute_value_types(input_configuration_attributes):
+            if input_value_type == ValueTypeTriangleDistribution:
+                print(f"Warning: Attribute value type {ValueTypeProbability.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
+                return False
+                
+        return True
+        
+    @staticmethod
+    def extract_input_value(input_value_string):
+        value = None
+        
+        try:
+            value = float(input_value_string)
+        except:
+            print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeProbability.symbol()}")
+            
+        if value < 0 or value > 1:
+            print(f"Warning: The value {value} at the attribute value type {ValueTypeProbability.symbol()} is not in [0, 1]")
+            return None
+            
+        return [value]
+        
+    @staticmethod
+    def adjust_to_range(value):
+        if value[0] < 0:
+            value[0] = 0
+            
+        elif value[0] > 1:
+            value[0] = 1
+            
+        return value
+        
+class ValueTypeTriangleDistribution(ValueType):
     @staticmethod
     def symbol():
         return "T"
@@ -202,6 +293,16 @@ class CalculationType:
             last_type = input_value_type
             
         return True
+        
+    @staticmethod
+    def calculate_output_value(input_values, num_samples):
+        """
+        input_values: List of NumPy arrays representing input values from each input attribute
+        num_samples: Number of samples to perform, if applicaple to the calculation type
+        
+        Returns the calculated value based on the list of input values
+        """
+        return None
         
 class CalculationTypeMean(CalculationType):
     @staticmethod
