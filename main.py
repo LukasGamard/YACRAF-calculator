@@ -13,7 +13,7 @@ from settings import Settings
 
 def main():
     if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} save_name")
+        print(f"Usage: {sys.argv[0]} <save_name>")
         
         saves_path = os.path.join(BASE_PATH, SAVES_DIRECTORY)
         print(f"Existing saves: {[name for name in os.listdir(saves_path) if os.path.isdir(os.path.join(saves_path, name))]}")

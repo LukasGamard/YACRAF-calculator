@@ -47,7 +47,7 @@ OUTLINE_COLOR = "black"
 # The width of class blocks in setup views compared to configuration views
 SETUP_WIDTH_MULTIPLIER = 2
 
-SELECT_COLOR = "cyan"
+SELECT_COLOR = "turquoise1"
 
 
 
@@ -60,13 +60,13 @@ HIGHLIGHT_OPTIONS = "light green" # Border around options
 # Class block
 CLASS_WIDTH = 5
 CLASS_HEIGHT = 1
-CLASS_COLOR = "slate gray"
+CLASS_COLOR = "light slate gray"
 
 # Attribute block
 ATTRIBUTE_WIDTH = CLASS_WIDTH
 ATTRIBUTE_HEIGHT = 1
 ATTRIBUTE_TEXT_OFFSET = 5
-ATTRIBUTE_COLOR = "light gray"
+ATTRIBUTE_COLOR = "gainsboro"
 
 # Input block in configuration views
 INPUT_WIDTH = CLASS_HEIGHT
@@ -76,8 +76,7 @@ INPUT_COLOR = "orange"
 # Connections
 CONNECTION_WIDTH = 2
 CONNECTION_COLOR = "black"
-CONNECTION_END_WIDTH = CLASS_HEIGHT # Used for triangle in setup views
-CONNECTION_END_HEIGHT = CLASS_HEIGHT # Used for triangle in setup views
+CONNECTION_END_WIDTH = 0.5 # Used for triangle in setup views
 CONNECTION_END_COLOR = "black" # Used for triangle in setup views
 CONNECTION_DASH = (5, 2) # Used for external connections in configuration view
 CORNER_WIDTH = CLASS_HEIGHT / 4
@@ -98,17 +97,19 @@ SETTINGS_COLOR = "light green"
 SAVE_WIDTH = SETTINGS_WIDTH
 SAVE_HEIGHT = SETTINGS_HEIGHT
 SAVE_COLOR = SETTINGS_COLOR
+SAVE_HEADER_COLOR = "gray"
 
 # Change view buttons
 CHANGE_VIEW_WIDTH = 5
 CHANGE_VIEW_HEIGHT = 1
 CHANGE_VIEW_COLOR = "orange"
+CHANGE_VIEW_HEADER_COLOR = "gainsboro"
 CHANGE_VIEW_SELECTED_COLOR = SELECT_COLOR
 
 # Button for create a new configuration class in the current configuration view
 ADD_CLASS_WIDTH = 5
 ADD_CLASS_HEIGHT = 1
-ADD_CLASS_COLOR = "green"
+ADD_CLASS_COLOR = "forest green"
 
 # Button for creating an input block in the current configuration view
 ADD_INPUT_WIDTH = ADD_CLASS_WIDTH
@@ -123,17 +124,17 @@ ADD_TO_SETUP_COLOR = ADD_CLASS_COLOR
 # Add directional connection to setup view
 ADD_CONNECTION_WIDTH = ADD_CLASS_WIDTH
 ADD_CONNECTION_HEIGHT = ADD_CLASS_HEIGHT
-ADD_CONNECTION_COLOR = "light green"
+ADD_CONNECTION_COLOR = "forest green"
 
 # Button for calculating values in all setup views
 CALCULATE_VALUES_WIDTH = ADD_CLASS_WIDTH
 CALCULATE_VALUES_HEIGHT = ADD_CLASS_HEIGHT
-CALCULATE_VALUES_COLOR = "light green"
+CALCULATE_VALUES_COLOR = "tomato"
 
 # Button found at the bottom of a class block that adds another attribute to the class
 ADD_ATTRIBUTE_WIDTH = 1
 ADD_ATTRIBUTE_HEIGHT = 1
-ADD_ATTRIBUTE_COLOR = "green"
+ADD_ATTRIBUTE_COLOR = "forest green"
 
 # Button found at the bottom of all buttons that change view that adds another view
 ADD_CHANGE_VIEW_WIDTH = ADD_ATTRIBUTE_WIDTH
@@ -143,8 +144,8 @@ ADD_CHANGE_VIEW_COLOR = ADD_ATTRIBUTE_COLOR
 # Button for running scripts in setup views
 RUN_SCRIPT_WIDTH = 5
 RUN_SCRIPT_HEIGHT = 1
-RUN_SCRIPT_COLOR = "red"
-RUN_SCRIPT_CLEAR_COLOR = "gray"
+RUN_SCRIPT_COLOR = "tomato"
+RUN_SCRIPT_CLEAR_COLOR = "khaki"
 
 
 
@@ -162,7 +163,7 @@ LINKED_GROUP_CIRCLE_COLOR = "light green"
 INPUT_INDICATOR_CIRCLE_RADIUS = ATTRIBUTE_HEIGHT / 2
 INPUT_INDICATOR_CIRCLE_OUTLINE = NUM_ORDER_CIRCLE_OUTLINE
 INPUT_SCALAR_INDICATOR_CIRCLE_COLOR = "red"
-INPUT_OFFSET_INDICATOR_CIRCLE_COLOR = "yellow"
+INPUT_OFFSET_INDICATOR_CIRCLE_COLOR = "yellow2"
 
 # Indicator for scalars applied on input values in setup views
 INPUT_SCALARS_INDICATOR_WIDTH = 3

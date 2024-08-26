@@ -106,7 +106,7 @@ class ValueTypeNumber:
             
         for input_value_type in get_attribute_value_types(input_configuration_attributes):
             if input_value_type != ValueTypeNumber:
-                print(f"Warning: Attribute value type N does not support {input_value_type.symbol()} as input")
+                print(f"Warning: Attribute value type {ValueTypeNumber.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
                 return False
                 
         return True
@@ -347,4 +347,3 @@ class CalculationTypeQualitative(CalculationType):
     @staticmethod
     def explaination():
         return "Manual and qualitative evaluation"
-

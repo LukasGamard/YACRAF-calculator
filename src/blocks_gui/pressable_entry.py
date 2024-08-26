@@ -4,6 +4,9 @@ from helper_functions_general import convert_grid_coordinate_to_actual, get_actu
 from config import *
 
 class PressableEntry(GUIModelingBlock):
+    """
+    Custom entry field that creates an Entry when pressed and removes it when unfocused
+    """
     def __init__(self, model, view, x, y, width, height, command, *, text="", entry_text=None, ignore_zoom=False, tags_rect=(), tags_text=()):
         super().__init__(model, view, text, width, height, ENTRY_COLOR, position=(x, y), ignore_zoom=ignore_zoom, bind_left=MOUSE_PRESS, tags_rect=tags_rect, tags_text=tags_text)
         self.__command = command
@@ -15,15 +18,15 @@ class PressableEntry(GUIModelingBlock):
             
         self.__entry_text.set(text)
         
-        self.__entry = None
-        self.__entry_window = None
+        self.__entry = None # Entry field that appears when pressed
+        self.__entry_window = None # Window that the Entry field is placed within so that it can be drawn on the canvas of the specified view
         
-        # Update set value whenever the entry field is edited
-        self.__entry_text.trace("w", lambda *args: self.write())
+        self.__entry_text.trace("w", lambda *args: self.write()) # Updated whenever writing in the Entry
         
     def left_pressed(self, event):
         self.get_view().focus()
         
+        # Create an Entry if it does not exist
         if self.__entry_window == None:
             actual_width, actual_height = self.get_entry_size()
             actual_x, actual_y = convert_grid_coordinate_to_actual(self.get_x(), self.get_y(), self.get_length_unit())
@@ -37,12 +40,12 @@ class PressableEntry(GUIModelingBlock):
                                                                    width=actual_width, \
                                                                    height=actual_height)
                                                                    
-            self.set_text("")
+            self.set_text("") # To ensure that the text on the block does not show underneath the Entry
             
             # When starting to edit the entered value, unselect all blocks
             self.get_view().unselect_all_items()
                         
-            self.__entry.bind("<FocusOut>", lambda *args: self.remove_entry())
+            self.__entry.bind("<FocusOut>", lambda *args: self.remove_entry()) # Remove the Entry when unfocused
             self.__entry.focus()
             self.__entry.icursor(tk.END)
             
@@ -71,8 +74,11 @@ class PressableEntry(GUIModelingBlock):
             self.get_view().get_canvas().itemconfig(self.__entry_window, width=actual_width, height=actual_height)
             
     def remove_entry(self):
+        """
+        Removes the Entry field that appeared
+        """
         if self.__entry_window != None:
-            self.set_text(self.__entry_text.get()) # Update text in label
+            self.set_text(self.__entry_text.get()) # Update text in the label on the block, which was previously removed when the Entry appeared
             
             self.get_canvas().delete(self.__entry_window)
             self.__entry_window = None
@@ -86,7 +92,7 @@ class PressableEntry(GUIModelingBlock):
         
     def set_entry_text(self, text):
         self.__entry_text.set(text)
-        self.set_text(text)
+        self.set_text(text) # Text in the label on the block
         
     def get_entry_size(self):
         """

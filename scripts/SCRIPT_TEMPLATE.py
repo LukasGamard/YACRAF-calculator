@@ -8,6 +8,9 @@
 
 # Values passed to the methods should either be a string or a float/integer
 
+# script_if.get_current_view_name()
+#     Returns the name of the current view
+
 # script_if.get_class_type_names(view=None)
 #     Returns a list of class names (those specified in configuration views) found in the specified setup views
 
@@ -21,9 +24,9 @@
 #     Returns a list of tuples including the class type and class instance names of all classes which the specified setup class instance takes input from, considering the optional filtering of classes
 #     [(input_class_type, input_class_instance), ...]
 
-# script_if.get_attribute_value(class_type, class_instance, attribute, view=None)
-#     Returns the value displayed by a specific setup attribute, which is a float if the value type, a list of values if a distribution, or otherwise a string
-#     If there are overlapping attribute names for a specific class type, each attribute value is returned as part of a list
+# script_if.get_attribute_values(class_type, class_instance, attribute, view=None)
+#     Returns a list of the values displayed by the specified setup attributes, each displayed value being represented by a list of each individual values
+#     [[1, 2, 3], [0.45], ["Text"], ...]
 
 # script_if.convert_value_to_string(attribute_value)
 #     Returns the specified attribute value as a formatted string

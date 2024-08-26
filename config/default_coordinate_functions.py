@@ -29,13 +29,13 @@ def get_change_configuration_view_start_coordinate(length_unit):
     """
     Returns the grid coordinate of the first configuration view button
     """
-    return settings.get_canvas_width() / length_unit - 2 * CHANGE_VIEW_WIDTH, 0
+    return settings.get_canvas_width() / length_unit - 2 * CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT
     
 def get_change_setup_view_start_coordinate(length_unit):
     """
     Returns the grid coordinate of the first setup view button
     """
-    return settings.get_canvas_width() / length_unit - CHANGE_VIEW_WIDTH, 0
+    return settings.get_canvas_width() / length_unit - CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT
     
 def get_create_class_coordinate(length_unit):
     """

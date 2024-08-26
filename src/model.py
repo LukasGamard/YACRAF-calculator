@@ -383,6 +383,9 @@ class Model:
         elif view_to_delete in self.__setup_views:
             self.__setup_views.remove(view_to_delete)
             
+    def get_current_view(self):
+        return self.__current_view
+        
     def change_view(self, view):
         """
         Moves the specified view to the top of all views so that it is shown

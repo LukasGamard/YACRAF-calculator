@@ -248,6 +248,48 @@ class GUIBlock:
             if block != self:
                 block.move_block(move_x, move_y)
                 
+    def get_connection_grid_start(self, direction):
+        """
+        Returns the grid coordinate that a connection line should start from
+        """
+        # Center of block as default
+        x = self.__x + int(0.5 * self.__width)
+        y = self.__y + int(0.5 * self.__height)
+        
+        # Correct one of the values to get the correct coordinate considering the direction which the line goes out from the block
+        if direction == "UP":
+            y = self.__y - 1
+        elif direction == "DOWN":
+            y = self.__y + int(self.__height + 0.98) # Round up to make sure blocks less than one length unit selects the correct coordinate
+        elif direction == "LEFT":
+            x = self.__x - 1
+        elif direction == "RIGHT":
+            x = self.__x + int(self.__width + 0.98)
+            
+        return x, y
+        
+    def get_connection_actual_start(self, direction):
+        """
+        Returns the pixel coordinate that a connection line should start from
+        """
+        # Center of block as default
+        x = self.__x + 0.5 * self.__width
+        y = self.__y + 0.5 * self.__height
+        
+        # Correct one of the values to get the correct coordinate considering the direction which the line goes out from the block
+        if direction == "UP":
+            y = self.__y
+        elif direction == "DOWN":
+            y = self.__y + self.__height # Round up to make sure blocks less than one length unit selects the correct coordinate
+        elif direction == "LEFT":
+            x = self.__x
+        elif direction == "RIGHT":
+            x = self.__x + self.__width
+            
+        actual_x, actual_y = convert_grid_coordinate_to_actual(x, y, self.__view.get_length_unit())
+        
+        return actual_x, actual_y
+        
     def get_model(self):
         return self.__model
         

@@ -9,26 +9,27 @@ class GUIConnectionWithBlocks(GUIConnection):
     Manages directional connection with already attached triangle blocks found in setup views
     """
     def __init__(self, model, view, *, start_coordinate=None, end_coordinate=None, input_scalars=None, input_scalars_indicator_coordinate=None):
-        self.__start_block = GUIConnectionTriangle(model, view, "RIGHT", False) # Points out from class
-        self.__end_block = GUIConnectionTriangle(model, view, "RIGHT", True) # Points into class
-        
         self.__model = model
         self.__view = view
         self.__input_scalars = [1]
         self.__input_scalars_indicator = None
-        super().__init__(model, view, self.__start_block, "RIGHT", end_block=self.__end_block, end_direction="LEFT")
+        
+        start_block = GUIConnectionTriangle(model, view, "RIGHT", False) # Points out from class
+        end_block = GUIConnectionTriangle(model, view, "RIGHT", True) # Points into class
+        
+        super().__init__(model, view, start_block, "RIGHT", end_block=end_block, end_direction="LEFT")
         
         # Move start block to specified coordinate
         if start_coordinate != None:
-            self.__start_block.move_block(start_coordinate[0] - self.__start_block.get_x(), \
-                                          start_coordinate[1] - self.__start_block.get_y())
-            self.__start_block.put_down_block()
+            start_block.move_block(start_coordinate[0] - self.get_start_block().get_x(), \
+                                          start_coordinate[1] - self.get_start_block().get_y())
+            start_block.put_down_block()
             
         # Move end block to specified coordinate
         if end_coordinate != None:
-            self.__end_block.move_block(end_coordinate[0] - self.__end_block.get_x(), \
-                                        end_coordinate[1] - self.__end_block.get_y())
-            self.__end_block.put_down_block()
+            self.get_end_block().move_block(end_coordinate[0] - self.get_end_block().get_x(), \
+                                            end_coordinate[1] - self.get_end_block().get_y())
+            self.get_end_block().put_down_block()
             
         if input_scalars != None:
             self.set_input_scalars(input_scalars)
@@ -63,19 +64,19 @@ class GUIConnectionWithBlocks(GUIConnection):
         """
         Returns the GUI setup class that one of the triangle block points out from
         """
-        return self.__start_block.get_attached_setup_class_gui()
+        return self.get_start_block().get_attached_setup_class_gui()
     
     def get_end_setup_class_gui(self):
         """
         Returns the GUI setup class that one of the triangle block points into
         """
-        return self.__end_block.get_attached_setup_class_gui()
+        return self.get_end_block().get_attached_setup_class_gui()
     
     def get_start_setup_class(self):
         """
         Returns the setup class without a GUI that one of the triangle blocks points out from
         """
-        start_attached_setup_class_gui = self.__start_block.get_attached_setup_class_gui()
+        start_attached_setup_class_gui = self.get_start_block().get_attached_setup_class_gui()
         
         if start_attached_setup_class_gui == None:
             return None
@@ -86,7 +87,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         """
         Returns the setup class without a GUI that one of the triangle blocks points into
         """
-        end_attached_setup_class_gui = self.__end_block.get_attached_setup_class_gui()
+        end_attached_setup_class_gui = self.get_end_block().get_attached_setup_class_gui()
         
         if end_attached_setup_class_gui == None:
             return None
@@ -99,7 +100,7 @@ class GUIConnectionWithBlocks(GUIConnection):
         """
         movable_items = []
         
-        for potential_block in [self.__start_block, self.__end_block]:
+        for potential_block in [self.get_start_block(), self.get_end_block()]:
             if not potential_block.is_attached():
                 movable_items.append(potential_block)
                 
@@ -169,13 +170,13 @@ class GUIConnectionWithBlocks(GUIConnection):
         Returns the default start coordinate of the input scalars indicator
         """
         corners = self.get_corners()
-        end_x, end_y = self.get_attached_grid_coordinate(False)
+        end_x, end_y = self.get_end_block().get_connection_grid_start(self.get_end_direction())
         
         if len(corners) > 0:
             start_x, start_y = corners[-1].get_x(), corners[-1].get_y()
             
         else:
-            start_x, start_y = self.get_attached_grid_coordinate(True)
+            start_x, start_y = self.get_start_block().get_connection_grid_start(self.get_start_direction())
             
         indicator_x = abs(start_x + end_x) / 2
         indicator_y = abs(start_y + end_y) / 2
@@ -195,8 +196,8 @@ class GUIConnectionWithBlocks(GUIConnection):
         indicator_pos = (self.__input_scalars_indicator.get_x()+self.__input_scalars_indicator.get_width()//2, \
                          self.__input_scalars_indicator.get_y()+self.__input_scalars_indicator.get_height()//2)
         
-        start_x, start_y = self.get_attached_grid_coordinate(True)
-        end_x, end_y = self.get_attached_grid_coordinate(False)
+        start_x, start_y = self.get_start_block().get_connection_grid_start(self.get_start_direction())
+        end_x, end_y = self.get_end_block().get_connection_grid_start(self.get_end_direction())
         corners = self.get_corners()
         
         # Coordinates of all corners and end points
@@ -242,11 +243,11 @@ class GUIConnectionWithBlocks(GUIConnection):
             self.remove_lines()
             self.__view.remove_connection_with_blocks(self)
             
-            self.__start_block.delete()
-            self.__end_block.delete()
+            self.get_start_block().delete()
+            self.get_end_block().delete()
             
     def save_state(self):
-        saved_states = {"start_block": self.__start_block.save_state(), "end_block": self.__end_block.save_state(), "input_scalars": self.__input_scalars}
+        saved_states = {"start_block": self.get_start_block().save_state(), "end_block": self.get_end_block().save_state(), "input_scalars": self.__input_scalars}
         
         if self.__input_scalars_indicator == None:
             saved_states["input_scalars_indicator_coordinate"] = None

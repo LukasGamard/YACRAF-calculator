@@ -25,10 +25,22 @@ Make sure Python is not outdated. The known minimum requirement is at least Pyth
 After navigating to the main directory, run the program using:
 
 ```
+python3 main.py <save_name>
+```
+
+Specifying a save name that does not currently exist will create a completely new save. To see which saves currently exist, run:
+
+```
 python3 main.py
 ```
 
 The graphical interface consists of two types of `Views`: `Configuration Views` and `Setup Views`. `Class` blocks (for example, an attack event) and their `Attributes` (for example, the attack event's cost) are defined within `Configuration Views`, where one may also define connections or relationships between different `Attributes`. For instance, whether a specific `Attribute` takes other ones as input and what operation to perform between them. In practical terms, `Configuration Views` defines the metamodel used during the threat modeling. Meanwhile, `Setup Views` define the system-specific setup using the configured `Class` and how they connect/relate to each other.
+
+The default saves of the program contains examples of the Yacraf metamodel being used using this graphical tool. The saves are as follows:
+
+1. `example_single`: Example of the Yacraf model based on the example found in Section 4 of the Yacraf paper.
+2. `example_triangle`: Same as `example_single`, with the exception of using triangle distributions whenever applicable.
+3. `custom`: Same `Configuration Views` as `exampel_triangle` but with blank `Setup Views`, allowing for a threat model of a new system using the Yacraf metamodel.
 
 ### Views
 
@@ -106,3 +118,4 @@ The calculate button at the top (see (7)) calculates the values of all `Attribut
 
 Scripts to visualize or simulate different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the several of the easiest attack paths, can be created using Python scripts that interface to the tool. To create a script, go to the `scripts` directory.
 
+Note: Computationally heavy scripts could take some time to finish running. The corresponding button will appear pressed (changed color) while the script is running.

@@ -1,6 +1,5 @@
 # Code structure
 
-Found in the `blocks_calculation` directory are the `Class` and `Attribute` classes used to track relations between blocks and calculate any values. Meanwhile, the `blocks_gui` directory contain the corresponding GUI versions, wrapping the original ones.
+Found in the `blocks_calculation` directory are the `Class` and `Attribute` classes used to track relations between blocks and calculate any values. Meanwhile, the `blocks_gui` directory contain the corresponding GUI versions, wrapping the aforementioned ones. The `Model` class tracks and manages the main objects of the program, where the classes in the `views` directory tracks any `View` specific objects and draws the corrsponding GUI. When editing a block, the window that pops up is managed by the `Options` class. Furthermore, the `ScriptInterface` class defines the API used by scripts to interact with the program.
 
-The `Model` class tracks and manages the main objects of the program, where the `View` class tracks any `View` specific objects and draws the corrsponding GUI. When editing a block, the window that pops up is the `Options` class.
-
+Found inside `helper_functions_general.py` are general helper functions used throughout the code of the program.

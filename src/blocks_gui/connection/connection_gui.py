@@ -1,8 +1,8 @@
 import tkinter as tk
 import numpy as np
-from connection_blocks_gui import GUIConnectionCorner
+from connection_blocks_gui import GUIConnectionCorner, GUIConnectionTriangle
 from circle_indicator_gui import GUICircleIndicator
-from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, get_grid_mid_x, get_grid_mid_y
+from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, get_grid_mid_x, get_grid_mid_y, convert_direction_to_vector
 from options import Options
 from config import *
 
@@ -76,8 +76,14 @@ class GUIConnection:
     def get_start_block(self):
         return self.__start_block
         
+    def get_start_direction(self):
+        return self.__start_direction
+        
     def get_end_block(self):
         return self.__end_block
+        
+    def get_end_direction(self):
+        return self.__end_direction
         
     def set_end_location(self, block, direction):
         """
@@ -103,55 +109,6 @@ class GUIConnection:
             
         self.create_new_lines()
         
-    def get_attached_grid_coordinate(self, is_start_block):
-        """
-        Returns the grid coordinate that the line should start from considering its connected block
-        """
-        if is_start_block:
-            block = self.__start_block
-            direction = self.__start_direction
-        else:
-            block = self.__end_block
-            direction = self.__end_direction
-            
-        # Center of block as default
-        x = block.get_x() + int(0.5 * block.get_width())
-        y = block.get_y() + int(0.5 * block.get_height())
-        
-        # Correct one of the values to get the correct coordinate considering the direction which the line goes out from the block
-        if direction == "UP":
-            y = block.get_y() - 1
-        elif direction == "DOWN":
-            y = block.get_y() + block.get_height()
-        elif direction == "LEFT":
-            x = block.get_x() - 1
-        elif direction == "RIGHT":
-            x = block.get_x() + block.get_width()
-            
-        return x, y
-        
-    def get_actual_attached_coordinates(self, x, y, direction):
-        """
-        Returns the pixel start coordinate of the line
-        """
-        # Center of grid coordinate as default
-        attached_x = x + 0.5
-        attached_y = y + 0.5
-        
-        # Correct one of the values to get the correct pixel coordinate considering the direction of the line
-        if direction == "UP":
-            attached_y += 0.5
-        elif direction == "DOWN":
-            attached_y -= 0.5
-        elif direction == "LEFT":
-            attached_x += 0.5
-        elif direction == "RIGHT":
-            attached_x -= 0.5
-            
-        actual_x, actual_y = convert_grid_coordinate_to_actual(attached_x, attached_y, self.__view.get_length_unit())
-        
-        return actual_x, actual_y
-        
     def create_new_lines(self, mouse_location=None):
         """
         Deletes existing lines and corners, creating new ones
@@ -159,7 +116,7 @@ class GUIConnection:
         self.remove_corners()
         self.remove_lines()
         
-        start_x, start_y = self.get_attached_grid_coordinate(True)
+        start_x, start_y = self.__start_block.get_connection_grid_start(self.__start_direction)
         
         # The lines should follow the mouse around as it has not been connected to a block yet
         if mouse_location != None:
@@ -175,7 +132,7 @@ class GUIConnection:
                 self.__end_direction = "RIGHT"
                 end_x += 1
         else:
-            end_x, end_y = self.get_attached_grid_coordinate(False)
+            end_x, end_y = self.__end_block.get_connection_grid_start(self.__end_direction)
             
         corner_coordinates = self.create_corners(start_x, start_y, end_x, end_y)
         
@@ -192,8 +149,8 @@ class GUIConnection:
         """
         self.remove_lines()
         
-        start_x, start_y = self.get_attached_grid_coordinate(True)
-        end_x, end_y = self.get_attached_grid_coordinate(False)
+        start_x, start_y = self.__start_block.get_connection_grid_start(self.__start_direction)
+        end_x, end_y = self.__start_block.get_connection_grid_start(self.__end_direction)
         
         self.create_lines_from_corners(start_x, start_y, end_x, end_y)
         
@@ -264,7 +221,7 @@ class GUIConnection:
         Will add an indicator for the order which this connection has been connected to a specific input block (important for some mathematical operations) if it has a specific number
         """
         if self.__num_order != None:
-            num_order_x, num_order_y = self.get_attached_grid_coordinate(True)
+            num_order_x, num_order_y = self.__start_block.get_connection_grid_start(self.__start_direction)
             
             if self.__start_direction == "LEFT":
                 num_order_x += 1
@@ -285,14 +242,14 @@ class GUIConnection:
         """
         Creates the lines that connect previously created corners
         """
-        actual_coordinates = [self.get_actual_attached_coordinates(start_x, start_y, self.__start_direction)]
+        actual_coordinates = [self.__start_block.get_connection_actual_start(self.__start_direction)]
         
         # Get the coordinate of each existing corner
         for corner in self.__corners:
             actual_corner_x, actual_corner_y = convert_grid_coordinate_to_actual(corner.get_x()+0.5, corner.get_y()+0.5, self.__view.get_length_unit())
             actual_coordinates.append((actual_corner_x, actual_corner_y))
             
-        actual_coordinates.append(self.get_actual_attached_coordinates(end_x, end_y, self.__end_direction))
+        actual_coordinates.append(self.__end_block.get_connection_actual_start(self.__end_direction))
         
         # Draw lines between each corner coordinate
         for i in range(1, len(actual_coordinates)):
@@ -311,23 +268,6 @@ class GUIConnection:
             
         self.attempt_to_create_number_indicator()
         
-    def convert_direction_to_vector(self, direction):
-        """
-        direction: Tuple (x, y, direction)
-        
-        Returns a normalized vector converted from a specified direction
-        """
-        if direction == "UP":
-            return np.array([0, -1])
-        elif direction == "RIGHT":
-            return np.array([1, 0])
-        elif direction == "DOWN":
-            return np.array([0, 1])
-        elif direction == "LEFT":
-            return np.array([-1, 0])
-            
-        print(f"Error: Did not recognize direction {direction}")
-        
     def positions_dot_product(self, current_position, final_position):
         """
         current_position: Tuple (x, y, direction)
@@ -336,7 +276,7 @@ class GUIConnection:
         Returns the dot product between a normalized vector from current_position to final_position with the normalized vector that is created based on the direction out from current_position
         """
         vector_to_final_position = np.array([final_position[0] - current_position[0], final_position[1] - current_position[1]])
-        vector_direction = self.convert_direction_to_vector(current_position[2])
+        vector_direction = convert_direction_to_vector(current_position[2])
         
         vector_to_final_position_norm = np.linalg.norm(vector_to_final_position)
         
@@ -389,6 +329,13 @@ class GUIConnection:
         """
         Returns a list of corners between the start and end coordinates
         """
+        sorted_directions = tuple(sorted([self.__start_direction, self.__end_direction]))
+        
+        # No corners are necessary if the end points point directly toward each other
+        if (sorted_directions == ("DOWN", "UP") and abs(start_x - end_x) < 0.1) or \
+           (sorted_directions == ("LEFT", "RIGHT") and abs(start_y - end_y) < 0.1):
+            return []
+            
         corners_from_start = []
         corners_from_end = []
         
@@ -400,13 +347,13 @@ class GUIConnection:
             start_dot_product = self.positions_dot_product(position_start, position_end)
             end_dot_product = self.positions_dot_product(position_end, position_start)
             
-            # Intersect with each other or are parallel
+            # Both ends point at most 90 degrees wrong toward each other
             if start_dot_product >= 0 and end_dot_product >= 0:
                 start_x, start_y, _ = self.get_position_after_turn(position_start, position_end)
                 end_x, end_y, _ = self.get_position_after_turn(position_end, position_start)
                 
                 # Parallel
-                if abs(np.dot(self.convert_direction_to_vector(position_start[2]), self.convert_direction_to_vector(position_end[2]))) == 1:
+                if abs(np.dot(convert_direction_to_vector(position_start[2]), convert_direction_to_vector(position_end[2]))) == 1:
                     if position_start[2] in ("DOWN", "UP"):
                         mid_y = get_grid_mid_y(self.__view, (start_y + end_y) / 2)
                         corners_from_start.append((start_x, mid_y))

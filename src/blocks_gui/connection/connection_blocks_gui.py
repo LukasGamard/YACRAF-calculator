@@ -1,8 +1,50 @@
 from general_gui import GUIBlock, GUIModelingBlock
-from helper_functions_general import convert_grid_coordinate_to_actual, get_triangle_coordinates, get_max_directions_movement
+from helper_functions_general import convert_grid_coordinate_to_actual, get_max_directions_movement, convert_direction_to_vector
 from default_coordinate_functions import get_block_start_coordinates
 from config import *
 
+def get_triangle_coordinates(view, x, y, direction, is_end_block):
+    """
+    Returns the corner coordinates of a triangle based on the direction which the triangle should point in
+    """
+    center_x = x + 0.5
+    center_y = y + 0.5
+    from_center = CONNECTION_END_WIDTH / 2
+    
+    # Default coordinates for each corner in a square
+    upper_left = [center_x - from_center, center_y - from_center]
+    upper_right = [center_x + from_center, center_y - from_center]
+    lower_left = [center_x - from_center, center_y + from_center]
+    lower_right = [center_x + from_center, center_y + from_center]
+    
+    to_adjust = convert_direction_to_vector(direction) * (1 - CONNECTION_END_WIDTH) / 2
+    
+    if not is_end_block:
+        to_adjust *= -1
+        
+    # Combine two of the corners from a square with the point of the triangle that points in the specified direction
+    if direction == "UP":
+        coordinates = [center_x, center_y - from_center] + lower_right + lower_left
+    elif direction == "RIGHT":
+        coordinates = upper_left + [center_x + from_center, center_y] + lower_left
+    elif direction == "DOWN":
+        coordinates = upper_left + upper_right + [center_x, center_y + from_center]
+    elif direction == "LEFT":
+        coordinates = upper_right + lower_right + [center_x - from_center, center_y]
+        
+    for i in range(1, len(coordinates), 2):
+        coordinates[i-1] += to_adjust[0]
+        coordinates[i] += to_adjust[1]
+        
+    # Convert the grid coordinates to pixel coordinates
+    actual_coordinates = []
+    
+    for i in range(0, len(coordinates), 2):
+        actual_x, actual_y = convert_grid_coordinate_to_actual(coordinates[i], coordinates[i+1], view.get_length_unit())
+        actual_coordinates += [actual_x, actual_y]
+        
+    return actual_coordinates
+    
 class GUIConnectionCorner(GUIBlock):
     """
     Manages the block on a corner of a connection
@@ -89,13 +131,13 @@ class GUIConnectionTriangle(GUIBlock):
             x, y = position
             
         self.__is_end_block = is_end_block # This block points into a setup class
-        self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction), \
+        self.__triangle = view.get_canvas().create_polygon(get_triangle_coordinates(view, x, y, direction, is_end_block), \
                                                            width=OUTLINE_WIDTH, \
                                                            outline=OUTLINE_COLOR, \
                                                            fill=CONNECTION_END_COLOR, \
                                                            tags=(TAG_CONNECTION_CORNER,))
         
-        super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT, bind_left=MOUSE_DRAG)
+        super().__init__(model, view, [self.__triangle], x, y, CONNECTION_END_WIDTH, CONNECTION_END_WIDTH, bind_left=MOUSE_DRAG)
         self.__connection = None
         self.__attached_setup_class_gui = None
         
@@ -175,11 +217,33 @@ class GUIConnectionTriangle(GUIBlock):
             directions = ["UP", "RIGHT", "DOWN", "LEFT"]
             new_direction = directions[(directions.index(new_direction) + 2) % len(directions)]
             
-        new_coordinates = get_triangle_coordinates(self.get_view(), self.get_x(), self.get_y(), new_direction)
+        new_coordinates = get_triangle_coordinates(self.get_view(), self.get_x(), self.get_y(), new_direction, self.__is_end_block)
         self.get_view().get_canvas().coords(self.__triangle, new_coordinates)
         
         # Update the highlight to point in the same direction
         self.update_highlight(HIGHLIGHT_SELECTED_COLOR)
+        
+    def get_connection_actual_start(self, direction):
+        """
+        Returns the pixel coordinate that a connection line should start from
+        """
+        # Center of block as default
+        x = self.get_x() + 0.5
+        y = self.get_y() + 0.5
+        
+        # Correct one of the values to get the correct coordinate considering the direction which the line goes out from the block
+        if direction == "UP":
+            y = self.get_y() + (1 - self.get_height())
+        elif direction == "DOWN":
+            y = self.get_y() + self.get_height()
+        elif direction == "LEFT":
+            x = self.get_x() + (1 - self.get_width())
+        elif direction == "RIGHT":
+            x = self.get_x() + self.get_width()
+            
+        actual_x, actual_y = convert_grid_coordinate_to_actual(x, y, self.get_view().get_length_unit())
+        
+        return actual_x, actual_y
         
     def add_connection(self, connection):
         self.__connection = connection

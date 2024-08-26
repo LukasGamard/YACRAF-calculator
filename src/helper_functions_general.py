@@ -110,37 +110,6 @@ def get_grid_mid_y(view, grid_y):
     
     return grid_mid_y
     
-def get_triangle_coordinates(view, x, y, direction):
-    """
-    Returns the corner coordinates of a triangle based on the direction which the triangle should point in
-    """
-    from config import CONNECTION_END_WIDTH, CONNECTION_END_HEIGHT
-    
-    # default coordinates for each corner in a square
-    upper_left = [x, y]
-    upper_right = [x+CONNECTION_END_WIDTH, y]
-    lower_left = [x, y+CONNECTION_END_HEIGHT]
-    lower_right = [x+CONNECTION_END_WIDTH, y+CONNECTION_END_HEIGHT]
-    
-    # Combine two of the corners from a square with the point of the triangle that points in the specified direction
-    if direction == "UP":
-        coordinates = [x+CONNECTION_END_WIDTH/2, y] + lower_right + lower_left
-    elif direction == "RIGHT":
-        coordinates = upper_left + [x+CONNECTION_END_WIDTH, y+CONNECTION_END_HEIGHT/2] + lower_left
-    elif direction == "DOWN":
-        coordinates = upper_left + upper_right + [x+CONNECTION_END_WIDTH/2, y+CONNECTION_END_HEIGHT]
-    elif direction == "LEFT":
-        coordinates = upper_right + lower_right + [x, y+CONNECTION_END_HEIGHT/2]
-        
-    # Convert the grid coordinates to pixel coordinates
-    actual_coordinates = []
-    
-    for i in range(0, len(coordinates), 2):
-        actual_x, actual_y = convert_grid_coordinate_to_actual(coordinates[i], coordinates[i+1], view.get_length_unit())
-        actual_coordinates += [actual_x, actual_y]
-        
-    return actual_coordinates
-    
 def get_max_directions_movement(allowed_movement_directions):
     """
     allowed_movement_directions: A list of directions that a block cannot move in
@@ -162,6 +131,23 @@ def get_max_directions_movement(allowed_movement_directions):
         max_negative_move_y = 0
         
     return max_positive_move_x, max_negative_move_x, max_positive_move_y, max_negative_move_y
+    
+def convert_direction_to_vector(direction):
+    """
+    direction: Tuple (x, y, direction)
+    
+    Returns a normalized vector converted from a specified direction
+    """
+    if direction == "UP":
+        return np.array([0, -1])
+    elif direction == "RIGHT":
+        return np.array([1, 0])
+    elif direction == "DOWN":
+        return np.array([0, 1])
+    elif direction == "LEFT":
+        return np.array([-1, 0])
+        
+    print(f"Error: Did not recognize direction {direction}")
     
 def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
     """

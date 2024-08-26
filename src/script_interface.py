@@ -13,29 +13,34 @@ class ScriptInterface:
     """
     def __init__(self, model):
         self.__model = model
-        self.__cache = {} # To improve performance when getting the same elements multiple times
+        self.__script_helper = ScriptHelper(model)
+        
+    def get_current_view_name(self):
+        """
+        Returns the name of the current view
+        """
+        return self.__model.get_current_view().get_name()
         
     def get_class_type_names(self, view=None):
         """
         Returns a list of class names (those specified in configuration views) found in the specified setup views
         """
-        self.check_type([view], str)
-        return [setup_class_gui.get_configuration_name() for setup_class_gui in self.get_setup_classes_gui(view, None)]
+        self.__script_helper.check_type([view], str)
+        return [setup_class_gui.get_configuration_name() for setup_class_gui in self.__script_helper.get_setup_classes_gui(view, None)]
         
     def get_class_instance_names(self, class_type, view=None):
         """
         Returns a list of class instance names (those specified in setup views) found in the specified setup views
         """
-        self.check_type([view, class_type], str)
-        return [setup_class_gui.get_name() for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, None)]
+        self.__script_helper.check_type([view, class_type], str)
+        return [setup_class_gui.get_name() for setup_class_gui in self.__script_helper.get_instances_setup_class_gui(view, class_type, None)]
         
     def get_attribute_names(self, class_type):
         """
         Returns a list of attribute names for a specific class type
         """
-        self.check_type([class_type], str)
-        
-        setup_class_gui = self.get_first_setup_class_gui(class_type)
+        self.__script_helper.check_type([class_type], str)
+        setup_class_gui = self.__script_helper.get_first_setup_class_gui(class_type)
         
         if setup_class_gui == None:
             return []
@@ -49,10 +54,10 @@ class ScriptInterface:
         
         Returns a list of tuples (input_class_type, input_class_instance) including the class type and class instance names of all classes which the specified setup class instance takes input from
         """
-        self.check_type([class_type, class_instance, input_class_type, input_class_instance, view], str)
+        self.__script_helper.check_type([class_type, class_instance, input_class_type, input_class_instance, view], str)
         input_class_names = []
         
-        for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, class_instance):
+        for setup_class_gui in self.__script_helper.get_instances_setup_class_gui(view, class_type, class_instance):
             # Add any newly found input class name that had not been previously added
             for input_setup_class in setup_class_gui.get_setup_class().get_input_setup_classes():
                 if input_class_type in (None, input_setup_class.get_configuration_name()) and input_class_instance in (None, input_setup_class.get_instance_name()):
@@ -63,14 +68,14 @@ class ScriptInterface:
                         
         return input_class_names
         
-    def get_attribute_value(self, class_type, class_instance, attribute, view=None):
+    def get_attribute_values(self, class_type, class_instance, attribute, view=None):
         """
-        Returns the value displayed by a specific setup attribute, which is a list if there are overlapping attribute names for a specific class type
+        Returns a list of displayed values by the specified setup attributes, each value in turn represented by a list of individual values
         """
-        self.check_type([class_type, class_instance, attribute, view], str)
-        attributes_values = None
+        self.__script_helper.check_type([class_type, class_instance, attribute, view], str)
+        attributes_values = []
         
-        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
+        for setup_attribute_gui in self.__script_helper.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             value_string = setup_attribute_gui.get_setup_attribute().get_current_value()
             
             # Convert string value into a list of values
@@ -79,18 +84,8 @@ class ScriptInterface:
             except:
                 value = [value_string]
                 
-            # First attribute
-            if attributes_values == None:
-                attributes_values = value
-                
-            # If there is a second attribute, convert to list
-            elif not isinstance(attributes_values, list):
-                attributes_values = [attributes_values, value]
-                
-            # More than two attributes
-            else:
-                attributes_values.append(value)
-                
+            attributes_values.append(value)
+            
         return attributes_values
         
     def convert_value_to_string(self, attribute_value):
@@ -100,7 +95,7 @@ class ScriptInterface:
         if isinstance(attribute_value, (np.ndarray, list)):
             return convert_value_to_string(attribute_value)
             
-        self.check_convert_to_type(attribute_value, str)
+        self.__script_helper.check_convert_to_type(attribute_value, str)
         
         return str(attribute_value)
         
@@ -108,29 +103,29 @@ class ScriptInterface:
         """
         Overrides the displayed value of matching attributes with a temporary one
         """
-        self.check_type([class_type, class_instance, attribute, view], str)
-        self.check_convert_to_type(override_value, str)
+        self.__script_helper.check_type([class_type, class_instance, attribute, view], str)
+        self.__script_helper.check_convert_to_type(override_value, str)
         
-        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
+        for setup_attribute_gui in self.__script_helper.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             setup_attribute_gui.get_setup_attribute().set_override_value(override_value)
             
     def reset_override_attribute_values(self, *, class_type=None, class_instance=None, attribute=None, view=None):
         """
         Resets any override value of matching attributes
         """
-        self.check_type([class_type, class_instance, attribute, view], str)
+        self.__script_helper.check_type([class_type, class_instance, attribute, view], str)
         
-        for setup_attribute_gui in self.get_setup_attributes_gui(view, class_type, class_instance, attribute):
+        for setup_attribute_gui in self.__script_helper.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             setup_attribute_gui.attempt_to_reset_override_value()
             
     def set_class_marker(self, value, color, *, class_type=None, class_instance=None, view=None):
         """
         Adds a visual marker on all matching class instances
         """
-        self.check_type([class_type, class_instance, view], str)
-        self.check_convert_to_type(value, str)
+        self.__script_helper.check_type([class_type, class_instance, view], str)
+        self.__script_helper.check_convert_to_type(value, str)
         
-        for setup_class_gui in self.get_instances_setup_class_gui(view, class_type, class_instance):
+        for setup_class_gui in self.__script_helper.get_instances_setup_class_gui(view, class_type, class_instance):
             setup_class_gui.create_script_marker_indicator(value, color)
             
     def calculate_values(self):
@@ -144,6 +139,11 @@ class ScriptInterface:
         Reset any changes made by scripts, such as override values and markers
         """
         self.__model.reset_script_changes()
+        
+class ScriptHelper:
+    def __init__(self, model):
+        self.__model = model
+        self.__cache = {} # To improve performance when getting the same elements multiple times
         
     def get_from_cache(self, identifier):
         if identifier in self.__cache:

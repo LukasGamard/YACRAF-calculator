@@ -1,8 +1,10 @@
 import tkinter as tk
+from general_gui import GUIModelingBlock
 from buttons_gui import TouchButton
 from connection_with_blocks_gui import GUIConnectionWithBlocks
 from options import Options
 from helper_functions_general import convert_actual_coordinate_to_grid
+from default_coordinate_functions import get_change_configuration_view_start_coordinate, get_change_setup_view_start_coordinate
 from config import *
 
 class View(tk.Frame):
@@ -13,6 +15,7 @@ class View(tk.Frame):
         super().__init__()
         self.__model = model
         self.__name = name
+        self.__view_headers = []
         self.__configuration_change_view_buttons = {} # View and corresponding button
         self.__setup_change_view_buttons = {} # View and corersponding button
         self.__selected_items = set() # Items that are highlighted by pressing on them
@@ -32,6 +35,12 @@ class View(tk.Frame):
         
         self.__currently_open_options = None
         
+        # Add the headers above the buttons that change between views
+        for text, position in [("Configurations:", get_change_configuration_view_start_coordinate(LENGTH_UNIT)), ("Setups:", get_change_setup_view_start_coordinate(LENGTH_UNIT))]:
+            x, y = position
+            y -= CHANGE_VIEW_HEIGHT
+            self.__view_headers.append(GUIModelingBlock(model, self, text, CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT, CHANGE_VIEW_HEADER_COLOR, position=(x, y), ignore_zoom=True, tags_rect=(TAG_BUTTON,), tags_text=(TAG_BUTTON_TEXT,)))
+            
         self.__canvas.bind(MOUSE_LEFT_PRESS, self.pan_start)
         self.__canvas.bind(MOUSE_LEFT_DRAG, self.pan_move)
         self.__canvas.bind(MOUSE_LEFT_RELEASE, self.pan_stop)
