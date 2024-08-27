@@ -194,14 +194,16 @@ class ValueTypeProbability(ValueType):
         
         try:
             value = float(input_value_string)
+            
+            if value < 0 or value > 1:
+                print(f"Warning: The value {value} at the attribute value type {ValueTypeProbability.symbol()} is not in [0, 1]")
+                return None
+                
+            value = [value]
         except:
             print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeProbability.symbol()}")
             
-        if value < 0 or value > 1:
-            print(f"Warning: The value {value} at the attribute value type {ValueTypeProbability.symbol()} is not in [0, 1]")
-            return None
-            
-        return [value]
+        return value
         
     @staticmethod
     def adjust_to_range(value):

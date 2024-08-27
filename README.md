@@ -72,7 +72,7 @@ Similarly, the `Class` itself can be also be edited, enabling:
 
 ![Image of a configuration view where one adds classes and attributes, and subsequently connects them](img/configuration.svg)
 
-#### Calculation input
+#### Calculation Input
 
 By pressing the add input in the top left corner (see (5) in the above figure), an `Input` block is created (see (6)). `Input` blocks function take inputs from one or more `Attributes` and, through a specified mathematical operation, outputs the result to an adjacent `Attribute` that it has been dragged next to (see (7)). The `Input` block can be configured by selecting it and pressing E (see (8)), where one can:
 
@@ -81,6 +81,8 @@ By pressing the add input in the top left corner (see (5) in the above figure), 
 3. Add an offset that is added after the scalar is applied (see (10))
 
 `Attributes` can be added as inputs (connecting them) to the `Input` block by first right clicking on the corresponding `Attribute` and then left or right clicking the `Input` block, creating a `Connection` between the two, as shown by (9) in the above figure.
+
+Some mathematical operations are dependent on the order of their inputs. In such cases, the `Connections` will automatically be graphically enumerated.
 
 ##### Connection
 
@@ -92,7 +94,7 @@ The corners can be dragged around to customize the path of the `Connection`.
 
 ### Setup View
 
-Shown in the figure below is an example of a `Setup View` representing the system which the metamodel from the `Configuration Views` has been applied to. The buttons at (1) in the figure are used to create `Connections` between the `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarious throughout the `Setup Views`. The scripts are explained later.
+Shown in the figure below is an example of a `Setup View` representing the system which the metamodel from the `Configuration Views` has been applied to. The buttons at (1) in the figure are used to create `Connections` between `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarious throughout the `Setup Views`. Scripts are explained in detail later.
 
 ![Image of a setup view](img/setup_view.svg)
 
@@ -107,7 +109,7 @@ An instance of a `Class` from a `Configuration View` can be added to the current
 
 #### Connection
 
-Pressing the `Connection` button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class`, if such a relation has been configured in the `Configuration Views`. Attaching a `Connecton` to a `Class` will automatically disable `Attribute` entries if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
+Pressing the add connection button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class`, if such a relation has been configured in the `Configuration Views`. Attaching a `Connecton` to a `Class` will automatically disable `Attribute` entries if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
 
 1. Add a scalar that is applied to input values from the `Connection`, where the appearing indicator (see (7)) can be dragged along the path of the `Connection`
 
@@ -120,3 +122,11 @@ The calculate button at the top (see (8)) calculates the values of all `Attribut
 Scripts to visualize or simulate different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the several of the easiest attack paths, can be created using Python scripts that interface to the tool. To create a script, go to the `scripts` directory.
 
 Note: Computationally heavy scripts could take some time to finish running. The corresponding button will appear pressed (changed color) while the script is running.
+
+## Explaination of the Current Configuration
+
+The attributes in the figure below, highlighted by (1), have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the attribute into a positive one, or vice versa. For example, transform a 3 into 10-3=7.
+
+The calculation type Q (see (2)) implies a qualitative relation where no numerical calculation is performed. Instead, manual input is prompted. Thus, such connection merely highlights the relationship.
+
+![Image of a configuration view for the Yacraf metamodel](img/configuration_explaination.svg)
