@@ -76,8 +76,7 @@ class SetupAttribute:
         value_type = self.__configuration_attribute.get_value_type()
         calculation_type = self.__configuration_attribute.get_calculation_type()
         
-        if value_type.correctly_connected(calculation_type, input_configuration_attributes) and \
-           calculation_type.correct_input_attribute_value_types(input_configuration_attributes):
+        if value_type.correctly_connected(calculation_type, input_configuration_attributes):
             self.__value = combine_values(value_type, \
                                           calculation_type, \
                                           connected_setup_attributes, \

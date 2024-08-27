@@ -127,16 +127,17 @@ class GUISetupAttribute(GUIModelingBlock):
     def get_setup_class_gui(self):
         return self.__setup_class_gui
         
-    def add_entered_value_to_attribute(self):
+    def add_entered_value_to_attribute(self, update_linked=True):
         """
         Sets the value of the setup attribute to that entered in the entry
         """
         if self.__entry_value != None:
             self.__setup_attribute.set_value(self.__entry_value.get_entry_text())
             
-            for linked_setup_attribute_gui in self.get_model().get_linked_setup_attributes_gui(self):
-            	linked_setup_attribute_gui.update_displayed_value()
-            	
+            if update_linked:
+                for linked_setup_attribute_gui in self.get_model().get_linked_setup_attributes_gui(self):
+                	linked_setup_attribute_gui.update_displayed_value()
+                	
     def set_displayed_value(self, value, color=None):
         """
         Sets the value that is displayed either as the resulting calculated value or that in an entry field

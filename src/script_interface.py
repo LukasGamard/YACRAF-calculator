@@ -26,7 +26,7 @@ class ScriptInterface:
         Returns a list of class names (those specified in configuration views) found in the specified setup views
         """
         self.__script_helper.check_type([view], str)
-        return [setup_class_gui.get_configuration_name() for setup_class_gui in self.__script_helper.get_setup_classes_gui(view, None)]
+        return list(set(setup_class_gui.get_configuration_name() for setup_class_gui in self.__script_helper.get_setup_classes_gui(view, None)))
         
     def get_class_instance_names(self, class_type, view=None):
         """

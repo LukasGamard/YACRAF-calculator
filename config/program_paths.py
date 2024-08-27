@@ -26,6 +26,6 @@ IMPORT_PATHS = (SOURCE_PATH, \
                 BLOCKS_GUI_SETUP_PATH, \
                 BLOCKS_GUI_CONNECTION_PATH, \
                 VIEW_PATH)
-                
+
 SAVES_DIRECTORY = "saves"
 SCRIPTS_PATH = os.path.join(BASE_PATH, "scripts")

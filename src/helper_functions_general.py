@@ -5,6 +5,8 @@ def convert_value_to_string(value):
     """
     Takes a NumPy array or list as input and converts it to a string
     """
+    from config import DECIMALS_WHEN_ROUNDING
+    
     if not isinstance(value, (np.ndarray, list)):
         print(f"Error: Could not convert {value} to string")
         return None
@@ -13,7 +15,7 @@ def convert_value_to_string(value):
     
     for element in value:
         try:
-            rounded_value = round(float(element), 3)
+            rounded_value = round(float(element), DECIMALS_WHEN_ROUNDING)
             
             # If the float does not have any decimal numbers, convert it to an integer for a better looking output
             if rounded_value == int(rounded_value):
@@ -35,8 +37,10 @@ def convert_grid_coordinate_to_actual(grid_x, grid_y, length_unit):
     """
     Converts/scales a coordinate in the grid to one based on pixels
     """
-    actual_x = round(grid_x * length_unit, 3)
-    actual_y = round(grid_y * length_unit, 3)
+    from config import DECIMALS_WHEN_ROUNDING
+    
+    actual_x = round(grid_x * length_unit, DECIMALS_WHEN_ROUNDING)
+    actual_y = round(grid_y * length_unit, DECIMALS_WHEN_ROUNDING)
     
     return actual_x, actual_y
     
@@ -44,8 +48,10 @@ def convert_actual_coordinate_to_grid(actual_x, actual_y, length_unit):
     """
     Converts/scales a coordinate based on pixels to one based on the grid
     """
-    grid_x = round(actual_x / length_unit, 3)
-    grid_y = round(actual_y / length_unit, 3)
+    from config import DECIMALS_WHEN_ROUNDING
+    
+    grid_x = round(actual_x / length_unit, DECIMALS_WHEN_ROUNDING)
+    grid_y = round(actual_y / length_unit, DECIMALS_WHEN_ROUNDING)
     
     return grid_x, grid_y
     
@@ -77,10 +83,12 @@ def distance_to_closest_grid_intersection(view, grid_x, grid_y):
     Find the distance from a grid coordinate to the closest grid intersection considering the offset of the grid due to panning/zooming
     The x and y distances are in the range [-0.5, 0.5)
     """
+    from config import DECIMALS_WHEN_ROUNDING
+    
     grid_offset_x, grid_offset_y = view.get_grid_offset()
     
-    grid_distance_x = round(int(grid_x + 0.5 - grid_offset_x) - grid_x + grid_offset_x, 3)
-    grid_distance_y = round(int(grid_y + 0.5 - grid_offset_y) - grid_y + grid_offset_y, 3)
+    grid_distance_x = round(int(grid_x + 0.5 - grid_offset_x) - grid_x + grid_offset_x, DECIMALS_WHEN_ROUNDING)
+    grid_distance_y = round(int(grid_y + 0.5 - grid_offset_y) - grid_y + grid_offset_y, DECIMALS_WHEN_ROUNDING)
     
     if grid_x <= -0.5:
         grid_distance_x -= 1
@@ -94,9 +102,11 @@ def get_grid_mid_x(view, grid_x):
     """
     Get the x coordinate in the middle of the current grid square considering the offset of the grid due to panning/zooming
     """
+    from config import DECIMALS_WHEN_ROUNDING
+    
     grid_offset_x, _ = view.get_grid_offset()
     
-    grid_mid_x = round(int(grid_x - grid_offset_x + 0.5) + grid_offset_x, 3)
+    grid_mid_x = round(int(grid_x - grid_offset_x + 0.5) + grid_offset_x, DECIMALS_WHEN_ROUNDING)
     
     return grid_mid_x
     
@@ -104,9 +114,11 @@ def get_grid_mid_y(view, grid_y):
     """
     Get the y cooridinate in the middle of the current grid square considering the offset of the grid due to panning/zooming
     """
+    from config import DECIMALS_WHEN_ROUNDING
+    
     _, grid_offset_y = view.get_grid_offset()
     
-    grid_mid_y = round(int(grid_y - grid_offset_y + 0.5) + grid_offset_y, 3)
+    grid_mid_y = round(int(grid_y - grid_offset_y + 0.5) + grid_offset_y, DECIMALS_WHEN_ROUNDING)
     
     return grid_mid_y
     

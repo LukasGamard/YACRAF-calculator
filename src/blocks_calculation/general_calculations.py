@@ -1,5 +1,7 @@
+import os
 import numpy as np
 from helper_functions_general import convert_value_to_string, convert_string_to_value
+from config import *
 
 def combine_values(value_type, calculation_type, input_setup_attributes, setup_input_scalars_per_attribute, configuration_attribute, num_samples):
     """
@@ -66,6 +68,9 @@ def apply_setup_input_scalars(values, input_scalars, allowed_scalar_values):
     return values
     
 class ValueType:
+    """
+    Class representing the type of value in an attribute, for example a single value or a distribution
+    """
     @staticmethod
     def symbol():
         return None
@@ -75,6 +80,12 @@ class ValueType:
         """
         Checks if the configuration is correct considering a specific calculation type and its input configuration attributes
         """
+        number_of_inputs = calculation_type.number_of_inputs()
+        
+        if number_of_inputs != None and len(input_configuration_attributes) != number_of_inputs:
+            print(f"Warning: Calculation type {CalculationTypeDivision.symbol()} require exactly {number_of_inputs} input attributes in the configuration")
+            return False
+            
         return True
         
     @staticmethod
@@ -102,14 +113,11 @@ class ValueTypeString(ValueType):
         
     @staticmethod
     def correctly_connected(calculation_type, input_configuration_attributes):
-        if calculation_type == CalculationTypeQualitative:
+        if calculation_type in (None, CalculationTypeQualitative):
             return True
             
-        elif calculation_type != None:
-            print(f"Warning: Attribute value type \"Simple text\" does not support calculation type {calculation_type.symbol()}")
-            return False
-            
-        return True
+        print(f"Warning: Attribute value type \"Simple text\" does not support calculation type {calculation_type.symbol()}")
+        return False
         
 class ValueTypeNumber(ValueType):
     @staticmethod
@@ -134,14 +142,25 @@ class ValueTypeNumber(ValueType):
         
     @staticmethod
     def correctly_connected(calculation_type, input_configuration_attributes):
-        if calculation_type in (CalculationTypeSampleTriangle, CalculationTypeQualitative):
+        if not ValueType.correctly_connected(calculation_type, input_configuration_attributes):
+            return False
+            
+        elif calculation_type == CalculationTypeQualitative:
             return True
             
-        for input_value_type in get_attribute_value_types(input_configuration_attributes):
-            if input_value_type == ValueTypeTriangleDistribution:
-                print(f"Warning: Attribute value type {ValueTypeNumber.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
-                return False
-                
+        elif calculation_type in (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeDivision):
+            for input_value_type in get_attribute_value_types(input_configuration_attributes):
+                if input_value_type not in (ValueTypeNumber, ValueTypeProbability):
+                    print(f"Warning: Attribute value type {ValueTypeNumber.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
+                    return False
+                    
+            return True
+            
+        elif calculation_type == CalculationTypeSampleTriangle:
+            print(f"Warning: Attribute value type {ValueTypeNumber.symbol()} does not support calculation type {calculation_type.symbol()}")
+            return False
+            
+        print(f"Error: Could not match calculation type {calculation_type} in value type {ValueTypeNumber.symbol()}")
         return True
         
     @staticmethod
@@ -178,14 +197,22 @@ class ValueTypeProbability(ValueType):
         
     @staticmethod
     def correctly_connected(calculation_type, input_configuration_attributes):
-        if calculation_type in (CalculationTypeSampleTriangle, CalculationTypeQualitative):
+        if not ValueType.correctly_connected(calculation_type, input_configuration_attributes):
+            return False
+            
+        elif calculation_type == CalculationTypeQualitative:
             return True
             
-        for input_value_type in get_attribute_value_types(input_configuration_attributes):
-            if input_value_type == ValueTypeTriangleDistribution:
-                print(f"Warning: Attribute value type {ValueTypeProbability.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
-                return False
-                
+        elif calculation_type in (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeDivision, CalculationTypeSampleTriangle):
+            for input_value_type in get_attribute_value_types(input_configuration_attributes):
+                if (calculation_type != CalculationTypeSampleTriangle and input_value_type not in (ValueTypeNumber, ValueTypeProbability)) or \
+                   (calculation_type == CalculationTypeSampleTriangle and input_value_type != ValueTypeTriangleDistribution):
+                    print(f"Warning: Attribute value type {ValueTypeProbability.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
+                    return False
+                    
+            return True
+            
+        print(f"Error: Could not match calculation type {calculation_type} in value type {ValueTypeProbability.symbol()}")
         return True
         
     @staticmethod
@@ -238,12 +265,19 @@ class ValueTypeTriangleDistribution(ValueType):
         
     @staticmethod
     def correctly_connected(calculation_type, input_configuration_attributes):
-        if calculation_type == CalculationTypeQualitative:
+        if not ValueType.correctly_connected(calculation_type, input_configuration_attributes):
+            return False
+            
+        elif calculation_type == CalculationTypeQualitative:
             return True
             
-        elif calculation_type == CalculationTypeSampleTriangle:
-            print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} does not support the calculation type {calculation_type.symbol()}")
-            return False
+        elif calculation_type in (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR):
+            for input_value_type in get_attribute_value_types(input_configuration_attributes):
+                if input_value_type != ValueTypeTriangleDistribution:
+                    print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} does not support {input_value_type.symbol()} as input for the calculation type {calculation_type.symbol()}")
+                    return False
+                    
+            return True
             
         elif calculation_type == CalculationTypeMultiplication:
             for input_value_type in get_attribute_value_types(input_configuration_attributes):
@@ -253,6 +287,24 @@ class ValueTypeTriangleDistribution(ValueType):
             print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} with the calculation type {calculation_type.symbol()} requires at least one input to be of type {ValueTypeTriangleDistribution.symbol()}")
             return False
             
+        elif calculation_type == CalculationTypeDivision:
+            first_value_type, second_value_type = get_attribute_value_types(input_configuration_attributes)
+            
+            if first_value_type != ValueTypeTriangleDistribution:
+                print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} with the calculation type {calculation_type.symbol()} does not support value type {first_value_type.symbol()} as its first input")
+                return False
+                
+            elif second_value_type not in (ValueTypeNumber, ValueTypeProbability, ValueTypeTriangleDistribution):
+                print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} with the calculation type {calculation_type.symbol()} does not support value type {first_value_type.symbol()} as its second input")
+                return False
+                
+            return True
+                    
+        elif calculation_type == CalculationTypeSampleTriangle:
+            print(f"Warning: Attribute value type {ValueTypeTriangleDistribution.symbol()} does not support calculation type {calculation_type.symbol()}")
+            return False
+            
+        print(f"Error: Could not match calculation type {calculation_type} in value type {ValueTypeTriangleDistribution.symbol()}")
         return True
         
     @staticmethod
@@ -271,6 +323,9 @@ class ValueTypeTriangleDistribution(ValueType):
         return value
         
 class CalculationType:
+    """
+    Class representing the mathematical operation performed between input attributes, such as AND, OR, etc
+    """
     @staticmethod
     def number_of_inputs():
         """
@@ -278,23 +333,6 @@ class CalculationType:
         Returns None if the inputs are not enumerated and their order does not matter
         """
         return None
-        
-    @staticmethod
-    def correct_input_attribute_value_types(input_configuration_attributes):
-        """
-        Checks that the input attribute value types are valid for this calculation type
-        """
-        # Check that all input attribute value types are of the same type
-        last_type = None
-        
-        for input_value_type in get_attribute_value_types(input_configuration_attributes):
-            if last_type != None and last_type != input_value_type:
-                print(f"Warning: All input attributes in configuration were not of the same value type, found {get_attribute_value_types(input_configuration_attributes)}")
-                return False
-                
-            last_type = input_value_type
-            
-        return True
         
     @staticmethod
     def calculate_output_value(input_values, num_samples):
@@ -355,10 +393,6 @@ class CalculationTypeMultiplication(CalculationType):
         return "Multiplication"
         
     @staticmethod
-    def correct_input_attribute_value_types(input_configuration_attributes):
-        return True
-        
-    @staticmethod
     def calculate_output_value(input_values, num_samples):
         output_value = np.ones(1)
         
@@ -385,16 +419,6 @@ class CalculationTypeDivision(CalculationType):
         return 2
         
     @staticmethod
-    def correct_input_attribute_value_types(input_configuration_attributes):
-        value_types = get_attribute_value_types(input_configuration_attributes)
-        
-        if len(value_types) != CalculationTypeDivision.number_of_inputs():
-            print(f"Warning: Calculation type {CalculationTypeDivision.symbol()} require exactly {CalculationTypeDivision.number_of_inputs()} input attributes in the configuration")
-            return False
-            
-        return True
-        
-    @staticmethod
     def calculate_output_value(input_values, num_samples):
         return input_values[0] / input_values[1]
         
@@ -410,20 +434,6 @@ class CalculationTypeSampleTriangle(CalculationType):
     @staticmethod
     def number_of_inputs():
         return 2
-        
-    @staticmethod
-    def correct_input_attribute_value_types(input_configuration_attributes):
-        # Only triangle distributions allowed as input, with at most two inputs
-        if len(input_configuration_attributes) != CalculationTypeSampleTriangle.number_of_inputs():
-            print(f"Warning: Calculation type {CalculationTypeSampleTriangle.symbol()} require exactly {CalculationTypeSampleTriangle.number_of_inputs()} input attributes in the configuration")
-            
-        elif CalculationType.correct_input_attribute_value_types(input_configuration_attributes) and input_configuration_attributes[0].get_value_type() == ValueTypeTriangleDistribution:
-            return True
-            
-        else:
-            print(f"Warning: All input attributes for calculation type {CalculationTypeSampleTriangle.symbol()} need to be of value type {ValueTypeTriangleDistribution.symbol()} in the configuration")
-            
-        return False
         
     @staticmethod
     def calculate_output_value(input_values, num_samples):

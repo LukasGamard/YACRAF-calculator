@@ -24,6 +24,9 @@ class GUICircleIndicator:
         """
         Moves the indicator on the canvas
         """
+        self.__x += move_x
+        self.__y += move_y
+        
         actual_move_x, actual_move_y = convert_grid_coordinate_to_actual(move_x, move_y, self.__view.get_length_unit())
         
         self.__view.get_canvas().move(self.__circle, actual_move_x, actual_move_y)
@@ -59,7 +62,7 @@ class GUICircleIndicator:
                                                              outline=OUTLINE_COLOR, \
                                                              fill=self.__color, \
                                                              tags=(TAG_INDICATOR,))
-        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=FONT, tags=(TAG_INDICATOR_TEXT,))
+        self.__label = self.__view.get_canvas().create_text(actual_x, actual_y, text=text, font=get_font(self.__view.get_length_unit()), tags=(TAG_INDICATOR_TEXT,))
         
     def remove(self):
         """

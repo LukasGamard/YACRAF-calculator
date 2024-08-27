@@ -123,9 +123,13 @@ Scripts to visualize or simulate different scenarios, such as finding the most o
 
 Note: Computationally heavy scripts could take some time to finish running. The corresponding button will appear pressed (changed color) while the script is running.
 
+### Errors
+
+Any found errors in `Configuration Views` or `Setup Views` during calculations are printed.
+
 ## Explaination of the Current Configuration
 
-The attributes in the figure below, highlighted by (1), have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the attribute into a positive one, or vice versa. For example, transform a 3 into 10-3=7.
+The attributes highlighted by (1) in the figure below have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the attribute into a positive one, or vice versa. For example, transform a 3 into 10-3=7.
 
 The calculation type Q (see (2)) implies a qualitative relation where no numerical calculation is performed. Instead, manual input is prompted. Thus, such connection merely highlights the relationship.
 

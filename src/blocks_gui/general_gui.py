@@ -241,8 +241,8 @@ class GUIBlock:
             for shape_highlight in self.__shapes_highlight:
                 self.get_canvas().move(shape_highlight, move_actual_x, move_actual_y)
                 
-            self.__x = round(self.__x + move_x, 3)
-            self.__y = round(self.__y + move_y, 3)
+            self.__x = round(self.__x + move_x, DECIMALS_WHEN_ROUNDING)
+            self.__y = round(self.__y + move_y, DECIMALS_WHEN_ROUNDING)
             
         for block in self.__attached_blocks:
             if block != self:

@@ -62,11 +62,11 @@ def script_logic(script_if):
         current_total_risk = current_risk
         
     print("Priority of defense mechanisms based on return on security investment:")
-    print(f"No defenses: {original_total_risk}")
     
-    for i, defense_and_risk in enumerate(priority_of_defenses):
-        defense_name, risk = defense_and_risk
-        print(f"{i+1}. {defense_name}: {risk}")
+    for i, defense_and_return in enumerate(priority_of_defenses):
+        defense_name, return_on_security_investment = defense_and_return
+        return_on_security_investment *= 100
+        print(f"{i+1}. {defense_name}: {return_on_security_investment} %")
         
     script_if.reset_script_changes()
     

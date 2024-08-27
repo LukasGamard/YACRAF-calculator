@@ -13,6 +13,10 @@ LENGTH_UNIT_ZOOM_LIMITS = (5, 50)
 
 
 
+DECIMALS_WHEN_ROUNDING = 3
+
+
+
 # File paths
 SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, settings.get_save_name())
 

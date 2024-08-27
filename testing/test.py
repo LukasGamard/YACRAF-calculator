@@ -4,6 +4,7 @@ import sys
 import os
 import time
 from tkinter import font
+from io import StringIO
 
 sys.path.append(os.path.join("..", "config"))
 from program_paths import IMPORT_PATHS
@@ -12,9 +13,13 @@ for path in IMPORT_PATHS:
     sys.path.append(os.path.join("..", path))
     
 from model import Model
+from script_interface import ScriptInterface
+from configuration_class_calculation import ConfigurationClass
 from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid
 from default_coordinate_functions import get_block_start_coordinates
 from config import *
+
+# sys.stdout = StringIO() # Suppress prints
 
 def process_changes(root):
     root.update_idletasks()
@@ -88,7 +93,7 @@ def setup_connection(output_setup_class, output_side, input_setup_class, input_s
     
 def set_up():
     root = tk.Tk()
-    model = Model(root, force_new_save=True, num_configuration_views=2, num_setup_views=2)
+    model = Model(root, force_new_save=True, num_configuration_views=2, num_setup_views=4)
     process_changes(root)
     
     return root, model
@@ -147,6 +152,17 @@ class Test(unittest.TestCase):
             
         return setup_class_gui
         
+    def linked_setup_class(self, setup_class_gui, *, x=None, y=None, view=None):
+        if view == None:
+            view = self.get_setup_view()
+            
+        setup_class_gui = view.create_setup_class_gui(setup_class_gui_to_copy=setup_class_gui)
+        
+        if x != None and y != None:
+            drag_to(setup_class_gui, x, y, view.get_length_unit())
+            
+        return setup_class_gui
+        
     def check_coordinate(self, block, coordinate, grid_offset=None):
         grid_offset_x, grid_offset_y = 0, 0
         
@@ -167,7 +183,7 @@ class Test(unittest.TestCase):
             
         if is_bold != None:
             self.assertEqual(font.Font(font=view.get_canvas().itemcget(block._GUIModelingBlock__label_text, "font")).actual("weight") == "bold", is_bold)
-            
+"""
 class TestCreatingBlocks(Test):
     def test_configuration_class(self):
         view = self.get_configuration_view()
@@ -384,128 +400,6 @@ class TestChangeName(Test):
         self.check_text(configuration_attribute_gui, configuration_view, is_bold=True)
         self.check_text(setup_attribute_gui, setup_view, is_bold=True)
         
-class TestConnections(Test):
-    def setUp(self):
-        super().setUp()
-        
-        self.configuration_view = self.get_configuration_view()
-        self.setup_view = self.get_setup_view()
-        
-    def test_configuration_connection(self):
-        input_configuration_class_gui = self.configuration_class(x=20, y=20)
-        input_configuration_attribute_gui = self.attribute(input_configuration_class_gui)
-        
-        output_configuration_class_gui = self.configuration_class(x=10, y=10)
-        first_output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
-        second_output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
-        
-        # Create and attach input block to attribute
-        configuration_input_gui = self.configuration_input()
-        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "LEFT")
-        
-        configuration_connection(first_output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
-        
-        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
-        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 0)
-        
-        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 1)
-        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 1)
-        
-        # Disconnect input block from attribute
-        drag_to(configuration_input_gui, 15, 15)
-        
-        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 1)
-        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 0)
-        
-        # Add connection to disconnected input block
-        configuration_connection(second_output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
-        
-        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
-        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
-        
-        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 2)
-        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 0)
-        
-        # Reconnect input block to attribute
-        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "RIGHT")
-        
-        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
-        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
-        
-        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 2)
-        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 2)
-        
-    def test_setup_connection(self):
-        input_configuration_class_gui = self.configuration_class(x=20, y=20)
-        input_configuration_attribute_gui = self.attribute(input_configuration_class_gui)
-        
-        configuration_input_gui = self.configuration_input()
-        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "LEFT")
-        
-        output_configuration_class_gui = self.configuration_class(x=10, y=10)
-        output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
-        self.attribute(output_configuration_class_gui)
-        
-        configuration_connection(output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
-        
-        input_setup_class_gui = self.setup_class(input_configuration_class_gui, x=20, y=20)
-        output_setup_class_gui = self.setup_class(output_configuration_class_gui, x=10, y=10)
-        
-        setup_connection(output_setup_class_gui, "RIGHT", input_setup_class_gui, "LEFT")
-        
-        self.assertEqual(len(input_setup_class_gui._GUISetupClass__connections), 1)
-        self.assertEqual(len(output_setup_class_gui._GUISetupClass__connections), 1)
-        
-        input_setup_class = input_setup_class_gui.get_setup_class()
-        output_setup_class = output_setup_class_gui.get_setup_class()
-        
-        self.assertEqual(len(input_setup_class.get_input_setup_classes()), 1)
-        self.assertEqual(len(output_setup_class.get_input_setup_classes()), 0)
-        
-        self.assertEqual(list(input_setup_class.get_input_setup_classes().keys())[0], output_setup_class)
-        
-    def test_external_configuration_connection(self):
-        configuration_class_gui = self.configuration_class(x=10, y=10)
-        output_configuration_attribute_gui = self.attribute(configuration_class_gui)
-        input_configuration_attribute_gui = self.attribute(configuration_class_gui)
-        
-        configuration_input_gui = self.configuration_input()
-        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "RIGHT")
-        
-        connection = configuration_connection(output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
-        
-        input_setup_class_gui = self.setup_class(configuration_class_gui, x=20, y=20)
-        input_setup_attribute = input_setup_class_gui.get_setup_attributes_gui()[1].get_setup_attribute()
-        
-        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 1)
-        connection.set_external(True)
-        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 0)
-        
-        output_setup_class_gui = self.setup_class(configuration_class_gui, x=10, y=10)
-        
-        setup_connection(output_setup_class_gui, "RIGHT", input_setup_class_gui, "LEFT")
-        
-        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 1)
-        
-"""
-    def test_adjust_configuration_connection(self):
-        pass
-        
-    def test_adjust_setup_connection(self):
-        pass
-        
-    def test_configuration_scalar(self):
-        pass
-        
-    def test_configuration_offset(self):
-        pass
-        
-    def test_setup_scalars(self):
-        pass
-        
-    def test_calculation_mean(self):
-        pass
-"""
 class TestSwitchPlaces(Test):
     def check_configuration_attribute_order(self, class_gui, top_attribute_gui, bottom_attribute_gui, connections_top, connections_bottom):
         input_attributes_gui_top = top_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()
@@ -610,6 +504,183 @@ class TestSwitchPlaces(Test):
         self.check_view_order(self.model.get_setup_views(), setup_view_1, setup_view_2)
         self.check_change_view_button_positions(False, setup_view_1, setup_view_2)
         
+class TestConnections(Test):
+    def test_configuration_connection(self):
+        input_configuration_class_gui = self.configuration_class(x=20, y=20)
+        input_configuration_attribute_gui = self.attribute(input_configuration_class_gui)
+        
+        output_configuration_class_gui = self.configuration_class(x=10, y=10)
+        first_output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
+        second_output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
+        
+        # Create and attach input block to attribute
+        configuration_input_gui = self.configuration_input()
+        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "LEFT")
+        
+        configuration_connection(first_output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
+        
+        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
+        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 0)
+        
+        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 1)
+        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 1)
+        
+        # Disconnect input block from attribute
+        drag_to(configuration_input_gui, 15, 15)
+        
+        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 1)
+        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 0)
+        
+        # Add connection to disconnected input block
+        configuration_connection(second_output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
+        
+        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
+        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
+        
+        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 2)
+        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 0)
+        
+        # Reconnect input block to attribute
+        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "RIGHT")
+        
+        self.assertEqual(len(first_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
+        self.assertEqual(len(second_output_configuration_attribute_gui._GUIConfigurationAttribute__connections), 1)
+        
+        self.assertEqual(len(configuration_input_gui._GUIConfigurationInput__connections), 2)
+        self.assertEqual(len(input_configuration_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()), 2)
+        
+    def test_setup_connection(self):
+        input_configuration_class_gui = self.configuration_class(x=20, y=20)
+        input_configuration_attribute_gui = self.attribute(input_configuration_class_gui)
+        
+        configuration_input_gui = self.configuration_input()
+        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "LEFT")
+        
+        output_configuration_class_gui = self.configuration_class(x=10, y=10)
+        output_configuration_attribute_gui = self.attribute(output_configuration_class_gui)
+        self.attribute(output_configuration_class_gui)
+        
+        configuration_connection(output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
+        
+        input_setup_class_gui = self.setup_class(input_configuration_class_gui, x=20, y=20)
+        output_setup_class_gui = self.setup_class(output_configuration_class_gui, x=10, y=10)
+        
+        setup_connection(output_setup_class_gui, "RIGHT", input_setup_class_gui, "LEFT")
+        
+        self.assertEqual(len(input_setup_class_gui._GUISetupClass__connections), 1)
+        self.assertEqual(len(output_setup_class_gui._GUISetupClass__connections), 1)
+        
+        input_setup_class = input_setup_class_gui.get_setup_class()
+        output_setup_class = output_setup_class_gui.get_setup_class()
+        
+        self.assertEqual(len(input_setup_class.get_input_setup_classes()), 1)
+        self.assertEqual(len(output_setup_class.get_input_setup_classes()), 0)
+        
+        self.assertEqual(list(input_setup_class.get_input_setup_classes().keys())[0], output_setup_class)
+        
+    def test_external_configuration_connection(self):
+        configuration_class_gui = self.configuration_class(x=10, y=10)
+        output_configuration_attribute_gui = self.attribute(configuration_class_gui)
+        input_configuration_attribute_gui = self.attribute(configuration_class_gui)
+        
+        configuration_input_gui = self.configuration_input()
+        drag_and_attach_input(configuration_input_gui, input_configuration_attribute_gui, "RIGHT")
+        
+        connection = configuration_connection(output_configuration_attribute_gui, "RIGHT", configuration_input_gui)
+        
+        input_setup_class_gui = self.setup_class(configuration_class_gui, x=20, y=20)
+        input_setup_attribute = input_setup_class_gui.get_setup_attributes_gui()[1].get_setup_attribute()
+        
+        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 1)
+        connection.set_external(True)
+        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 0)
+        
+        output_setup_class_gui = self.setup_class(configuration_class_gui, x=10, y=10)
+        
+        setup_connection(output_setup_class_gui, "RIGHT", input_setup_class_gui, "LEFT")
+        
+        self.assertEqual(len(input_setup_attribute.get_connected_setup_attributes()), 1)
+        
+class TestCalculations(Test):
+    def setUp(self):
+        super().setUp()
+        
+    def create_system(self, input_value_type, output_value_types, calculation_type):
+        input_configuration_class = ConfigurationClass("Input")
+        input_configuration_attribute = input_configuration_class.create_attribute("Attribute")
+        input_configuration_attribute.set_value_type(input_value_type)
+        input_configuration_attribute.set_calculation_type(calculation_type)
+        
+        output_configuration_class = ConfigurationClass("Output")
+        
+        for i, value_type in enumerate(output_value_types):
+            output_configuration_attribute = output_configuration_class.create_attribute(f"Attribute {i}")
+            output_configuration_attribute.set_value_type(value_type)
+            
+            input_configuration_attribute.add_input_configuration_attribute(output_configuration_attribute, False)
+            
+        input_setup_class = input_configuration_class.create_setup_version()
+        output_setup_class = output_configuration_class.create_setup_version()
+        
+        input_setup_class.set_input_setup_class(output_setup_class)
+        
+        return input_setup_class, input_setup_class.get_setup_attributes()[0], output_setup_class, output_setup_class.get_setup_attributes()
+    """
+"""
+    def check_connection(self, input_value_type, output_value_types, calculation_types_to_check, expected_result):
+        for calculation_type in calculation_types_to_check:
+            input_setup_class, _, output_setup_class, _ = self.create_system(input_value_type, output_value_types, calculation_type)
+            self.assertEqual(ValueTypeString.correctly_connected(calculation_type, output_setup_class.get_setup_attributes()), expected_result)
+            
+    def test_string_value_type(self):
+        for value_type in VALUE_TYPES:
+            self.check_connection(ValueTypeString, [value_type]*2, list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
+            self.check_connection(ValueTypeString, [value_type]*2, [CalculationTypeQualitative], True)
+            
+    def test_number_value_type(self):
+        for value_type in (, , ValueTypeProbability, ValueTypeTriangleDistribution):
+        
+        self.check_connection(ValueTypeNumber, [ValueTypeString], list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
+        self.check_connection(ValueTypeNumber, [ValueTypeString], [CalculationTypeQualitative], True)
+        
+        self.check_connection(ValueTypeNumber, [ValueTypeNumber], list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
+    """
+"""
+    def check_calculation(self, calculation_type, input_value_type, output_value_types, output_values, result):
+        input_setup_class, input_setup_attribute, output_setup_class, output_setup_attributes = self.create_system(input_value_type, output_value_types, calculation_type)
+        
+        for setup_attribute, value in zip(output_setup_attributes, output_values):
+            setup_attribute.set_value(value)
+            
+        input_setup_attribute.calculate_value()
+        self.assertEqual(input_setup_attribute.get_value(), result)
+        
+    def test_mean(self):
+        self.check_calculation(CalculationTypeMean, ValueTypeNumber, [ValueTypeNumber]*3, ["3", "1", "2"], "2")
+        self.check_calculation(CalculationTypeMean, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*3, ["7 / 3 / 4", "1 / 6 / 9", "5 / 8 / 2"], f"{round(13/3, DECIMALS_WHEN_ROUNDING)} / {round(17/3, DECIMALS_WHEN_ROUNDING)} / 5")
+        
+    def test_and(self):
+        self.check_calculation(CalculationTypeAND, ValueTypeNumber, [ValueTypeNumber]*3, ["3", "1", "2"], "6")
+        self.check_calculation(CalculationTypeAND, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*3, ["7 / 3 / 4", "1 / 6 / 9", "5 / 8 / 2"], "13 / 17 / 15")
+        
+    def test_or(self):
+        self.check_calculation(CalculationTypeOR, ValueTypeNumber, [ValueTypeNumber]*3, ["3", "1", "2"], "1")
+        self.check_calculation(CalculationTypeOR, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*3, ["7 / 3 / 4", "1 / 6 / 9", "5 / 8 / 2"], "1 / 3 / 2")
+        
+    def test_multiplication(self):
+        self.check_calculation(CalculationTypeMultiplication, ValueTypeNumber, [ValueTypeNumber]*3, ["3", "1", "2"], "6")
+        self.check_calculation(CalculationTypeMultiplication, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*3, ["7 / 3 / 4", "1 / 6 / 9", "5 / 8 / 2"], "35 / 144 / 72")
+        self.check_calculation(CalculationTypeMultiplication, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution, ValueTypeNumber, ValueTypeTriangleDistribution], ["7 / 3 / 4", "2", "5 / 8 / 2"], "70 / 48 / 16")
+        
+    def test_division(self):
+        self.check_calculation(CalculationTypeDivision, ValueTypeNumber, [ValueTypeNumber]*2, ["1", "2"], "0.5")
+        self.check_calculation(CalculationTypeDivision, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*2, ["2 / 5 / 4", "3 / 1 / 6"], f"{round(2/3, DECIMALS_WHEN_ROUNDING)} / 5 / {round(2/3, DECIMALS_WHEN_ROUNDING)}")
+        self.check_calculation(CalculationTypeDivision, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution, ValueTypeNumber], ["2 / 5 / 4", 2], "1 / 2.5 / 2")
+        
+    def test_sample_triangle(self):
+        self.check_calculation(CalculationTypeSampleTriangle, ValueTypeProbability, [ValueTypeTriangleDistribution]*2, ["1 / 2 / 3", "4 / 5 / 6"], "0")
+        self.check_calculation(CalculationTypeSampleTriangle, ValueTypeProbability, [ValueTypeTriangleDistribution]*2, ["4 / 5 / 6", "1 / 2 / 3"], "1")
+    """
 """
 class TestLinkedBlocks(unittest.TestCase):
     def setUp(self):
@@ -634,76 +705,64 @@ class TestDeleteBlocks(unittest.TestCase):
         
     def tearDown(self):
         tear_down(self.root)
+"""
         
-class TestScripts(unittest.TestCase):
+class TestScripts(Test):
     def setUp(self):
-        self.root, self.model = set_up()
+        super().setUp()
+        
         self.script_if = ScriptInterface(self.model)
         
-        self.configuration_view = self.model.get_configuration_views()[0]
+        self.configuration_views = self.model.get_configuration_views()
         self.setup_views = self.model.get_setup_views()
         
-        self.configuration_classes_gui = []
+        self.setup_view_names = [setup_view.get_name() for setup_view in self.setup_views]
+        
+        self.class_names = ("CLASS 0", "CLASS 1", "CLASS 2")
+        view_nums = (0, 0, 1)
         
         for i in range(3):
-            configuration_class_gui = self.configuration_view.create_configuration_class_gui()
-            configuration_class_gui.open_options().set_name(f"CLASS {i}")
+            class_name = self.class_names[i]
+            view_num = view_nums[i]
+            configuration_class_gui = self.configuration_class(x=10, y=10, view=self.configuration_views[view_num])
+            configuration_class_gui.set_name(class_name)
+             
+            setup_class_gui = self.setup_class(configuration_class_gui, x=10*i, y=10*i, view=self.setup_views[view_num])
+            setup_class_gui.set_name(f"{class_name} INSTANCE 0")
             
-            self.configuration_classes_gui.append(configuration_class_gui)
-            
-            for j in range(3):
-                configuration_class_gui.create_attribute()
-                configuration_attribute_gui = configuration_class_gui.get_configuration_attributes_gui()[-1]
-                configuration_attribute_gui.open_options().set_name(f"ATTRIBUTE {i}-{j}")
+            if i == 0:
+                self.linked_setup_class(setup_class_gui, x=20, y=20, view=self.setup_views[view_num+2])
                 
-        for i, configuration_class_gui in enumerate(self.configuration_classes_gui):
-            if i < 2:
                 for j in range(2):
-                    setup_class_gui = self.setup_views[0].create_setup_class_gui(configuration_class_gui)
-                    setup_class_gui.open_options().set_name(f"INSTANCE {i}-{j}")
-                    drag_to(setup_class_gui, self.setup_views[0], j*20, i*10)
+                    configuration_attribute_gui = self.attribute(configuration_class_gui)
+                    configuration_attribute_gui.set_name(f"{class_name} ATTRIBUTE {j}")
                     
-            else:
-                for i in range(2):
-                    setup_class_gui = self.setup_views[1].create_setup_class_gui(configuration_class_gui)
-                    setup_class_gui.open_options().set_name(f"INSTANCE {i}-{j}")
-                    drag_to(setup_class_gui, self.setup_views[1], j*20, i*10)
-                    
-                    
-        
-        self.script_if.update_setup_structure()
-        
-    def tearDown(self):
-        tear_down(self.root)
-        
-    def list_elements_are_equal(self, list1, list2):
-        if len(list1) != len(list2):
-            return False
-            
-        for element1, element2 in zip(list1, list2):
-            if element1 != element2:
-                return False
+                setup_class_gui = self.setup_class(configuration_class_gui, x=20, y=20, view=self.setup_views[view_num])
+                setup_class_gui.set_name(f"{class_name} INSTANCE 1")
                 
-        return True
+                setup_class_gui = self.setup_class(configuration_class_gui, x=30, y=30, view=self.setup_views[view_num+1])
+                setup_class_gui.set_name(f"{class_name} INSTANCE 2")
+                
+    def elements_are_equal(self, tuple1, tuple2):
+        self.assertEqual(tuple(sorted(tuple1)), tuple(sorted(tuple2)))
         
+    def test_get_current_view_name(self):
+        for view in self.model.get_configuration_views() + self.model.get_setup_views():
+            self.model.change_view(view)
+            self.assertEqual(self.script_if.get_current_view_name(), view.get_name())
+            
     def test_get_class_type_names(self):
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(), ["CLASS 0", "CLASS 1", "CLASS 2"]))
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(self.setup_views[0].get_name()), ["CLASS 0", "CLASS 1"]))
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_type_names(self.setup_views[1].get_name()), ["CLASS 2"]))
-        
+        for view_name, names in zip([None] + self.setup_view_names, [self.class_names, ("CLASS 0", "CLASS 1"), ("CLASS 0", "CLASS 2"), ("CLASS 0",), ()]):
+            self.elements_are_equal(self.script_if.get_class_type_names(view_name), names)
+            
     def test_get_class_instance_names(self):
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_instance_names("CLASS 0"), ["INSTANCE 0-0", "INSTANCE 0-1"]))
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_class_instance_names("CLASS 0", self.setup_views[1].get_name()), []))
-        
+        for view_name, names in zip([None] + self.setup_view_names, [("CLASS 0 INSTANCE 0", "CLASS 0 INSTANCE 1", "CLASS 0 INSTANCE 2"), ("CLASS 0 INSTANCE 0", "CLASS 0 INSTANCE 1"), ("CLASS 0 INSTANCE 2",), ("CLASS 0 INSTANCE 0",), ()]):
+            self.elements_are_equal(self.script_if.get_class_instance_names("CLASS 0", view_name), names)
+            
     def test_get_attribute_names(self):
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_attribute_names("CLASS 0"), ["ATTRIBUTE 0-0", "ATTRIBUTE 0-1", "ATTRIBUTE 0-2"]))
-        self.assertTrue(self.list_elements_are_equal(self.script_if.get_attribute_names("CLASS 1"), ["ATTRIBUTE 1-0", "ATTRIBUTE 1-1", "ATTRIBUTE 1-2"]))
-        
-    def test_get_input_class_names(self):
-        # self.assertTrue(self.list_elements_are_equal(self.script_if.get_input_class_names("CLASS 0", "INSTANCE 0-0"), []))
-        pass
-"""
-
+        for class_name, names in zip(["CLASS 0", "CLASS 1"], [("CLASS 0 ATTRIBUTE 0", "CLASS 0 ATTRIBUTE 1"), ()]):
+            self.elements_are_equal(self.script_if.get_attribute_names(class_name), names)
+            
 if __name__ == "__main__":
     # root = tk.Tk()
     # model = RecordActions(root)

@@ -247,7 +247,7 @@ class GUISetupClass(GUIClass):
         
         for setup_attribute_gui in self.__setup_attributes_gui:
             setup_attribute_gui.update_displayed_value()
-        
+            
     def reset_calculated_values(self):
         """
         Resets any calculated value of all setup attributes so that the program knows which ones should be recalculated later
@@ -255,7 +255,7 @@ class GUISetupClass(GUIClass):
         self.__setup_class.reset_calculated_values()
         
         for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.add_entered_value_to_attribute()
+            setup_attribute_gui.add_entered_value_to_attribute(False)
             
     def get_configuration_name(self):
         """

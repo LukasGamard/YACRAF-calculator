@@ -266,7 +266,7 @@ class Model:
             linked_groups_per_number.pop(linked_group_number)
             
             # Decrement all group numbers above the removed one
-            for group_number in list(linked_groups_per_number.keys()):
+            for group_number in sorted(linked_groups_per_number.keys()):
                 if group_number > linked_group_number:
                     # Remove and add again with new number
                     group = linked_groups_per_number.pop(group_number)
