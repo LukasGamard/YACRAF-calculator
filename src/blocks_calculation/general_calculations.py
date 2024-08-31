@@ -168,7 +168,7 @@ class ValueTypeNumber(ValueType):
             return False
             
         elif not isinstance(input_value[0], float):
-            print(f"Warning: The input {input_value} could not be converted to a float for the attribute value type {ValueTypeNumber.symbol()}")
+            print(f"Warning: The input {input_value[0]} could not be converted to a float for the attribute value type {ValueTypeNumber.symbol()}")
             return False
             
         return True
