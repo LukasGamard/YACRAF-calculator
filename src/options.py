@@ -41,25 +41,50 @@ class Options:
         """
         Options for configuration and setup views
         """
-        options = Options(model, view, 3, 3, "View")
+        from setup_view import SetupView
+        
+        is_setup_view = isinstance(view, SetupView)
+        
+        if is_setup_view:
+            columns = 5
+        else:
+            columns = 3
+        
+        options = Options(model, view, 3, columns, "View")
         
         entry_text = tk.StringVar()
         options.add_entry(0, 0, "Name:", view.get_name(), lambda: view.set_name(entry_text.get()), entry_text)
         
         options.add_move_buttons(0, 1, "Move view button:", lambda: model.swap_view_places(view, True), lambda: model.swap_view_places(view, False))
         
-        options.add_label(0, 2, "Delete view:")
-        options.add_button(1, 2, "Delete", lambda: model.delete_view(view))
+        current_column = 2
+        
+        if is_setup_view:
+            options.add_label(0, current_column, "Copy view:")
+            options.add_button(1, current_column, "Copy", lambda: view.create_copy())
+            
+            current_column += 1
+            
+            options.add_label(0, current_column, "Exclude view from calculations:")
+            options.add_toggle_button(1, current_column, "Exclude", view.is_excluded(), lambda: view.set_excluded(True), lambda: view.set_excluded(False))
+            
+            current_column += 1
+            
+        options.add_label(0, current_column, "Delete view:")
+        options.add_button(1, current_column, "Delete", lambda: model.delete_view(view))
         
     @staticmethod
     def settings(model, view):
         """
         Options for general settings to the program
         """
-        options = Options(model, view, 2, 1, "General settings")
+        options = Options(model, view, 2, 2, "General settings")
         
         entry_text = tk.StringVar()
-        options.add_entry(0, 0, "Number of samples when comparing distributions:", settings.get_num_samples(), lambda: set_num_samples(entry_text.get()), entry_text)
+        options.add_entry(0, 0, "Number of samples when sampling distributions:", settings.get_num_samples(), lambda: set_num_samples(entry_text.get()), entry_text)
+        
+        options.add_label(0, 1, "Warn for duplicate class instance names:")
+        options.add_toggle_button(1, 1, "Print warnings", settings.warns_duplicate_names(), lambda: settings.set_warn_duplicate_names(True), lambda: settings.set_warn_duplicate_names(False))
         
     @staticmethod
     def configuration_class(model, view, configuration_class_gui, configuration_views):
@@ -71,7 +96,7 @@ class Options:
         entry_text = tk.StringVar()
         options.add_entry(0, 0, "Name:", configuration_class_gui.get_name(), lambda: configuration_class_gui.set_name(entry_text.get()), entry_text)
         
-        options.add_label(0, 1, "Add linked copy to setup view:")
+        options.add_label(0, 1, "Add linked copy to metamodel view:")
         
         # Buttons to create a linked copy in each respective configuration view
         for i, configuration_view in enumerate(configuration_views):
@@ -108,7 +133,7 @@ class Options:
             else:
                 options.add_linked_radio_button(initial_radio_button, text, is_selected, lambda value_type=value_type: configuration_attribute_gui.set_value_type(value_type))
                 
-        options.add_label(0, 3, "Hide from setup views:")
+        options.add_label(0, 3, "Hide from system views:")
         options.add_toggle_button(1, 3, "Hide", configuration_attribute_gui.is_hidden(), \
                                                                  lambda: configuration_attribute_gui.set_hidden(True), \
                                                                  lambda: configuration_attribute_gui.set_hidden(False))
@@ -135,8 +160,8 @@ class Options:
         attached_configuration_attribute_gui = configuration_input.get_attached_configuration_attribute_gui()
         
         if attached_configuration_attribute_gui != None:
-            text_scalar = convert_value_to_string([attached_configuration_attribute_gui.get_input_scalar()])
-            text_offset = convert_value_to_string([attached_configuration_attribute_gui.get_input_offset()])
+            text_scalar = convert_value_to_string((attached_configuration_attribute_gui.get_input_scalar(),))
+            text_offset = convert_value_to_string((attached_configuration_attribute_gui.get_input_offset(),))
         else:
             text_scalar = "1"
             text_offset = "0"
@@ -157,7 +182,7 @@ class Options:
         entry_text = tk.StringVar()
         options.add_entry(0, 0, "Name:", setup_class_gui.get_name(), lambda: setup_class_gui.set_name(entry_text.get()), entry_text)
         
-        options.add_label(0, 1, "Add linked copy to setup view:")
+        options.add_label(0, 1, "Add linked copy to system view:")
         
         # Buttons to create a linked copy in each respective setup view
         for i, setup_view in enumerate(setup_views):
@@ -279,8 +304,7 @@ def set_configuration_offset(configuration_input, input_offset_string):
     
 def set_setup_scalars(connection, input_scalars_string):
     try:
-        input_scalars = convert_string_to_value(input_scalars_string)
-        connection.set_input_scalars(input_scalars)
+        connection.set_input_scalars(convert_string_to_value(input_scalars_string))
     except:
         connection.reset_input_scalars()
 

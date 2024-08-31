@@ -76,35 +76,26 @@ class ScriptInterface:
         attributes_values = []
         
         for setup_attribute_gui in self.__script_helper.get_setup_attributes_gui(view, class_type, class_instance, attribute):
-            value_string = setup_attribute_gui.get_setup_attribute().get_current_value()
-            
-            # Convert string value into a list of values
-            try:
-                value = convert_string_to_value(value_string)
-            except:
-                value = [value_string]
-                
-            attributes_values.append(value)
+            attributes_values.append(setup_attribute_gui.get_setup_attribute().get_current_value())
             
         return attributes_values
         
     def convert_value_to_string(self, attribute_value):
         """
-        Converts the specified attribute value into a formatted string
+        Converts the specified tuple attribute value into a formatted string
         """
-        if isinstance(attribute_value, (np.ndarray, list)):
-            return convert_value_to_string(attribute_value)
-            
-        self.__script_helper.check_convert_to_type(attribute_value, str)
+        self.__script_helper.check_type([attribute_value], tuple)
         
-        return str(attribute_value)
+        return convert_value_to_string(attribute_value)
         
-    def override_attribute_values(self, override_value, *, class_type=None, class_instance=None, attribute=None, view=None):
+    def override_attribute_values(self, override_value, class_type, *, class_instance=None, attribute=None, view=None):
         """
         Overrides the displayed value of matching attributes with a temporary one
         """
         self.__script_helper.check_type([class_type, class_instance, attribute, view], str)
         self.__script_helper.check_convert_to_type(override_value, str)
+        
+        override_value = convert_string_to_value(str(override_value))
         
         for setup_attribute_gui in self.__script_helper.get_setup_attributes_gui(view, class_type, class_instance, attribute):
             setup_attribute_gui.get_setup_attribute().set_override_value(override_value)
@@ -161,8 +152,9 @@ class ScriptHelper:
         
         for setup_view in self.__model.get_setup_views():
             if view in (None, setup_view.get_name()):
-                setup_views.append(setup_view)
-                
+                if not setup_view.is_excluded():
+                    setup_views.append(setup_view)
+                    
         return setup_views
         
     def get_setup_classes_gui(self, view, class_type):

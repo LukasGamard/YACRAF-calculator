@@ -2,7 +2,7 @@
 
 This is a graphical tool for doing calculations according to YACRAF (https://link.springer.com/article/10.1007/s10207-023-00713-y) used in the KTH courses EP2790 and EP279V.
 
-This tool allows calculations inherent to the threat modeling to be set up and calculated using graphical block diagrams, where one can place, drag, and connect different blocks across various `Views`. The aim of the tool is to allow for the: (i) automation of the calculation process, where any changes to any block automatically propagate through the system, and (ii) simulation of various scenarios.
+This tool allows calculations inherent to the threat modeling to be set up and calculated using graphical block diagrams, where one can place, drag, and connect different blocks across various `Views`. The tool aims to allow for (i) the automation of the calculation process, where any changes to any block automatically propagate through the system, and (ii) the simulation/analysis of various system configurations.
 
 ## Dependecies
 
@@ -12,13 +12,13 @@ The program utilizes Tkinter for its GUI and NumPy for its calculations. If not 
 sudo apt install python3-tk
 ```
 
-Meanwhile, NumPy can be installed using:
+NumPy can be installed by:
 
 ```
 pip install numpy
 ```
 
-Make sure Python is not outdated. The known minimum requirement is at least Python 3.7, where 3.10 was used during the program's development.
+Make sure the Python installation is not outdated. The known minimum requirement is Python 3.7, where 3.10 was used during the program's development.
 
 ## How to use
 
@@ -34,103 +34,111 @@ Specifying a save name that does not currently exist will create a completely ne
 python3 main.py
 ```
 
-The graphical interface consists of two types of `Views`: `Configuration Views` and `Setup Views`. `Class` blocks (for example, an attack event) and their `Attributes` (for example, the attack event's cost) are defined within `Configuration Views`, where one may also define connections or relationships between different `Attributes`. For instance, whether a specific `Attribute` takes other ones as input and what operation to perform between them. In practical terms, `Configuration Views` defines the metamodel used during the threat modeling. Meanwhile, `Setup Views` define the system-specific setup using the configured `Class` and how they connect/relate to each other.
+The graphical interface consists of two types of `Views`: `Metamodel Views` defining the metamodel used during the threat modeling, and `System Views` where the specific analyzed system is defined based on the aforementioned metamodel. That is, `Class` blocks (for example, an attack event) and their `Attributes` (for example, the attack event's cost) are defined within `Metamodel Views`, including their connections and relationships to other `Attributes`. For instance, specifying that the cost `Attribute` of one attack event is dependent on that of another. Meanwhile, attack event instances (such as a DDoS attack) and their connections to other system-specific instances are configured in the `System Views`.
 
-The default saves of the program contains examples of the Yacraf metamodel being used using this graphical tool. The saves are as follows:
+The default saves of the program contains examples of the YACRAF metamodel, including accompanying system-model examples. The following default saves exist:
 
-1. `example_single`: Example of the Yacraf model based on the example found in Section 4 of the Yacraf paper.
-2. `example_triangle`: Same as `example_single`, with the exception of using triangle distributions whenever applicable.
-3. `custom`: Same `Configuration Views` as `exampel_triangle` but with blank `Setup Views`, allowing for a threat model of a new system using the Yacraf metamodel.
+1. `example_single`: Example based on the illustrative example found in Section 4 of the YACRAF paper, where the YACRAF metamodel is defined in the corresponding `Metamodel Views` and the calculations are performed in the `System Views`
+2. `example_triangle`: Same as `example_single`, with the exception of using triangle distributions whenever applicable
+3. `custom`: Same `Metamodel Views` as `exampel_triangle`, but with blank `System Views` to simplify the creation of a new threat model for a different system using the YACRAF metamodel
 
 ### Views
 
-In the top right corner of the GUI are two columns of buttons, see (1) and (2) in the below figure. The figure shows a `Configuration View`. These buttons switch between the different `Views` where the left-most column switches between `Configuration Views` and the right-most between `Setup Views`. The button with the `+` allows for an additional `View` to be added. The current `View` can be configured by pressing E (for edit) when no block inside the `View` is selected (will edit the block otherwise), where one can:
+In the top right corner of the GUI are two columns of buttons, see (1) and (2) in the figure below. The figure shows a `Metamodel View`. These buttons switch between the different `Views` where the left-most column switches between `Metamodel Views` and the right-most between `System Views`. The button with the `+` allows for an additional `View` to be added. The current `View` can be configured by pressing E (for edit) when no block inside the `View` is selected (will edit the block otherwise), where one for a `Metamodel View` can:
 
 1. Change its name
 2. Switch their button order
 3. Delete it
 
-The save button in the bottom left corner ((3) in the below figure) saves the current state of all `Configuration Views` and `Setup Views`, while the settings button brings up general settings. Any blocks in the `Views` can be deleted by pressing backspace when selected.
+For a `System View`, one can:
 
-![Image of a configuration view for the Yacraf metamodel](img/configuration_view.svg)
+1. Change its name
+2. Switch their button order
+3. Create a copy it
+4. Temporarily exclude it from current calculations
+5. Delete it
 
-### Configuration View
+The save button in the bottom left corner ((3) in the below figure) saves the current state of all `Metamodel Views` and `System Views`, while the settings button brings up general settings. Any selected block within a `View` can be deleted by pressing backspace.
+
+![Image of a configured YACRAF metamodel within a metamodel view](img/configuration_view.svg)
+
+### Metamodel View
 
 #### Class
 
-A new metamodel `Class` is created by pressing the add class button in the top left corner, as illustrated by (1) in the below figure. By pressig the (2), one can add an `Attriubte` to the created `Class` (result shown in (3)). Pressing an `Attribute` selects it, as shown by (4), where one can edit it by pressing E. Editing an `Attribute` allows the following to be configured:
+A new metamodel `Class` is created by pressing the add class button in the top left corner, as illustrated by (1) in the figure below. By pressig (2), one can add an `Attriubte` to the created `Class` (result shown in (3)). Pressing an `Attribute` selects it, as shown by (4), where one can edit it by pressing E. Editing an `Attribute` allows the following to be configured:
 
 1. Its name
-2. Their displayed order
-3. The value type of the `Attribute`, such as a single number or a triangle distribution
-4. Hide it from the corresponding `Setup Views`, meaning it is only visible in the `Configuration Views` (useful for calculations requiring several steps)
+2. Their displayed order in the `Class`
+3. The value type of the `Attribute`, such as a single number, probability, or a triangle distribution
+4. Hide it from the corresponding `System Views`, meaning it is only visible in the `Metamodel Views` (useful for calculations requiring several steps)
 
 Similarly, the `Class` itself can be also be edited, enabling:
 
 1. Changing its name
-2. Creating a linked copy of this instance to another `Configuration View` (allowing relations between blocks across `Configuration Views`), identified by a marker in their upper right corner (see (11) in the figure below)
+2. Creating a linked copy of this instance to another `Metamodel View` (allowing relations between blocks across `Metamodel Views`), identified by a unique identifier in their upper right corner (see (11) in the figure below)
 
-![Image of a configuration view where one adds classes and attributes, and subsequently connects them](img/configuration.svg)
+![Image of a metamodel view where one creates classes and attributes, and subsequently connects them](img/configuration.svg)
 
 #### Calculation Input
 
 By pressing the add input in the top left corner (see (5) in the above figure), an `Input` block is created (see (6)). `Input` blocks function take inputs from one or more `Attributes` and, through a specified mathematical operation, outputs the result to an adjacent `Attribute` that it has been dragged next to (see (7)). The `Input` block can be configured by selecting it and pressing E (see (8)), where one can:
 
 1. Change its mathematical operation, for example AND, OR, multiplication, etc
-2. Add a scalar that multiplies the calculated input with a factor (see (10))
-3. Add an offset that is added after the scalar is applied (see (10))
+2. Add a scalar that multiplies the calculated input with a factor (see the number 2 at (10))
+3. Add an offset that is added after the scalar is applied (see the number 3 at (10))
 
 `Attributes` can be added as inputs (connecting them) to the `Input` block by first right clicking on the corresponding `Attribute` and then left or right clicking the `Input` block, creating a `Connection` between the two, as shown by (9) in the above figure.
 
-Some mathematical operations are dependent on the order of their inputs. In such cases, the `Connections` will automatically be graphically enumerated.
+Some mathematical operations are dependent on the order of their inputs. In such cases, the `Connections` will automatically be graphically enumerated by the order they were created.
 
 ##### Connection
 
-Pressing E when the corner of a `Connection` is selected opens up its configuration, where one can:
+Pressing E when the corner of a `Connection` is selected opens up its options, where one can:
 
-1. Set the `Connection` as external, meaning it will only be connected to `Attributes` of other class instances, ignoring connected internal `Attributes`, such as an attack event only considering the input of another attack event and not that of itself `Attribute` (indicated by its lines becoming dashed)
+1. Set the `Connection` as external, meaning it will only be connected to `Attributes` of other class instances, ignoring internally connected `Attributes`, leading to, for example, an attack event only considering the corresponding `Attribute` value of other attack events and not its own (indicated by its lines becoming dashed)
 
-The corners can be dragged around to customize the path of the `Connection`.
+The corners of a `Connection` can be dragged around to customize its path.
 
-### Setup View
+### System View
 
-Shown in the figure below is an example of a `Setup View` representing the system which the metamodel from the `Configuration Views` has been applied to. The buttons at (1) in the figure are used to create `Connections` between `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarious throughout the `Setup Views`. Scripts are explained in detail later.
+Shown in the figure below is an example of a `System View` representing the system which the metamodel from the `Metamodel Views` has been applied to. The buttons at (1) in the figure are used to create `Connections` between `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarious throughout the `System Views`. Scripts are explained in detail later.
 
-![Image of a setup view](img/setup_view.svg)
+![Image of a system view](img/setup_view.svg)
 
 #### Class
 
-An instance of a `Class` from a `Configuration View` can be added to the current `Setup View` by pressing the corresponding button in the top left corner, as shown by (1) in the `Setup View` in the below figure. The `Class` instances can be configured by pressing E when selected, where one can:
+An instance of a `Class` from a `Metamodel View` can be added to the current `System View` by pressing the corresponding button in the top left corner, as shown by (1) in the `System View` in the below figure. The `Class` instances can be configured by pressing E when selected, where one can:
 
 1. Change the name of the corresponding `Class` instance
-2. Create a linked copy of the instance to another `Setup View` (any calculated value takes all linked versions into account), identified by a marker in their upper right corner (see (3) in the figure below)
+2. Create a linked copy of the instance to another `System View` (any calculated value takes all linked versions into account), identified by a marker in their upper right corner (see (3) in the figure below)
 
-![Image of a setup view where classes from the configuration views are added and subsequently connected](img/setup.svg)
+![Image of a system view where classes from the metamodel views are added and connected based on the analyzed system](img/setup.svg)
 
 #### Connection
 
-Pressing the add connection button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class`, if such a relation has been configured in the `Configuration Views`. Attaching a `Connecton` to a `Class` will automatically disable `Attribute` entries if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
+Pressing the add connection button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class`, if such `Attribute` relations have been configured in the `Metamodel Views`. Attaching a `Connecton` to a `Class` will automatically disable `Attribute` entries if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
 
 1. Add a scalar that is applied to input values from the `Connection`, where the appearing indicator (see (7)) can be dragged along the path of the `Connection`
 
 ##### Calculate
 
-The calculate button at the top (see (8)) calculates the values of all `Attributes` that do not have a manual input entry field. Calculated are the `Attributes` of all `Classes` in all `Setup Views`. In the case of the above figure, the `Attribute` indicated by (9) have been calculated using the corresponding `Attribute` values of its input `Classes`. The input `Attributes` in question are highlighted when the `Attribute` is selected.
+The calculate button at the top (see (8)) calculates the values of all `Attributes` that do not have a manual input entry field. Calculated are the `Attributes` of all `Classes` in all `System Views`. In the case of the above figure, the `Attribute` indicated by (9) have been calculated using the corresponding `Attribute` values of its input `Classes`. The input `Attributes` in question are highlighted when the `Attribute` is selected.
 
 #### Scripts
 
-Scripts to visualize or simulate different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the several of the easiest attack paths, can be created using Python scripts that interface to the tool. To create a script, go to the `scripts` directory.
+Scripts to visualize or analyze different scenarios, such as finding the most optimal order of implementing defense mechanisms, or enumerating and visualising the easiest attack paths, can be created using Python scripts that interface to the tool. Scripts are created and explained in detail in the `scripts` directory.
 
-Note: Computationally heavy scripts could take some time to finish running. The corresponding button will appear pressed (changed color) while the script is running.
+Note: Computationally heavy scripts could take some time to complete. The corresponding button will appear pressed (have changed color) while the script is running.
 
 ### Errors
 
-Any found errors in `Configuration Views` or `Setup Views` during calculations are printed.
+Any errors found in the `Metamodel Views` or `System Views` upon calculating `Attribute` values are printed.
 
-## Explaination of the Current Configuration
+## Explaination of the YACRAF Metamodel Included in the Program
 
-The attributes highlighted by (1) in the figure below have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the attribute into a positive one, or vice versa. For example, transform a 3 into 10-3=7.
+The attributes highlighted by (1) in the figure below have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the `Attribyute` into a positive one, or vice versa. For example, transform a 3 into 10 - 3 = 7.
 
-The calculation type Q (see (2)) implies a qualitative relation where no numerical calculation is performed. Instead, manual input is prompted. Thus, such connection merely highlights the relationship.
+The calculation type Q (see (2)) implies a qualitative relation where no numerical calculation is performed. Instead, manual input is prompted. Thus, such connections merely highlights the relationship.
 
-![Image of a configuration view for the Yacraf metamodel](img/configuration_explaination.svg)
+![Image of a configuration view for the YACRAF metamodel](img/configuration_explaination.svg)

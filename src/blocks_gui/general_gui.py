@@ -412,7 +412,7 @@ class GUIModelingBlock(GUIBlock):
             self.__text_width = text_width
         else:
             self.__text_width = width
-             
+            
         self.set_text(text) # Ensure line break
         
     def is_adjacent(self, coordinates):
@@ -445,7 +445,7 @@ class GUIModelingBlock(GUIBlock):
         Sets the text on the block
         """
         text, font = get_text_that_fits(self.get_canvas(), self.__label_text, text, self.__text_width, is_bold, self.get_length_unit())
-            
+        
         self.__text = text
         self.get_canvas().itemconfig(self.__label_text, text=text, font=font, fill=TEXT_COLOR)
         

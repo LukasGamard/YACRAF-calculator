@@ -28,13 +28,6 @@ class SetupClass:
         for attribute in self.__setup_attributes:
             attribute.calculate_value()
             
-    def reset_calculated_values(self):
-        """
-        Reset the calculated value of all setup attributes of this setup class so that the program knows a new should be calculated later
-        """
-        for setup_attribute in self.__setup_attributes:
-            setup_attribute.attempt_to_reset_value()
-            
     def get_setup_attributes(self):
         return self.__setup_attributes
         

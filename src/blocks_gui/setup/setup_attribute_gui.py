@@ -46,7 +46,7 @@ class GUISetupAttribute(GUIModelingBlock):
         # If setup_attribute already has a value (for example, if this is a linked copy), do not clear it and update the displayed value so that it shows
         else:
             self.update_value_input_type(False)
-            self.update_displayed_value()
+            self.display_calculated_value()
             
     def left_pressed(self, event):
         super().left_pressed(event)
@@ -105,7 +105,7 @@ class GUISetupAttribute(GUIModelingBlock):
         Switches to manual entry input field
         """
         if self.__entry_value == None:
-            self.__entry_value = PressableEntry(self.get_model(), self.get_view(), self.get_x()+self.get_width()/2, self.get_y(), self.get_width()/2, self.get_height(), lambda: self.add_entered_value_to_attribute())
+            self.__entry_value = PressableEntry(self.get_model(), self.get_view(), self.get_x()+self.get_width()/2, self.get_y(), self.get_width()/2, self.get_height(), lambda: self.update_linked_entry_text())
             self.add_attached_block(self.__entry_value)
             
             # Reset any calculated value as the input now should be entered manually, where a default value is entered
@@ -117,56 +117,57 @@ class GUISetupAttribute(GUIModelingBlock):
                 else:
                     value = "Value"
                     
-                self.__setup_attribute.set_value(value)
+                self.__setup_attribute.set_value((value,))
                 
-            self.update_displayed_value()
+            self.display_calculated_value()
             
+    def update_linked_entry_text(self):
+        for linked_setup_attribute_gui in self.get_model().get_linked_setup_attributes_gui(self):
+        	linked_setup_attribute_gui.set_displayed_value(self.__entry_value.get_entry_text())
+        	
+    def has_manually_entered_value(self):
+        return self.__entry_value != None
+        
     def get_setup_attribute(self):
         return self.__setup_attribute
         
     def get_setup_class_gui(self):
         return self.__setup_class_gui
         
-    def add_entered_value_to_attribute(self, update_linked=True):
+    def add_entered_value_to_attribute(self):
         """
         Sets the value of the setup attribute to that entered in the entry
         """
-        if self.__entry_value != None:
-            self.__setup_attribute.set_value(self.__entry_value.get_entry_text())
-            
-            if update_linked:
-                for linked_setup_attribute_gui in self.get_model().get_linked_setup_attributes_gui(self):
-                	linked_setup_attribute_gui.update_displayed_value()
-                	
-    def set_displayed_value(self, value, color=None):
+        self.__setup_attribute.set_value(convert_string_to_value(self.__entry_value.get_entry_text()))
+        
+    def set_displayed_value(self, text, color=None):
         """
         Sets the value that is displayed either as the resulting calculated value or that in an entry field
         """
         if color == None:
             color = TEXT_COLOR
             
-        if value == None:
-            value = "ERROR"
+        if text == None:
+            text = "ERROR"
             
         # Set value in Label
         if self.__entry_value == None:
-            text, font = get_text_that_fits(self.get_canvas(), self.__label_value, str(value), self.get_text_width(), False, self.get_length_unit())
+            text, font = get_text_that_fits(self.get_canvas(), self.__label_value, text, self.get_text_width(), False, self.get_length_unit())
             self.get_view().get_canvas().itemconfig(self.__label_value, text=text, font=font, fill=color)
             
         # Set value in Entry
         else:
-            self.__entry_value.set_entry_text(str(value))
+            self.__entry_value.set_entry_text(text)
             
-    def update_displayed_value(self):
+    def display_calculated_value(self):
         """
-        Updates the currently shown value, where an override value is shown if it exists
+        Updates the currently shown value to match the calculated value, where an override value is shown if it exists
         """
         if self.__setup_attribute.has_override_value():
             self.switch_to_value_label(False)
-            self.set_displayed_value(self.__setup_attribute.get_override_value(), "red")
-            
+            self.set_displayed_value(convert_value_to_string(self.__setup_attribute.get_override_value()), "red")
         else:
-            self.set_displayed_value(self.__setup_attribute.get_value())
+            self.set_displayed_value(convert_value_to_string(self.__setup_attribute.get_value()))
             
     def attempt_to_reset_override_value(self):
         """
@@ -174,9 +175,12 @@ class GUISetupAttribute(GUIModelingBlock):
         """
         if self.__setup_attribute.has_override_value():
             self.__setup_attribute.reset_override_value()
-            self.update_value_input_type(False)
-            self.update_displayed_value()
             
+            # Update the displayed value for all linked copies
+            for setup_attribute_gui in [self] + self.get_model().get_linked_setup_attributes_gui(self):
+                setup_attribute_gui.update_value_input_type(False)
+                setup_attribute_gui.display_calculated_value()
+                
             return True
             
         return False

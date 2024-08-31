@@ -26,12 +26,12 @@
 
 # script_if.get_attribute_values(class_type, class_instance, attribute, view=None)
 #     Returns a list of the values displayed by the specified setup attributes, each displayed value being represented by a list of each individual values
-#     [[1, 2, 3], [0.45], ["Text"], ...]
+#     [(1, 2, 3), (0.45,), ("Text",), ...]
 
 # script_if.convert_value_to_string(attribute_value)
-#     Returns the specified attribute value as a formatted string
+#     Returns the specified attribute tuple value as a formatted string
 
-# script_if.override_attribute_values(override_value, *, class_type=None, class_instance=None, attribute=None, view=None)
+# script_if.override_attribute_values(override_value, class_type, *, class_instance=None, attribute=None, view=None)
 #     Overrides the displayed value of matching attributes with a temporary one given in string format (as if it was entered through an entry field)
 
 # script_if.reset_override_attribute_values(*, class_type=None, class_instance=None, attribute=None, view=None)

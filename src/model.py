@@ -341,7 +341,7 @@ class Model:
         else:
             self.__setup_views.append(new_view)
             
-        # Add button to change to the new view to all existing views
+        # Add button to change to the new view from existing views
         for view in self.__configuration_views + self.__setup_views:
             view.add_change_view_button(new_view, is_configuration_view)
             
@@ -357,12 +357,19 @@ class Model:
                         new_view.create_add_to_setup_button(configuration_class_gui)
                         seen_configuration_classes.add(configuration_class_gui.get_configuration_class())
                         
+        self.change_view(self.__current_view)
+        
         return new_view
         
     def delete_view(self, view_to_delete):
         """
-        Deletes a view and removes the buttons to navigate to it from the remsining views
+        Deletes a view and removes the buttons to navigate to it from the remaining views
         """
+        # Check that there will be at least one view left
+        if len(self.__configuration_views) + len(self.__setup_views) <= 1:
+            print("Cannot delete the view, at least one view needs to exist")
+            return
+            
         view_to_delete.delete()
         
         # Remove button to change to the deleted view from all other views
@@ -380,9 +387,23 @@ class Model:
         if view_to_delete in self.__configuration_views:
             self.__configuration_views.remove(view_to_delete)
             
+            # Change to the first configuration view if it exists
+            if len(self.__configuration_views) > 0:
+                self.change_view(self.__configuration_views[0])
+            # Otherwise, change to the first setup view
+            else:
+                self.change_view(self.__setup_views[0])
+                
         elif view_to_delete in self.__setup_views:
             self.__setup_views.remove(view_to_delete)
             
+            # Change to the first setup view if it exists
+            if len(self.__setup_views) > 0:
+                self.change_view(self.__setup_views[0])
+            # Otherwise, change to the first configuration view
+            else:
+                self.change_view(self.__configuration_views[0])
+                
     def get_current_view(self):
         return self.__current_view
         
@@ -390,6 +411,9 @@ class Model:
         """
         Moves the specified view to the top of all views so that it is shown
         """
+        if view == None:
+            return
+            
         self.__current_view = view
         view.tkraise()
         
@@ -418,15 +442,49 @@ class Model:
         """
         Calculates the values of setup attributes
         """
+        seen_instances = {} # Key: Instance name, Value: List of GUI setup classes
+        seen_linked_groups = set()
         
         # Reset all values that do not have a manual entry field
         for setup_view in self.__setup_views:
-            setup_view.reset_calculated_values()
-            
+            for setup_class_gui in setup_view.get_setup_classes_gui():
+                if not setup_view.is_excluded():
+                    setup_class_gui.reset_calculated_values()
+                    
+                # Used for finding duplicate names
+                if settings.warns_duplicate_names():
+                    instance_name = setup_class_gui.get_name()
+                    linked_group_number = setup_class_gui.get_linked_group_number()
+                    
+                    if instance_name not in seen_instances:
+                        seen_instances[instance_name] = [setup_class_gui]
+                        
+                        if linked_group_number != None:
+                            seen_linked_groups.add(linked_group_number)
+                    else:
+                        if linked_group_number == None or linked_group_number not in seen_linked_groups:
+                            seen_instances[instance_name].append(setup_class_gui)
+                            
+        for instance_name, setup_classes_gui in seen_instances.items():
+            if len(setup_classes_gui) > 1:
+                print(f"Warning: Found duplicate of class instance name {instance_name} for class type {setup_classes_gui[0].get_configuration_name()} (not a problem, but might cause confusion)")
+                print("\tYou can turn off this warning in the settings")
+                print("\tFound duplicates in the following views:")
+                
+                for setup_class_gui in setup_classes_gui:
+                    text_linked_group = ""
+                    
+                    if setup_class_gui.get_linked_group_number() != None:
+                        text_linked_group = f" (linked number identifier {setup_class_gui.get_linked_group_number()})"
+                        
+                    print(f"\t\t{setup_class_gui.get_view().get_name()}{text_linked_group}")
+                    
         # Calculates the values of any attribute that had its value reset
         for setup_view in self.__setup_views:
-            setup_view.calculate_values()
-            
+            for setup_class_gui in setup_view.get_setup_classes_gui():
+                if not setup_view.is_excluded():
+                    setup_class_gui.calculate_values()
+                    
     """
     def get_setup_view_names(self):
         return [view.get_name() for view in self.__setup_views]

@@ -7,8 +7,8 @@ def convert_value_to_string(value):
     """
     from config import DECIMALS_WHEN_ROUNDING
     
-    if not isinstance(value, (np.ndarray, list)):
-        print(f"Error: Could not convert {value} to string")
+    if not isinstance(value, tuple):
+        print(f"Error: Could not convert {value} to string, as it was not a tuple")
         return None
         
     final_value = []
@@ -29,9 +29,19 @@ def convert_value_to_string(value):
     
 def convert_string_to_value(string):
     """
-    Takes a string as input and converts it to a list of floats
+    Takes a string as input and converts it to a tuple, where each value is attempted to be converted to a float
     """
-    return [float(element.strip()) for element in string.split("/")]
+    values = []
+    
+    for value_string in string.split("/"):
+        value = value_string.strip()
+        
+        try:
+            values.append(float(value))
+        except:
+            values.append(value)
+            
+    return tuple(values)
     
 def convert_grid_coordinate_to_actual(grid_x, grid_y, length_unit):
     """

@@ -14,36 +14,34 @@ def combine_values(value_type, calculation_type, input_setup_attributes, setup_i
     
     # Missing connected setup attributes for the given calculation type to be correctly calculated
     if number_of_inputs != None and len(input_setup_attributes) != number_of_inputs:
-        return "-"
+        return ("-",)
         
     for i, input_setup_attribute in enumerate(input_setup_attributes):
         input_value_type = input_setup_attribute.get_value_type()
-        input_value_string = input_setup_attribute.get_current_value()
+        input_value = input_setup_attribute.get_current_value()
         
         # If an input value could not previously be calculated, this value cannot be calculated either
-        if input_value_string == "-":
-            return "-"
+        if input_value in (("-",), ("SETUP ERROR",)):
+            return input_value
             
-        value = input_value_type.extract_input_value(input_value_string)
-        
         # Could not extract input value
-        if value == None:
-            return "ERROR"
+        if not input_value_type.is_correct_input_value(input_value):
+            return ("SETUP ERROR",)
             
-        value = np.array(value)
+        input_value = np.array(input_value)
         setup_input_scalars = setup_input_scalars_per_attribute[i]
         
         # Apply input scalars
         if setup_input_scalars != None:
-            value = apply_setup_input_scalars(value, np.array(setup_input_scalars), input_value_type.allowed_number_of_scalars())
+            input_value = apply_setup_input_scalars(input_value, np.array(setup_input_scalars), input_value_type.allowed_number_of_scalars())
             
-        input_values.append(value)
+        input_values.append(input_value)
         
     if len(input_values) > 0:
         calculated_value = calculation_type.calculate_output_value(input_values, num_samples) * configuration_attribute.get_input_scalar() + configuration_attribute.get_input_offset()
         calculated_value = value_type.adjust_to_range(calculated_value)
         
-    return convert_value_to_string(calculated_value)
+    return tuple(calculated_value)
     
 def get_attribute_value_types(configuration_attributes):
     """
@@ -89,11 +87,11 @@ class ValueType:
         return True
         
     @staticmethod
-    def extract_input_value(input_value_string):
+    def is_correct_input_value(input_value):
         """
-        Returns a list of all found individual values in a formatted string, returning None if the string is incorrectly formatted
+        Returns whether the input value was correctly formatted
         """
-        return []
+        return True
         
     @staticmethod
     def adjust_to_range(value):
@@ -164,15 +162,16 @@ class ValueTypeNumber(ValueType):
         return True
         
     @staticmethod
-    def extract_input_value(input_value_string):
-        value = None
-        
-        try:
-            value = [float(input_value_string)]
-        except:
-            print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeNumber.symbol()}")
+    def is_correct_input_value(input_value):
+        if len(input_value) != 1:
+            print(f"Warning: The input {input_value} did not contain exactly one value for the attribute value type {ValueTypeNumber.symbol()}")
+            return False
             
-        return value
+        elif not isinstance(input_value[0], float):
+            print(f"Warning: The input {input_value} could not be converted to a float for the attribute value type {ValueTypeNumber.symbol()}")
+            return False
+            
+        return True
         
 class ValueTypeProbability(ValueType):
     @staticmethod
@@ -216,22 +215,21 @@ class ValueTypeProbability(ValueType):
         return True
         
     @staticmethod
-    def extract_input_value(input_value_string):
-        value = None
-        
-        try:
-            value = float(input_value_string)
+    def is_correct_input_value(input_value):
+        if len(input_value) != 1:
+            print(f"Warning: The input {input_value} did not contain exactly one value for the attribute value type {ValueTypeProbability.symbol()}")
+            return False
             
-            if value < 0 or value > 1:
-                print(f"Warning: The value {value} at the attribute value type {ValueTypeProbability.symbol()} is not in [0, 1]")
-                return None
+        elif not isinstance(input_value[0], float):
+            print(f"Warning: The input {input_value[0]} could not be converted to a float for the attribute value type {ValueTypeProbability.symbol()}")
+            return False
+            
+        elif input_value[0] < 0 or input_value[0] > 1:
+            print(f"Warning: The input {input_value[0]} at the attribute value type {ValueTypeProbability.symbol()} is not in [0, 1]")
+            return False
+            
+        return True
                 
-            value = [value]
-        except:
-            print(f"Warning: Could not convert {input_value_string} to float for the attribute value type {ValueTypeProbability.symbol()}")
-            
-        return value
-        
     @staticmethod
     def adjust_to_range(value):
         if value[0] < 0:
@@ -308,19 +306,17 @@ class ValueTypeTriangleDistribution(ValueType):
         return True
         
     @staticmethod
-    def extract_input_value(input_value_string):
-        value = None
-        
-        try:
-            value = convert_string_to_value(input_value_string)
+    def is_correct_input_value(input_value):
+        if len(input_value) != 3:
+            print(f"Warning: The input {input_value} did not contain exactly three values for the attribute value type {ValueTypeProbability.symbol()}")
+            return False
             
-            if len(value) != 3:
-                print(f"Warning: Did not find three values in {value}, derived from {input_value_string} for the attribute value type {ValueTypeTriangleDistribution.symbol()}")
+        for value in input_value:
+            if not isinstance(value, float):
+                print(f"Warning: The value {value} in the input {input_value} could not be converted to a float for the attribute value type {ValueTypeProbability.symbol()}")
+                return False
                 
-        except:
-            print(f"Warning: Could not convert each element delimited by \"/\" in {input_value_string} to float for the attribute value type {ValueTypeTriangleDistribution.symbol()}")
-            
-        return value
+        return True
         
 class CalculationType:
     """

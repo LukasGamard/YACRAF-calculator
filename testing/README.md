@@ -8,5 +8,4 @@ Run the tests by running:
 python3 test.py
 ```
 
-The unit tests validate the basic functionality of the tool.
-
+The unit tests validate basic functionality of the tool, where it would be preferred to add more tests in the future to encompass a larger portion of the program's functionality.

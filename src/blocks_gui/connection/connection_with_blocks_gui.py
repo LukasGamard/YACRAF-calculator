@@ -11,7 +11,7 @@ class GUIConnectionWithBlocks(GUIConnection):
     def __init__(self, model, view, *, start_coordinate=None, end_coordinate=None, input_scalars=None, input_scalars_indicator_coordinate=None):
         self.__model = model
         self.__view = view
-        self.__input_scalars = [1]
+        self.__input_scalars = (1,)
         self.__input_scalars_indicator = None
         
         start_block = GUIConnectionTriangle(model, view, "RIGHT", False) # Points out from class
@@ -21,15 +21,15 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         # Move start block to specified coordinate
         if start_coordinate != None:
-            start_block.move_block(start_coordinate[0] - self.get_start_block().get_x(), \
-                                          start_coordinate[1] - self.get_start_block().get_y())
+            start_block.move_block(start_coordinate[0] - start_block.get_x(), \
+                                   start_coordinate[1] - start_block.get_y())
             start_block.put_down_block()
             
         # Move end block to specified coordinate
         if end_coordinate != None:
-            self.get_end_block().move_block(end_coordinate[0] - self.get_end_block().get_x(), \
-                                            end_coordinate[1] - self.get_end_block().get_y())
-            self.get_end_block().put_down_block()
+            end_block.move_block(end_coordinate[0] - end_block.get_x(), \
+                                 end_coordinate[1] - end_block.get_y())
+            end_block.put_down_block()
             
         if input_scalars != None:
             self.set_input_scalars(input_scalars)
@@ -123,22 +123,20 @@ class GUIConnectionWithBlocks(GUIConnection):
                 break
                 
         if should_reset:
-            self.reset_input_scalars()
+            input_scalars = (1,)
             
-        else:
-            self.__input_scalars = input_scalars
+        self.__input_scalars = input_scalars
+        
+        start_setup_class_gui = self.get_start_setup_class_gui()
+        end_setup_class_gui = self.get_end_setup_class_gui()
+        
+        if start_setup_class_gui != None and end_setup_class_gui != None:
+            end_setup_class_gui.get_setup_class().set_input_setup_class(start_setup_class_gui.get_setup_class(), input_scalars) # Update input scalars
             
-            start_setup_class_gui = self.get_start_setup_class_gui()
-            end_setup_class_gui = self.get_end_setup_class_gui()
-            
-            if start_setup_class_gui != None and end_setup_class_gui != None:
-                end_setup_class_gui.get_setup_class().set_input_setup_class(start_setup_class_gui.get_setup_class(), input_scalars) # Update input scalars
-                
-            self.update_input_scalars_indicator()
-            
-    def reset_input_scalars(self):
-        self.__input_scalars = [1]
         self.update_input_scalars_indicator()
+        
+    def reset_input_scalars(self):
+        self.set_input_scalars([1])
         
     def get_input_scalars_string(self):
         """
@@ -154,7 +152,7 @@ class GUIConnectionWithBlocks(GUIConnection):
             self.__input_scalars_indicator.delete()
             
         # Show indicator unless default value
-        if not (len(self.__input_scalars) == 1 and self.__input_scalars[0] == 1):
+        if self.__input_scalars != (1,):
             self.__input_scalars_indicator = GUIConnectionScalarsIndicator(self.__model, self.__view, self)
             self.correct_scalars_indicator_location()
             
@@ -165,6 +163,12 @@ class GUIConnectionWithBlocks(GUIConnection):
         if self.__input_scalars_indicator != None:
             self.__input_scalars_indicator.snap_to_grid()
             
+    def get_input_scalars_coordinate(self):
+        if self.__input_scalars_indicator == None:
+            return None
+            
+        return (self.__input_scalars_indicator.get_x(), self.__input_scalars_indicator.get_y())
+        
     def get_scalars_indicator_start_coordinate(self):
         """
         Returns the default start coordinate of the input scalars indicator
@@ -252,6 +256,6 @@ class GUIConnectionWithBlocks(GUIConnection):
         if self.__input_scalars_indicator == None:
             saved_states["input_scalars_indicator_coordinate"] = None
         else:
-            saved_states["input_scalars_indicator_coordinate"] = (self.__input_scalars_indicator.get_x(), self.__input_scalars_indicator.get_y())
+            saved_states["input_scalars_indicator_coordinate"] = self.get_input_scalars_coordinate()
             
         return saved_states

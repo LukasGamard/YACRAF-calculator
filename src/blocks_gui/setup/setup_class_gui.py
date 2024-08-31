@@ -42,9 +42,6 @@ class GUISetupClass(GUIClass):
                              position=position, \
                              linked_group_number=setup_class_gui.get_linked_group_number())
         
-    def right_pressed(self, event):
-        self.open_options()
-        
     def open_options(self):
         return Options.setup_class(self.get_model(), self.get_view(), self, self.get_model().get_setup_views())
         
@@ -246,17 +243,21 @@ class GUISetupClass(GUIClass):
         self.__setup_class.calculate_values()
         
         for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.update_displayed_value()
+            setup_attribute_gui.display_calculated_value()
             
     def reset_calculated_values(self):
         """
-        Resets any calculated value of all setup attributes so that the program knows which ones should be recalculated later
+        Resets the calculated value of all setup attributes so that the program knows which ones should be recalculated later
         """
-        self.__setup_class.reset_calculated_values()
-        
-        for setup_attribute_gui in self.__setup_attributes_gui:
-            setup_attribute_gui.add_entered_value_to_attribute(False)
+        # Reset values
+        for setup_attribute in self.__setup_class.get_setup_attributes():
+            setup_attribute.attempt_to_reset_value()
             
+        # Sets the value to that of the manual entry field where there is one
+        for setup_attribute_gui in self.__setup_attributes_gui:
+            if setup_attribute_gui.has_manually_entered_value():
+                setup_attribute_gui.add_entered_value_to_attribute()
+                
     def get_configuration_name(self):
         """
         Returns the name of the corresponding configuration class name

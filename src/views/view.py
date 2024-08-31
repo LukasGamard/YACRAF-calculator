@@ -15,7 +15,7 @@ class View(tk.Frame):
         super().__init__()
         self.__model = model
         self.__name = name
-        self.__view_headers = []
+        self.__view_headers = [] # Title headers above the configuration and setup view buttons
         self.__configuration_change_view_buttons = {} # View and corresponding button
         self.__setup_change_view_buttons = {} # View and corersponding button
         self.__selected_items = set() # Items that are highlighted by pressing on them
@@ -26,7 +26,7 @@ class View(tk.Frame):
         self.__length_unit_difference = 0 # How much the length unit has been changed from LENGTH_UNIT
         self.__grid_offset = (0, 0) # How much items are offset from the grid in the range [0, 1) due to panning/zooming
         
-        self.__canvas = tk.Canvas(self, width=settings.get_canvas_width(), height=settings.get_canvas_height(), bg=BACKGROUND_COLOR)
+        self.__canvas = tk.Canvas(self, width=settings.get_canvas_width(), height=settings.get_canvas_height(), bg=VIEW_BACKGROUND_COLOR)
         self.__canvas_size = (settings.get_canvas_width(), settings.get_canvas_height())
         self.__add_change_configuration_view_button = TouchButton.add_view(model, self, True)
         self.__add_change_setup_view_button = TouchButton.add_view(model, self, False)
@@ -36,7 +36,7 @@ class View(tk.Frame):
         self.__currently_open_options = None
         
         # Add the headers above the buttons that change between views
-        for text, position in [("Configurations:", get_change_configuration_view_start_coordinate(LENGTH_UNIT)), ("Setups:", get_change_setup_view_start_coordinate(LENGTH_UNIT))]:
+        for text, position in [("Metamodel:", get_change_configuration_view_start_coordinate(LENGTH_UNIT)), ("System:", get_change_setup_view_start_coordinate(LENGTH_UNIT))]:
             x, y = position
             y -= CHANGE_VIEW_HEIGHT
             self.__view_headers.append(GUIModelingBlock(model, self, text, CHANGE_VIEW_WIDTH, CHANGE_VIEW_HEIGHT, CHANGE_VIEW_HEADER_COLOR, position=(x, y), ignore_zoom=True, tags_rect=(TAG_BUTTON,), tags_text=(TAG_BUTTON_TEXT,)))
@@ -97,7 +97,7 @@ class View(tk.Frame):
         When stopping to pan by releasing the mouse button
         """
         self.__is_panning = False
-    
+        
     def zoom_in(self, event):
         if self.get_length_unit() < LENGTH_UNIT_ZOOM_LIMITS[1]:
             self.zoom(event, 1)
@@ -143,8 +143,9 @@ class View(tk.Frame):
         
         self.__canvas_size = (event.width, event.height)
         
-        # Buttons to move so that they do not end up outside the window
-        for item_to_move_x in list(self.__configuration_change_view_buttons.values()) + \
+        # Buttons and their accompanying headers to move so that they do not end up outside the window
+        for item_to_move_x in self.__view_headers + \
+                              list(self.__configuration_change_view_buttons.values()) + \
                               list(self.__setup_change_view_buttons.values()) + \
                               [self.__add_change_configuration_view_button, self.__add_change_setup_view_button]:
             item_to_move_x.move_block(move_x, 0)
@@ -182,6 +183,9 @@ class View(tk.Frame):
     def get_canvas(self):
         return self.__canvas
         
+    def set_background_color(self, color):
+        self.__canvas.config(bg=color)
+        
     def add_change_view_button(self, view_to_change_to, is_configuration_view):
         """
         Adds a button to change to a specified view
@@ -199,12 +203,15 @@ class View(tk.Frame):
         """
         Removes a button that changes to a specified view
         """
+        from configuration_view import ConfigurationView
+        from setup_view import SetupView
+        
         # Move up the button that adds another view
-        if view_to_remove in self.__configuration_change_view_buttons:
+        if isinstance(view_to_remove, ConfigurationView):
             change_view_buttons = self.__configuration_change_view_buttons
             self.__add_change_configuration_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
             
-        elif view_to_remove in self.__setup_change_view_buttons:
+        elif isinstance(view_to_remove, SetupView):
             change_view_buttons = self.__setup_change_view_buttons
             self.__add_change_setup_view_button.move_block(0, -CHANGE_VIEW_HEIGHT)
             
@@ -227,12 +234,25 @@ class View(tk.Frame):
         
         if up:
             to_move *= -1
+            
+        from configuration_view import ConfigurationView
+        from setup_view import SetupView
         
-        if view_to_move in self.__configuration_change_view_buttons:
+        if isinstance(view_to_move, ConfigurationView):
             self.__configuration_change_view_buttons[view_to_move].move_block(0, to_move)
             
-        elif view_to_move in self.__setup_change_view_buttons:
+        elif isinstance(view_to_move, SetupView):
             self.__setup_change_view_buttons[view_to_move].move_block(0, to_move)
+            
+    def set_color_change_view_button(self, view, color):
+        from configuration_view import ConfigurationView
+        from setup_view import SetupView
+        
+        if isinstance(view, ConfigurationView):
+            self.__configuration_change_view_buttons[view].set_fill_color(color)
+            
+        elif isinstance(view, SetupView):
+            self.__setup_change_view_buttons[view].set_fill_color(color)
             
     def set_text_change_view_button(self, view_with_changed_name, text):
         """

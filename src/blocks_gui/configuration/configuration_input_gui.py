@@ -237,7 +237,7 @@ class GUIConfigurationInput(GUIModelingBlock):
                 indicator_x = self.get_x() + 0.5
                 self.move_block(move_x_to_fit_indicator, 0)
                 
-                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_SCALAR_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string([input_scalar]))
+                self.__input_scalar_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_SCALAR_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string((input_scalar,)))
                 
             # If the scalar offset should be shown
             if input_offset != 0:
@@ -248,7 +248,7 @@ class GUIConfigurationInput(GUIModelingBlock):
                 
                 self.move_block(move_x_to_fit_indicator, 0)
                 
-                self.__input_offset_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_OFFSET_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string([input_offset]))
+                self.__input_offset_indicator = GUICircleIndicator(self.get_view(), indicator_x, self.get_y()+0.5, INPUT_INDICATOR_CIRCLE_RADIUS, INPUT_OFFSET_INDICATOR_CIRCLE_COLOR, INPUT_INDICATOR_CIRCLE_OUTLINE, convert_value_to_string((input_offset,)))
                 
             # Update linked copies of the attribute that this input block is attached to
             if update_linked:

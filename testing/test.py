@@ -91,9 +91,9 @@ def setup_connection(output_setup_class, output_side, input_setup_class, input_s
         
     return connection
     
-def set_up():
+def set_up(*, num_configuration_views=2, num_setup_views=4):
     root = tk.Tk()
-    model = Model(root, force_new_save=True, num_configuration_views=2, num_setup_views=4)
+    model = Model(root, force_new_save=True, num_configuration_views=num_configuration_views, num_setup_views=num_setup_views)
     process_changes(root)
     
     return root, model
@@ -183,7 +183,7 @@ class Test(unittest.TestCase):
             
         if is_bold != None:
             self.assertEqual(font.Font(font=view.get_canvas().itemcget(block._GUIModelingBlock__label_text, "font")).actual("weight") == "bold", is_bold)
-"""
+
 class TestCreatingBlocks(Test):
     def test_configuration_class(self):
         view = self.get_configuration_view()
@@ -401,6 +401,9 @@ class TestChangeName(Test):
         self.check_text(setup_attribute_gui, setup_view, is_bold=True)
         
 class TestSwitchPlaces(Test):
+    def setUp(self):
+        self.root, self.model = set_up(num_configuration_views=2, num_setup_views=2)
+        
     def check_configuration_attribute_order(self, class_gui, top_attribute_gui, bottom_attribute_gui, connections_top, connections_bottom):
         input_attributes_gui_top = top_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()
         input_attributes_gui_bottom = bottom_attribute_gui.get_configuration_attribute().get_input_configuration_attributes()
@@ -625,35 +628,15 @@ class TestCalculations(Test):
         input_setup_class.set_input_setup_class(output_setup_class)
         
         return input_setup_class, input_setup_class.get_setup_attributes()[0], output_setup_class, output_setup_class.get_setup_attributes()
-    """
-"""
-    def check_connection(self, input_value_type, output_value_types, calculation_types_to_check, expected_result):
-        for calculation_type in calculation_types_to_check:
-            input_setup_class, _, output_setup_class, _ = self.create_system(input_value_type, output_value_types, calculation_type)
-            self.assertEqual(ValueTypeString.correctly_connected(calculation_type, output_setup_class.get_setup_attributes()), expected_result)
-            
-    def test_string_value_type(self):
-        for value_type in VALUE_TYPES:
-            self.check_connection(ValueTypeString, [value_type]*2, list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
-            self.check_connection(ValueTypeString, [value_type]*2, [CalculationTypeQualitative], True)
-            
-    def test_number_value_type(self):
-        for value_type in (, , ValueTypeProbability, ValueTypeTriangleDistribution):
         
-        self.check_connection(ValueTypeNumber, [ValueTypeString], list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
-        self.check_connection(ValueTypeNumber, [ValueTypeString], [CalculationTypeQualitative], True)
-        
-        self.check_connection(ValueTypeNumber, [ValueTypeNumber], list(CALCULATION_TYPES).remove(CalculationTypeQualitative), False)
-    """
-"""
     def check_calculation(self, calculation_type, input_value_type, output_value_types, output_values, result):
         input_setup_class, input_setup_attribute, output_setup_class, output_setup_attributes = self.create_system(input_value_type, output_value_types, calculation_type)
         
         for setup_attribute, value in zip(output_setup_attributes, output_values):
-            setup_attribute.set_value(value)
+            setup_attribute.set_value(convert_string_to_value(value))
             
         input_setup_attribute.calculate_value()
-        self.assertEqual(input_setup_attribute.get_value(), result)
+        self.assertEqual(convert_value_to_string(input_setup_attribute.get_value()), result)
         
     def test_mean(self):
         self.check_calculation(CalculationTypeMean, ValueTypeNumber, [ValueTypeNumber]*3, ["3", "1", "2"], "2")
@@ -675,38 +658,12 @@ class TestCalculations(Test):
     def test_division(self):
         self.check_calculation(CalculationTypeDivision, ValueTypeNumber, [ValueTypeNumber]*2, ["1", "2"], "0.5")
         self.check_calculation(CalculationTypeDivision, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution]*2, ["2 / 5 / 4", "3 / 1 / 6"], f"{round(2/3, DECIMALS_WHEN_ROUNDING)} / 5 / {round(2/3, DECIMALS_WHEN_ROUNDING)}")
-        self.check_calculation(CalculationTypeDivision, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution, ValueTypeNumber], ["2 / 5 / 4", 2], "1 / 2.5 / 2")
+        self.check_calculation(CalculationTypeDivision, ValueTypeTriangleDistribution, [ValueTypeTriangleDistribution, ValueTypeNumber], ["2 / 5 / 4", "2"], "1 / 2.5 / 2")
         
     def test_sample_triangle(self):
         self.check_calculation(CalculationTypeSampleTriangle, ValueTypeProbability, [ValueTypeTriangleDistribution]*2, ["1 / 2 / 3", "4 / 5 / 6"], "0")
         self.check_calculation(CalculationTypeSampleTriangle, ValueTypeProbability, [ValueTypeTriangleDistribution]*2, ["4 / 5 / 6", "1 / 2 / 3"], "1")
-    """
-"""
-class TestLinkedBlocks(unittest.TestCase):
-    def setUp(self):
-        self.root, self.model = set_up()
-        
-    def tearDown(self):
-        tear_down(self.root)
-        
-    def test_configuration_input(self):
-        pass
-        
-class TestHideAttribute(unittest.TestCase):
-    def setUp(self):
-        self.root, self.model = set_up()
-        
-    def tearDown(self):
-        tear_down(self.root)
-        
-class TestDeleteBlocks(unittest.TestCase):
-    def setUp(self):
-        self.root, self.model = set_up()
-        
-    def tearDown(self):
-        tear_down(self.root)
-"""
-        
+                
 class TestScripts(Test):
     def setUp(self):
         super().setUp()
@@ -731,17 +688,23 @@ class TestScripts(Test):
             setup_class_gui.set_name(f"{class_name} INSTANCE 0")
             
             if i == 0:
+                self.setup_class_gui = setup_class_gui
                 self.linked_setup_class(setup_class_gui, x=20, y=20, view=self.setup_views[view_num+2])
                 
                 for j in range(2):
                     configuration_attribute_gui = self.attribute(configuration_class_gui)
                     configuration_attribute_gui.set_name(f"{class_name} ATTRIBUTE {j}")
                     
-                setup_class_gui = self.setup_class(configuration_class_gui, x=20, y=20, view=self.setup_views[view_num])
-                setup_class_gui.set_name(f"{class_name} INSTANCE 1")
+                for j, setup_attribute_gui in enumerate(setup_class_gui.get_setup_attributes_gui()):
+                    setup_attribute_gui.get_setup_attribute().set_value(convert_string_to_value(f"VALUE {j}"))
+                    
+                setup_class_gui_1 = self.setup_class(configuration_class_gui, x=20, y=20, view=self.setup_views[view_num])
+                setup_class_gui_1.set_name(f"{class_name} INSTANCE 1")
                 
-                setup_class_gui = self.setup_class(configuration_class_gui, x=30, y=30, view=self.setup_views[view_num+1])
-                setup_class_gui.set_name(f"{class_name} INSTANCE 2")
+                setup_connection(setup_class_gui, "RIGHT", setup_class_gui_1, "LEFT")
+                
+                setup_class_gui_2 = self.setup_class(configuration_class_gui, x=30, y=30, view=self.setup_views[view_num+1])
+                setup_class_gui_2.set_name(f"{class_name} INSTANCE 2")
                 
     def elements_are_equal(self, tuple1, tuple2):
         self.assertEqual(tuple(sorted(tuple1)), tuple(sorted(tuple2)))
@@ -763,6 +726,51 @@ class TestScripts(Test):
         for class_name, names in zip(["CLASS 0", "CLASS 1"], [("CLASS 0 ATTRIBUTE 0", "CLASS 0 ATTRIBUTE 1"), ()]):
             self.elements_are_equal(self.script_if.get_attribute_names(class_name), names)
             
+    def test_get_input_class_names(self):
+        for class_instance_name, names in zip(["CLASS 0 INSTANCE 0", "CLASS 0 INSTANCE 1", "CLASS 0 INSTANCE 2"], [(), (("CLASS 0", "CLASS 0 INSTANCE 0"),), ()]):
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name), names)
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_type="CLASS 0"), names)
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_type="CLASS 0", input_class_instance=("CLASS 0 INSTANCE 0")), names)
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_instance="CLASS 0 INSTANCE 0"), names)
+            
+        for class_instance_name in ["CLASS 0 INSTANCE 0", "CLASS 0 INSTANCE 1", "CLASS 0 INSTANCE 2"]:
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 1", class_instance_name), ())
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_type="CLASS 1"), ())
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_type="CLASS 0", input_class_instance=("CLASS 0 INSTANCE 1")), ())
+            self.elements_are_equal(self.script_if.get_input_class_names("CLASS 0", class_instance_name, input_class_instance="CLASS 0 INSTANCE 1"), names)
+            
+    def test_get_attribute_values(self):
+        self.elements_are_equal(self.script_if.get_attribute_values("CLASS 0", "CLASS 0 INSTANCE 0", "CLASS 0 ATTRIBUTE 0"), (("VALUE 0",),))
+        self.elements_are_equal(self.script_if.get_attribute_values("CLASS 0", "CLASS 0 INSTANCE 0", "CLASS 0 ATTRIBUTE 1"), (("VALUE 1",),))
+        self.elements_are_equal(self.script_if.get_attribute_values("CLASS 0", "CLASS 0 INSTANCE 0", None), (("VALUE 0",), ("VALUE 1",)))
+        self.elements_are_equal(self.script_if.get_attribute_values("CLASS 1", None, None), (()))
+        
+    def test_convert_value_to_string(self):
+        self.assertEqual(self.script_if.convert_value_to_string((1, 2, 3)), "1 / 2 / 3")
+        
+    def check_attribute_values(self, setup_class_gui, values):
+        for setup_attribute_gui, value in zip(setup_class_gui.get_setup_attributes_gui(), values):
+            self.assertEqual(setup_attribute_gui.get_setup_attribute().get_current_value(), value)
+            
+    def test_override_attribute_values(self):
+        self.script_if.override_attribute_values("OVERRIDE", "CLASS 0")
+        self.check_attribute_values(self.setup_class_gui, (("OVERRIDE",), ("OVERRIDE",)))
+        
+        self.script_if.reset_override_attribute_values(class_type="CLASS 0", class_instance="CLASS 0 INSTANCE 0", attribute="CLASS 0 ATTRIBUTE 0")
+        self.check_attribute_values(self.setup_class_gui, (("VALUE 0",), ("OVERRIDE",)))
+        
+        self.script_if.reset_override_attribute_values(class_type="CLASS 0", class_instance="CLASS 0 INSTANCE 0")
+        self.check_attribute_values(self.setup_class_gui, (("VALUE 0",), ("VALUE 1",)))
+        
+        self.script_if.override_attribute_values("OVERRIDE", "CLASS 0", class_instance="CLASS 0 INSTANCE 0", attribute="CLASS 0 ATTRIBUTE 0")
+        self.check_attribute_values(self.setup_class_gui, (("OVERRIDE",), ("VALUE 1",)))
+        
+        self.script_if.override_attribute_values("OVERRIDE", "CLASS 0", class_instance="CLASS 0 INSTANCE 0")
+        self.check_attribute_values(self.setup_class_gui, (("OVERRIDE",), ("OVERRIDE",)))
+        
+        self.script_if.reset_override_attribute_values()
+        self.check_attribute_values(self.setup_class_gui, (("VALUE 0",), ("VALUE 1",)))
+        
 if __name__ == "__main__":
     # root = tk.Tk()
     # model = RecordActions(root)

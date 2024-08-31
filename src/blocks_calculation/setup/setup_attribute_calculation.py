@@ -5,8 +5,8 @@ class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):
         self.__setup_class = setup_class
         self.__configuration_attribute = configuration_attribute
-        self.__value = None # String or None
-        self.__override_value = None # String or None
+        self.__value = None # None or a tuple
+        self.__override_value = None # None or a tuple
         
     def has_setup_class(self, setup_class):
         return self.__setup_class == setup_class
@@ -18,7 +18,7 @@ class SetupAttribute:
         return self.__value
         
     def set_value(self, value):
-        self.__value = str(value)
+        self.__value = value
         
     def clear_value(self):
         self.__value = None
@@ -27,17 +27,14 @@ class SetupAttribute:
         """
         Reset value so that the program knows it should calculate a new one, but only if there is no override value and there are input attributes as this attribute otherwise should take a manual input
         """
-        if self.__configuration_attribute.has_input_configuration_attributes() and not self.has_override_value():
-            self.__value = None
-            return True
+        if not self.has_override_value():
+            self.clear_value()
             
-        return False
-        
     def get_override_value(self):
         return self.__override_value
         
     def set_override_value(self, override_value):
-        self.__override_value = str(override_value)
+        self.__override_value = override_value
         
     def has_override_value(self):
         return self.__override_value != None
@@ -46,7 +43,7 @@ class SetupAttribute:
         self.__override_value = None
         
     def get_current_value(self):
-        if self.__override_value != None:
+        if self.has_override_value():
             return self.__override_value
             
         return self.__value
@@ -84,7 +81,7 @@ class SetupAttribute:
                                           self.__configuration_attribute, \
                                           settings.get_num_samples())
         else:
-            self.__value = "ERROR"
+            self.__value = ("CONFIGURATION ERROR",)
             
     def get_value_type(self):
         return self.__configuration_attribute.get_value_type()

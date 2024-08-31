@@ -21,7 +21,7 @@ DECIMALS_WHEN_ROUNDING = 3
 SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, settings.get_save_name())
 
 SAVES_PATH = os.path.join(BASE_PATH, SAVES_DIRECTORY)
-FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.csv")
+FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.txt")
 CONFIGURATION_SAVES_DIRECTORY = "configurations"
 SETUP_SAVES_DIRECTORY = "setups"
 
@@ -38,7 +38,8 @@ CALCULATION_TYPES = (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR,
 
 
 
-BACKGROUND_COLOR = "white" # Window default value
+VIEW_BACKGROUND_COLOR = "white" # Window default value
+VIEW_EXCLUDED_COLOR = "red"
 
 # Default text values
 FONT = ("Arial", 11)

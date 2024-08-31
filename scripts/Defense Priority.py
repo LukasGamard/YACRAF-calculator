@@ -9,7 +9,7 @@ def disable_all_other_defenses(script_if, defenses_to_disable, defense_to_exclud
             override_value = " / ".join(["0"] * len(current_value))
             
             script_if.override_attribute_values(override_value, \
-                                                class_type="Defense mechanism", \
+                                                "Defense mechanism", \
                                                 class_instance=defense_name, \
                                                 attribute="Impact")
             

@@ -4,9 +4,10 @@ def script_logic(script_if):
         current_value = script_if.get_attribute_values("Defense mechanism", defense_mechanism_name, "Impact")[0]
         override_value = " / ".join(["0"] * len(current_value))
         
-        script_if.override_attribute_values(override_value, class_type="Defense mechanism", \
-                                                         class_instance=defense_mechanism_name, \
-                                                         attribute="Impact")
+        script_if.override_attribute_values(override_value, \
+                                            "Defense mechanism", \
+                                            class_instance=defense_mechanism_name, \
+                                            attribute="Impact")
         
     script_if.calculate_values()
     

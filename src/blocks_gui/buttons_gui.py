@@ -35,15 +35,19 @@ class Button(GUIModelingBlock):
         self.reset_select_color()
         
     def change_to_select_color(self):
-        self.set_fill_color(SELECT_COLOR)
+        super().set_fill_color(SELECT_COLOR)
         
     def reset_select_color(self):
         if self.__completed_command and self.__was_released:
-            self.set_fill_color(self.__fill_color)
+            super().set_fill_color(self.__fill_color)
             
             self.__completed_command = False
             self.__was_released = False
             
+    def set_fill_color(self, fill_color):
+        self.__fill_color = fill_color
+        super().set_fill_color(fill_color)
+        
 class TouchButton(Button):
     """
     Class managing custom button that is triggered ones per press

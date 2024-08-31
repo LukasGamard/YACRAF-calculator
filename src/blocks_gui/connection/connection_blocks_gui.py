@@ -121,7 +121,7 @@ class GUIConnectionTriangle(GUIBlock):
     def __init__(self, model, view, direction, is_end_block, position=None):
         if position == None:
             coordinates = get_block_start_coordinates(view.get_length_unit(), 2)
-
+            
             if not is_end_block:
                 x, y = coordinates[0]
             else:
@@ -197,14 +197,8 @@ class GUIConnectionTriangle(GUIBlock):
                 self.__connection.update_direction(self, direction)
                 self.rotate_triangle(direction)
                 
-                start_setup_class = self.__connection.get_start_setup_class()
-                end_setup_class = self.__connection.get_end_setup_class()
+                self.attempt_to_enable_calculation_connection() # If both ends are connected, the connection is now used for calculations
                 
-                # Connect the two classes when both of the ends have been connected
-                if start_setup_class != None and end_setup_class != None:
-                    end_setup_class.set_input_setup_class(start_setup_class, self.__connection.get_input_scalars())
-                    self.__connection.get_end_setup_class_gui().update_value_input_types()
-                    
                 break
                 
         self.__connection.correct_scalars_indicator_location()
@@ -262,12 +256,8 @@ class GUIConnectionTriangle(GUIBlock):
         Detaches from connected class if connected to one
         """
         if self.__attached_setup_class_gui != None:
-            end_setup_class = self.__connection.get_end_setup_class()
+            self.attempt_to_disable_calculation_connection() # Connection is no longer used for calculations, if it previously was
             
-            # Remove start setup class as input from the end setup class
-            if end_setup_class != None:
-                end_setup_class.remove_input_setup_class(self.__connection.get_start_setup_class())
-                
             self.__attached_setup_class_gui.remove_connection(self.__connection)
             self.__attached_setup_class_gui.remove_attached_block(self)
             
@@ -276,6 +266,28 @@ class GUIConnectionTriangle(GUIBlock):
                 self.__connection.get_end_setup_class_gui().update_value_input_types()
                 
             self.__attached_setup_class_gui = None
+            
+    def attempt_to_enable_calculation_connection(self):
+        """
+        Attempts to connect the calculation blocks without GUI when both GUI end blocks have been connected
+        """
+        if not self.get_view().is_excluded():
+            start_setup_class = self.__connection.get_start_setup_class()
+            end_setup_class = self.__connection.get_end_setup_class()
+            
+            if start_setup_class != None and end_setup_class != None:
+                end_setup_class.set_input_setup_class(start_setup_class, self.__connection.get_input_scalars())
+                self.__connection.get_end_setup_class_gui().update_value_input_types()
+                
+    def attempt_to_disable_calculation_connection(self):
+        """
+        Attempt to disconnect the calculation blocks without GUI
+        """
+        end_setup_class = self.__connection.get_end_setup_class()
+        
+        # Remove start setup class as input from the end setup class
+        if end_setup_class != None:
+            end_setup_class.remove_input_setup_class(self.__connection.get_start_setup_class())
             
     def delete(self):
         if not self.is_deleted():

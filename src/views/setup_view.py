@@ -17,6 +17,7 @@ class SetupView(View):
         self.__setup_classes_gui = []
         self.__connections_with_blocks = []
         self.__to_setup_buttons = []
+        self.__is_excluded = False
         
         self.__create_connection_button = TouchButton.create_connection(model, self)
         self.__calculate_value_button = TouchButton.calculate_values(model, self)
@@ -49,13 +50,49 @@ class SetupView(View):
         for run_script_button in self.__run_script_buttons:
             run_script_button.move_block(move_x, move_y)
             
+    def create_copy(self):
+        """
+        Creates a new setup view and sets it up to match this one
+        """
+        setup_view_copy = self.get_model().create_view(False, self.get_name())
+        
+        grid_offset = self.get_grid_offset()
+        setup_view_copy.set_grid_offset(grid_offset[0], grid_offset[1])
+        
+        for setup_class_gui in self.__setup_classes_gui:
+            linked_group_number = setup_class_gui.get_linked_group_number()
+            position = (setup_class_gui.get_x(), setup_class_gui.get_y())
+            
+            if linked_group_number != None:
+                self.get_model().create_linked_setup_class_gui(setup_class_gui, \
+                                                               setup_view_copy, \
+                                                               linked_group_number=linked_group_number, \
+                                                               position=position)
+            else:
+                setup_class_gui_copy = setup_view_copy.create_setup_class_gui(configuration_class_gui=setup_class_gui.get_configuration_class_gui(), \
+                                                                              position=position)
+                setup_class_gui_copy.set_name(setup_class_gui.get_name())
+                
+                for setup_attribute_gui, setup_attribute_gui_copy in zip(setup_class_gui.get_setup_attributes_gui(), \
+                                                                         setup_class_gui_copy.get_setup_attributes_gui()):
+                    setup_attribute_gui_copy.set_displayed_value(convert_value_to_string(setup_attribute_gui.get_setup_attribute().get_value()))
+                    
+        for connection_with_blocks in self.__connections_with_blocks:
+            start_block = connection_with_blocks.get_start_block()
+            end_block = connection_with_blocks.get_end_block()
+            
+            setup_view_copy.create_connection_with_blocks(start_coordinate=(start_block.get_x(), start_block.get_y()), \
+                                                          end_coordinate=(end_block.get_x(), end_block.get_y()), \
+                                                          input_scalars=connection_with_blocks.get_input_scalars(), \
+                                                          input_scalars_indicator_coordinate=connection_with_blocks.get_input_scalars_coordinate())
+            
     def create_setup_class_gui(self, *, configuration_class_gui=None, setup_class_gui_to_copy=None, position=None):
         """
         Creates a GUI setup class that is drawn on the canvas in the view
         """
         if not((configuration_class_gui == None and setup_class_gui_to_copy != None) or \
                (configuration_class_gui != None and setup_class_gui_to_copy == None)):
-            print("Error: Exactly one of configuration_class_gui and setup_class_gui_to_copy need to be given")
+            print("Error: Exactly one of configuration_class_gui and setup_class_gui_to_copy need to be specified")
             return
             
         if setup_class_gui_to_copy != None:
@@ -86,20 +123,6 @@ class SetupView(View):
             
         return movable_items
         
-    def reset_calculated_values(self):
-        """
-        Reset the calculated values of all attributes in all setup classes in the view
-        """
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.reset_calculated_values()
-            
-    def calculate_values(self):
-        """
-        Calculates the values of all attributes in all setup classes in the view
-        """
-        for setup_class_gui in self.__setup_classes_gui:
-            setup_class_gui.calculate_values()
-            
     def reset_override_values(self):
         """
         Reset the override values of all attributes in all setup classes in the view
@@ -174,6 +197,37 @@ class SetupView(View):
             
         self.__to_setup_buttons = [to_setup_button for _, to_setup_button in sorted_to_setup_buttons]
         
+    def is_excluded(self):
+        """
+        Returns whether the view has been excluded from current calculations
+        """
+        return self.__is_excluded
+        
+    def set_excluded(self, is_excluded):
+        self.__is_excluded = is_excluded
+        
+        # Change background color
+        if is_excluded:
+            self.set_background_color(VIEW_EXCLUDED_COLOR)
+        else:
+            self.set_background_color(VIEW_BACKGROUND_COLOR)
+            
+        # Change color on the button changing to this view from other views
+        for setup_view in self.get_model().get_configuration_views() + self.get_model().get_setup_views():
+            if setup_view != self:
+                if is_excluded:
+                    setup_view.set_color_change_view_button(self, VIEW_EXCLUDED_COLOR)
+                else:
+                    setup_view.set_color_change_view_button(self, CHANGE_VIEW_COLOR)
+                    
+        for connection_with_blocks in self.__connections_with_blocks:
+            # Disable connections in the view
+            if is_excluded:
+                connection_with_blocks.get_start_block().attempt_to_disable_calculation_connection()
+            # Enable connections in the view
+            else:
+                connection_with_blocks.get_start_block().attempt_to_enable_calculation_connection()
+                
     def save(self):
         """
         Saves the state of the view
@@ -226,7 +280,7 @@ class SetupView(View):
                     setup_class_gui.set_name(saved_states_setup_class_gui["name"])
                     
                     for saved_states_setup_attribute_gui, setup_attribute_gui in zip(saved_states_setup_class_gui["setup_attributes_gui"], setup_class_gui.get_setup_attributes_gui()):
-                        setup_attribute_gui.set_displayed_value(saved_states_setup_attribute_gui["value"])
+                        setup_attribute_gui.set_displayed_value(convert_value_to_string(saved_states_setup_attribute_gui["value"]))
                         
                 # Restore setup connections
                 for saved_states_connection_with_blocks in saved_states_connections_with_blocks:
