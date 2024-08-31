@@ -12,15 +12,21 @@ class GUISetupAttribute(GUIModelingBlock):
         self.__setup_class_gui = setup_class_gui
         self.__configuration_attribute_gui = configuration_attribute_gui
         
-        width = ATTRIBUTE_WIDTH * SETUP_WIDTH_MULTIPLIER
+        width = ATTRIBUTE_WIDTH + SETUP_WIDTH_ADDITION
         height = ATTRIBUTE_HEIGHT
         text_width = ATTRIBUTE_WIDTH
         
         attribute_x = setup_class_gui.get_x()
         attribute_y = setup_class_gui.get_y() + CLASS_HEIGHT + len(setup_class_gui.get_setup_attributes_gui()) * ATTRIBUTE_HEIGHT
         
-        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(attribute_x+width*3/4, attribute_y+height/2, view.get_length_unit())
-        self.__label_value = view.get_canvas().create_text(actual_label_value_x, actual_label_value_y, text="-", font=get_font(view.get_length_unit()), anchor="center", justify="center")
+        actual_label_value_x, actual_label_value_y = convert_grid_coordinate_to_actual(attribute_x+ATTRIBUTE_WIDTH+SETUP_WIDTH_ADDITION/2, \
+                                                                                       attribute_y+height/2, view.get_length_unit())
+        self.__label_value = view.get_canvas().create_text(actual_label_value_x, \
+                                                           actual_label_value_y, \
+                                                           text="-", \
+                                                           font=get_font(view.get_length_unit()), \
+                                                           anchor="center", \
+                                                           justify="center")
         
         super().__init__(model, \
                          view, \
@@ -29,10 +35,10 @@ class GUISetupAttribute(GUIModelingBlock):
                          height, \
                          ATTRIBUTE_COLOR, \
                          position=(attribute_x, attribute_y), \
-                         text_width = text_width, \
-                         label_text_x = attribute_x + width / 4, \
-                         additional_pressable_items = [self.__label_value], \
-                         bind_left = MOUSE_PRESS)
+                         text_width=text_width, \
+                         label_text_x=attribute_x+ATTRIBUTE_WIDTH/2, \
+                         additional_pressable_items=[self.__label_value], \
+                         bind_left=MOUSE_PRESS)
         
         self.__entry_value = None # Manual entry field
         
@@ -105,7 +111,7 @@ class GUISetupAttribute(GUIModelingBlock):
         Switches to manual entry input field
         """
         if self.__entry_value == None:
-            self.__entry_value = PressableEntry(self.get_model(), self.get_view(), self.get_x()+self.get_width()/2, self.get_y(), self.get_width()/2, self.get_height(), lambda: self.update_linked_entry_text())
+            self.__entry_value = PressableEntry(self.get_model(), self.get_view(), self.get_x()+ATTRIBUTE_WIDTH, self.get_y(), SETUP_WIDTH_ADDITION, self.get_height(), lambda: self.update_linked_entry_text())
             self.add_attached_block(self.__entry_value)
             
             # Reset any calculated value as the input now should be entered manually, where a default value is entered

@@ -204,6 +204,9 @@ class SetupView(View):
         return self.__is_excluded
         
     def set_excluded(self, is_excluded):
+        if is_excluded == self.__is_excluded:
+            return
+            
         self.__is_excluded = is_excluded
         
         # Change background color
@@ -240,7 +243,7 @@ class SetupView(View):
         
         # Save grid offset and block states to file
         with open(os.path.join(SAVES_PATH, file_path), "wb") as file_pickle:
-            pickle.dump((self.get_grid_offset(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
+            pickle.dump((self.get_grid_offset(), self.is_excluded(), saved_states_setup_classes_gui, saved_states_connections_with_blocks), file_pickle)
             
         return file_path
         
@@ -252,9 +255,11 @@ class SetupView(View):
         mapping_configuration_class_gui: Mapping between IDs of blocks from the save to those recreated in this new view instance
         linked_groups_per_number: Dictionary (Key: Group number, Value: List of GUI setup classes) for setup class copies linked to each other
         """
+        is_excluded = False
+        
         try:
             with open(os.path.join(SAVES_PATH, file_path), "rb") as file_pickle:
-                grid_offset, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
+                grid_offset, is_excluded, saved_states_setup_classes_gui, saved_states_connections_with_blocks = pickle.load(file_pickle)
                 self.set_grid_offset(grid_offset[0], grid_offset[1])
                 
                 # Restore setup classes
@@ -298,6 +303,8 @@ class SetupView(View):
         except FileNotFoundError as e:
             print(f"Could not find setup view {file_path}: {e}")
             
+        return is_excluded
+        
     def delete(self):
         delete_all(self.__setup_classes_gui)
         delete_all(self.__connections_with_blocks)

@@ -17,7 +17,7 @@ class GUISetupClass(GUIClass):
         self.__connections = [] # Directional connections between setup classes
         self.__script_marker_indicators = [] # Indicators created by scripts
         
-        super().__init__(model, view, self.__setup_class.get_instance_name(), CLASS_WIDTH*SETUP_WIDTH_MULTIPLIER, CLASS_HEIGHT, False, position=position, linked_group_number=linked_group_number)
+        super().__init__(model, view, self.__setup_class.get_instance_name(), CLASS_WIDTH+SETUP_WIDTH_ADDITION, CLASS_HEIGHT, False, position=position, linked_group_number=linked_group_number)
         
         configuration_class_gui.add_setup_class_gui(self)
         

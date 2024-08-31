@@ -71,19 +71,19 @@ def get_create_attribute_offset():
     """
     Returns the grid offset from the last attribute that the button for creating another attribute is positioned
     """
-    return ATTRIBUTE_WIDTH // 2, 0
+    return (ATTRIBUTE_WIDTH - ADD_ATTRIBUTE_WIDTH) / 2, 0
     
-def get_change_configuration_view_offset():
+def get_create_configuration_view_offset():
     """
     Returns the grid offset from the last button changing to configuration views that the button for creating another configuration view is positioned
     """
-    return CHANGE_VIEW_WIDTH // 2, 0
+    return (CHANGE_VIEW_WIDTH - ADD_CHANGE_VIEW_WIDTH) / 2, 0
     
-def get_change_setup_view_offset():
+def get_create_setup_view_offset():
     """
     Returns the grid offset from the last button changing to setup views that the button for creating another setup view is positioned
     """
-    return CHANGE_VIEW_WIDTH // 2, 0
+    return (CHANGE_VIEW_WIDTH - ADD_CHANGE_VIEW_WIDTH) / 2, 0
     
 def get_run_script_start_coordinate(length_unit):
     """

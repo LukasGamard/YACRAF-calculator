@@ -26,13 +26,15 @@ class Model:
         self.__root.rowconfigure(0, weight=1)
         self.__root.columnconfigure(0, weight=1)
         
+        excluded_setup_views = []
+        
         # Create new views
         if not os.path.exists(FILE_PATHS_SAVES_PATH) or force_new_save:
             for i in range(num_configuration_views):
-                self.create_view(True, "Configuration")
+                self.create_view(True, "Metamodel")
                 
             for i in range(num_setup_views):
-                self.create_view(False, f"Setup {i+1}")
+                self.create_view(False, f"System {i+1}")
                 
         # Restore saved views
         else:
@@ -54,13 +56,14 @@ class Model:
                     # Restore saved setup view
                     elif view_directory == SETUP_SAVES_DIRECTORY:
                         setup_view = self.create_view(False, view_name)
-                        setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
+                        is_excluded = setup_view.restore_save(file_path, mapping_configuration_class_gui, self.__linked_setup_groups_per_number)
                         
+                        if is_excluded:
+                            excluded_setup_views.append(setup_view)
+                            
                 for view in self.__configuration_views + self.__setup_views:
                     view.update_shown_order()
                     
-                self.calculate_values()
-                
         # Attempt to find and set a suitable default view
         if len(self.__configuration_views) > 0:
             self.change_view(self.__configuration_views[0])
@@ -68,8 +71,13 @@ class Model:
         elif len(self.__setup_views) > 0:
             self.change_view(self.__setup_views[0])
             
+        for setup_view in excluded_setup_views:
+            setup_view.set_excluded(True)
+            
         root.bind("<KeyPress>", self.on_key_press)
         root.bind("<KeyRelease>", self.on_key_release)
+        
+        self.calculate_values()
         
     def on_key_press(self, event):
         """
@@ -510,6 +518,8 @@ class Model:
         """
         Saves all configuration and setup views
         """
+        self.calculate_values()
+        
         for directory in [CONFIGURATION_SAVES_DIRECTORY, SETUP_SAVES_DIRECTORY]:
             os.makedirs(os.path.join(SAVES_PATH, directory), exist_ok=True)
             

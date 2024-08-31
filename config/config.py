@@ -50,7 +50,7 @@ OUTLINE_WIDTH = 1
 OUTLINE_COLOR = "black"
 
 # The width of class blocks in setup views compared to configuration views
-SETUP_WIDTH_MULTIPLIER = 2
+SETUP_WIDTH_ADDITION = 5
 
 SELECT_COLOR = "turquoise1"
 
@@ -63,7 +63,7 @@ HIGHLIGHT_INPUT_COLOR = "orange" # Showing which currently connected setup attri
 HIGHLIGHT_OPTIONS = "light green" # Border around options
 
 # Class block
-CLASS_WIDTH = 5
+CLASS_WIDTH = 6
 CLASS_HEIGHT = 1
 CLASS_COLOR = "light slate gray"
 

@@ -3,7 +3,7 @@ import importlib.util
 from general_gui import GUIModelingBlock
 from script_interface import ScriptInterface
 from helper_functions_general import convert_grid_coordinate_to_actual
-from default_coordinate_functions import get_save_coordinate, get_settings_coordinate, get_change_configuration_view_start_coordinate, get_change_setup_view_start_coordinate, get_create_class_coordinate, get_create_input_coordinate, get_to_setup_start_coordinate, get_create_connection_coordinate, get_calculate_values_coordinate, get_create_attribute_offset, get_change_configuration_view_offset, get_change_setup_view_offset, get_run_script_start_coordinate
+from default_coordinate_functions import get_save_coordinate, get_settings_coordinate, get_change_configuration_view_start_coordinate, get_change_setup_view_start_coordinate, get_create_class_coordinate, get_create_input_coordinate, get_to_setup_start_coordinate, get_create_connection_coordinate, get_calculate_values_coordinate, get_create_attribute_offset, get_create_configuration_view_offset, get_create_setup_view_offset, get_run_script_start_coordinate
 from config import *
 
 class Button(GUIModelingBlock):
@@ -72,12 +72,12 @@ class TouchButton(Button):
         Button for adding another view
         """
         if is_configuration_view:
-            offset_x, offset_y = get_change_configuration_view_offset()
+            offset_x, offset_y = get_create_configuration_view_offset()
             x, y = get_change_configuration_view_start_coordinate(LENGTH_UNIT) # Uses LENGTH_UNIT as zoom is ignored
             command = lambda: model.create_view(True, "New configuration")
             
         else:
-            offset_x, offset_y = get_change_setup_view_offset()
+            offset_x, offset_y = get_create_setup_view_offset()
             x, y = get_change_setup_view_start_coordinate(LENGTH_UNIT) # Uses LENGTH_UNIT as zoom is ignored
             command = lambda: model.create_view(False, "New setup")
             
