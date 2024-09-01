@@ -54,7 +54,7 @@ For a `System View`, one can:
 
 1. Change its name
 2. Switch their button order
-3. Create a copy it
+3. Create a copy of it
 4. Temporarily exclude it from current calculations
 5. Delete it
 
@@ -70,25 +70,25 @@ A new metamodel `Class` is created by pressing the add class button in the top l
 
 1. Its name
 2. Their displayed order in the `Class`
-3. The value type of the `Attribute`, such as a single number, probability, or a triangle distribution
+3. The value type of the `Attribute`, such as a single number, probability, or a triangle distribution (the (T) at (4) indicates that the `Attribute` value is a triangle distribution)
 4. Hide it from the corresponding `System Views`, meaning it is only visible in the `Metamodel Views` (useful for calculations requiring several steps)
 
 Similarly, the `Class` itself can also be edited. In particular:
 
 1. Changing its name
-2. Creating a linked copy of this instance to another `Metamodel View` (allowing relations between blocks across `Metamodel Views`), identified by a unique identifier in their upper right corner (see (11) in the figure below)
+2. Creating a linked copy of this instance in another `Metamodel View` (allowing relations between blocks across multiple `Metamodel Views` - interpreting them as the same `Class` block), identified by a unique identifier in their upper right corner (see (11) in the figure below)
 
 ![Image of a metamodel view where one creates classes and attributes, and subsequently connects them](img/configuration.svg)
 
 #### Calculation Input
 
-By pressing the add input in the top left corner (see (5) in the above figure), an `Input` block is created (see (6)). The `Input` blocks take inputs from one or more `Attributes` and, through a specified mathematical operation, outputs the result to an adjacent `Attribute` that it has been dragged next to (see (7)). The `Input` block can be configured by selecting it and pressing E (see (8)), where one can:
+By pressing the add input button in the top left corner (see (5) in the above figure), an `Input` block is created (see (6)). `Input` blocks take input values from one or more `Attributes` and, through a specified mathematical operation, outputs the calculated result to an adjacent `Attribute` that it has been dragged next to (see (7)). The `Input` block can be configured by selecting it and pressing E, where one can:
 
-1. Change its mathematical operation, for example, AND, OR, multiplication, etc
+1. Change its mathematical operation, for example, AND, OR, multiplication, etc (seen at (8) is the an `Input` block performing an AND operation between inputs)
 2. Add a scalar that multiplies the calculated input with a factor (see the number 2 at (10))
 3. Add an offset that is added after the scalar is applied (see the number 3 at (10))
 
-`Attributes` can be added as inputs (connecting them) to the `Input` block by first right-clicking on the corresponding `Attribute` and then left or right-clicking the `Input` block, creating a `Connection` between the two, as shown by (9) in the above figure.
+`Attributes` can be added as inputs by connecting them to the `Input` block by first right-clicking on the corresponding `Attribute` and then left or right-clicking the `Input` block, creating a `Connection` between the two, as illustrated by (9) in the above figure.
 
 Some mathematical operations are dependent on the order of their inputs. In such cases, the `Connections` will automatically be graphically enumerated by the order they were created.
 
@@ -96,13 +96,13 @@ Some mathematical operations are dependent on the order of their inputs. In such
 
 Pressing E when the corner of a `Connection` is selected opens up its options, where one can:
 
-1. Set the `Connection` as external, meaning it will only be connected to `Attributes` of other class instances, ignoring internally connected `Attributes`, leading to, for example, an attack event only considering the corresponding `Attribute` value of other attack events and not its own (indicated by its lines becoming dashed)
+1. Set the `Connection` as external, meaning it will only be connected to `Attributes` of other class instances, ignoring internally connected ones, leading to, for example, an attack event only considering the corresponding `Attribute` value of other attack events and not its own (indicated by its lines becoming dashed)
 
 The corners of a `Connection` can be dragged around to customize its path.
 
 ### System View
 
-Shown in the figure below is an example of a `System View` representing the system to which the metamodel from the `Metamodel Views` has been applied. The buttons at (1) in the figure are used to create `Connections` between `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarios throughout the `System Views`. Scripts are explained in detail later.
+Shown in the figure below is an example of a `System View` reflecting the system that the metamodel from the corresponding `Metamodel Views` has been applied to. The buttons at (1) in the figure are used to create `Connections` between `Classes` and calculate the final values, respectively. (2) shows buttons for running custom scripts that can calculate/simulate different scenarios throughout the `System Views`. Scripts are explained in detail later.
 
 ![Image of a system view](img/setup_view.svg)
 
@@ -115,11 +115,11 @@ An instance of a `Class` from a `Metamodel View` can be added to the current `Sy
 
 ![Image of a system view where classes from the metamodel views are added and connected based on the analyzed system](img/setup.svg)
 
-#### Connection
+#### Add Connection
 
-Pressing the add connection button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class` if such `Attribute` relations have been configured in the `Metamodel Views`. Attaching a `Connection` to a `Class` will automatically disable `Attribute` entries if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
+Pressing the add connection button at the top ((4) in the above figure) creates a directional `Connection` (see (5)) that can be attached to `Classes` (see (6)) by dragging its corresponding ends. The `Attributes` of the `Class` that the `Connection` points to may take input from the other `Class` if such `Attribute` relations have been configured in the `Metamodel Views`. Attaching a `Connection` to a `Class` will automatically disable `Attribute` entry fields if the corresponding value is dependent on at least one connected `Class`. By pressing E after selecting a corner on the directional `Connection`, one can:
 
-1. Add a scalar that is applied to input values from the `Connection`, where the appearing indicator (see (7)) can be dragged along the path of the `Connection`
+1. Add a scalar that is applied to input values obtained through the `Connection`, where the appearing indicator (see (7)) can be dragged along the path of the `Connection`
 
 ##### Calculate
 
@@ -137,7 +137,7 @@ Any errors found in the `Metamodel Views` or `System Views` upon calculating `At
 
 ## Explanation of the YACRAF Metamodel Included in the Program
 
-The attributes highlighted by (1) in the figure below have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) attribute is used to make a negative formulation of the `Attribyute` into a positive one, or vice versa. For example, transform a 3 into 10 - 3 = 7.
+The attributes highlighted by (1) in the figure below have been configured to take an input between 0-10, where the sequence of &, 0.1, and 10 into a temporary (and hidden) `Attribute` is used to make a negative formulation of the `Attribute` into a positive one, or vice versa. For example, transform a 3 into 10 - 3 = 7.
 
 The calculation type Q (see (2)) implies a qualitative relation where no numerical calculation is performed. Instead, manual input is prompted. Thus, such connections merely highlight the relationship.
 
