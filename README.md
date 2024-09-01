@@ -58,7 +58,7 @@ For a `System View`, one can:
 4. Temporarily exclude it from current calculations
 5. Delete it
 
-The save button in the bottom left corner ((3) in the below figure) saves the current state of all `Metamodel Views` and `System Views`, while the settings button brings up general settings. Any selected block within a `View` can be deleted by pressing backspace.
+The save button in the bottom left corner ((3) in the below figure) saves the current state of all `Metamodel Views` and `System Views`, but also any changes to the general settings found by pressing the settings button. Any selected block within a `View` can be deleted by pressing backspace.
 
 ![Image of a configured YACRAF metamodel within a metamodel view](img/configuration_view.svg)
 
