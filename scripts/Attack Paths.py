@@ -1,4 +1,12 @@
 def mark_easiest_previous_attack(script_if, view, attack_event_type, attack_event_instance, color, value_index=None):
+    """
+    Adds a marker on the attack event that is easiest to perform
+    
+    attack_event_type: Type of attack event to consider
+    attack_event_instance: Attack event instance to consider when finding the easiest previous attack
+    color: Color of marker
+    value_index: The index of the value to find the easiest previous attack for, applicable for distributions with multiple values
+    """
     input_classes = script_if.get_input_class_names(attack_event_type, attack_event_instance, input_class_type="Attack event AND", view=view) + \
                     script_if.get_input_class_names(attack_event_type, attack_event_instance, input_class_type="Attack event OR", view=view)
     
@@ -15,6 +23,7 @@ def mark_easiest_previous_attack(script_if, view, attack_event_type, attack_even
             current_easiest_previous_attack = None
             current_lowest_difficulty = None
             
+            # Check all input classes
             for input_class_name, input_class_instance in input_classes:
                 global_difficulties = script_if.get_attribute_values(input_class_name, input_class_instance, "Global difficulty", view)
                 
@@ -23,10 +32,12 @@ def mark_easiest_previous_attack(script_if, view, attack_event_type, attack_even
                     
                 global_difficulty = global_difficulties[0]
                 
+                # Found a new easiest previous attack
                 if current_lowest_difficulty == None or global_difficulty[i] < current_lowest_difficulty:
                     current_easiest_previous_attack = (input_class_name, input_class_instance)
                     current_lowest_difficulty = global_difficulty[i]
                     
+            # Recursively mark the next easiest attack
             if current_easiest_previous_attack != None:
                 mark_easiest_previous_attack(script_if, view, current_easiest_previous_attack[0], current_easiest_previous_attack[1], color, i)
                 
@@ -39,11 +50,14 @@ def script_logic(script_if):
     num_input_to_per_instance = {} # How many attack events each attack event is connected to, Key: Tuple (class_type, class_instance), Value: number attack events that takes it as input
     colors = ("red", "light blue", "green", "yellow", "orange", "magenta", "gray")
     
+    # Find the number of attack events each attack event is connected to, considering both types of attack events
     for attack_event_type in ("Attack event AND", "Attack event OR"):
+        # For each attack event instance among both types
         for attack_event_instance in script_if.get_class_instance_names(attack_event_type, view=view):
             if (attack_event_type, attack_event_instance) not in num_input_to_per_instance:
                 num_input_to_per_instance[(attack_event_type, attack_event_instance)] = 0
                 
+            # For each input class
             for input_class_names in script_if.get_input_class_names(attack_event_type, \
                                                                      attack_event_instance, \
                                                                      input_class_type="Attack event AND", \
@@ -60,6 +74,7 @@ def script_logic(script_if):
                     
     current_end_point = 0
     
+    # Mark the easeist path for all attack events that are not input for another (are at the top of the attack event tree)
     for class_names, num_input_to in num_input_to_per_instance.items():
         if num_input_to == 0:
             input_class_type, input_class_instance = class_names

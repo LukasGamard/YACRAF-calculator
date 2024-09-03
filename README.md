@@ -18,7 +18,7 @@ NumPy can be installed using:
 pip install numpy
 ```
 
-Make sure the Python installation is not outdated. The known minimum requirement is Python 3.7, where 3.10 was used during the program's development.
+Make sure the Python installation is not outdated. The known minimum requirement is Python 3.7, where 3.10 was used during the program's development. You may also need to update NumPy if you get an error related to it when booting the program.
 
 ## How to use
 

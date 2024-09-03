@@ -2,13 +2,16 @@ def script_logic(script_if):
     # Insert logic here
     script_if.calculate_values()
     
+    # Write all class instances of the given types to CSV format that can be converted to a table used in a report
     for class_type_name in ("Loss event", "Abuse case", "Attacker"):
         headers = [class_type_name]
         rows = []
         
+        # For each unique class instance found among the class types
         for i, class_instance_name in enumerate(script_if.get_class_instance_names(class_type_name)):
             row = [class_instance_name]
             
+            # For each attribute type that the current class type has
             for attribute_name in script_if.get_attribute_names(class_type_name):
                 if i == 0:
                     headers.append(attribute_name)
@@ -22,6 +25,7 @@ def script_logic(script_if):
                 
             rows.append(row)
             
+        # Currently prints the results
         print("--------------------------------------------------")
         print(",".join(headers))
         
