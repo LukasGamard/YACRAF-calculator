@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+import platform
 
 from program_paths import *
 from settings import Settings
@@ -218,7 +219,15 @@ TAG_INPUT_TEXT = "input_text"
 MOUSE_LEFT_PRESS = "<ButtonPress-1>"
 MOUSE_LEFT_DRAG = "<B1-Motion>"
 MOUSE_LEFT_RELEASE = "<ButtonRelease-1>"
-MOUSE_RIGHT_PRESS = "<ButtonPress-3>"
+
+# Different mouse buttons on different operating systems
+# See issue and discussion here:
+# https://www.reddit.com/r/Tkinter/comments/14ro346/button1_button2_button3_problem_need_help/
+if platform.system() == "Darwin":
+    MOUSE_RIGHT_PRESS = "<ButtonPress-2>"
+else:
+    MOUSE_RIGHT_PRESS = "<ButtonPress-3>"
+  
 MOUSE_MOTION = "<Motion>"
 MOUSE_WHEEL = "<MouseWheel>"
 MOUSE_WHEEL_UP = "<Button-4>"
