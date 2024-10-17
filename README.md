@@ -5,8 +5,8 @@ This is a graphical tool for doing calculations according to [YACRAF](https://li
 This tool allows calculations inherent to the threat modeling to be set up and calculated using graphical block diagrams, where one can place, drag, and connect different blocks across various `Views`. The tool aims to allow for (i) the automation of the calculation process, where any changes to any block automatically propagate through the system and (ii) the simulation/analysis of various system configurations.
 
 # Table of Contents
-1. [Dependencies](#dependencies)
-2. [Running the Program](#running-the-YACRAF-calculator)
+1. [Dependencies](#Dependencies)
+2. [Running the YACRAF Calculator](#running-the-YACRAF-calculator)
 3. [GUI Overview](#GUI-Overview)
    - [View Switching](#view-switching)
    - [Working with Metamodel Views](#working-with-metamodel-views)
@@ -24,7 +24,7 @@ This tool allows calculations inherent to the threat modeling to be set up and c
 
 
 
-## Dependecies
+## Dependencies
 
 The program utilizes Tkinter for its GUI and NumPy for its calculations. If not already installed, Tkinter can on Debian-based Linux distributions (such as Ubuntu) be installed using:
 
