@@ -19,6 +19,8 @@ class GUIConnectionWithBlocks(GUIConnection):
         
         super().__init__(model, view, start_block, "RIGHT", end_block=end_block, end_direction="LEFT")
         
+        self.__is_deleted = False
+        
         # Move start block to specified coordinate
         if start_coordinate != None:
             start_block.move_block(start_coordinate[0] - start_block.get_x(), \
@@ -38,7 +40,6 @@ class GUIConnectionWithBlocks(GUIConnection):
             self.__input_scalars_indicator.move_block(input_scalars_indicator_coordinate[0] - self.__input_scalars_indicator.get_x(), \
                                                       input_scalars_indicator_coordinate[1] - self.__input_scalars_indicator.get_y())
             
-        self.__is_deleted = False
         
     def scale(self, new_length_unit, last_length_unit):
         super().scale(new_length_unit, last_length_unit)
