@@ -1,10 +1,10 @@
 import tkinter as tk
 import tkinter.font as tkfont
 import numpy as np
-from circle_indicator_gui import GUICircleIndicator
+from blocks_gui.circle_indicator_gui import GUICircleIndicator
 from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, distance_to_closest_grid_intersection, get_font, get_text_that_fits, delete_all
-from default_coordinate_functions import get_block_start_coordinates
-from config import *
+from config.default_coordinate_functions import get_block_start_coordinates
+from config.config import *
 
 class GUIBlock:
     """
@@ -42,7 +42,7 @@ class GUIBlock:
         self.__was_dragged = False
         self.__is_deleted = False
         
-        from connection_blocks_gui import GUIConnectionCorner
+        from blocks_gui.connection.connection_blocks_gui import GUIConnectionCorner
         
         # Do not update shown order of items if corner of a connection as they are recreated often when changing the path of connections
         if not isinstance(self, GUIConnectionCorner):

@@ -1,10 +1,9 @@
-import tkinter as tk
 import numpy as np
-from connection_blocks_gui import GUIConnectionCorner, GUIConnectionTriangle
-from circle_indicator_gui import GUICircleIndicator
+from blocks_gui.connection.connection_blocks_gui import GUIConnectionCorner, GUIConnectionTriangle
+from blocks_gui.circle_indicator_gui import GUICircleIndicator
 from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_actual_coordinates_after_scale, get_grid_mid_x, get_grid_mid_y, convert_direction_to_vector
 from options import Options
-from config import *
+from config.config import *
 
 class GUIConnection:
     """

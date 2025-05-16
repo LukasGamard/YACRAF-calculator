@@ -6,12 +6,6 @@ import time
 from tkinter import font
 from io import StringIO
 
-sys.path.append(os.path.join("..", "config"))
-from program_paths import IMPORT_PATHS
-
-for path in IMPORT_PATHS:
-    sys.path.append(os.path.join("..", path))
-    
 from model import Model
 from script_interface import ScriptInterface
 from configuration_class_calculation import ConfigurationClass

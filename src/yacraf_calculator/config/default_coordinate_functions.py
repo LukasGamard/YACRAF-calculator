@@ -1,5 +1,5 @@
 from helper_functions_general import convert_actual_coordinate_to_grid
-from config import *
+from config.config import *
 
 def get_block_start_coordinates(length_unit, num_coordinates=1):
     """

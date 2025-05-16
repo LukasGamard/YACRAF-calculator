@@ -1,8 +1,8 @@
-from general_gui import GUIModelingBlock
-from circle_indicator_gui import GUICircleIndicator
+from blocks_gui.general_gui import GUIModelingBlock
+from blocks_gui.circle_indicator_gui import GUICircleIndicator
 from options import Options
 from helper_functions_general import convert_value_to_string, delete_all
-from config import *
+from config.config import *
 
 class GUIConfigurationInput(GUIModelingBlock):
     """

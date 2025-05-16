@@ -1,7 +1,6 @@
-import os
 import numpy as np
 from helper_functions_general import convert_value_to_string, convert_string_to_value
-from config import *
+from config.config import *
 
 def combine_values(value_type, calculation_type, input_setup_attributes, setup_input_scalars_per_attribute, configuration_attribute, num_samples):
     """

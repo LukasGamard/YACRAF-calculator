@@ -1,5 +1,5 @@
-from general_calculations import combine_values
-from config import *
+from blocks_calculation.general_calculations import combine_values
+from config.config import *
 
 class SetupAttribute:
     def __init__(self, setup_class, configuration_attribute):

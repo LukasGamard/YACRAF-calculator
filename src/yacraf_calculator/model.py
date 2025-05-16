@@ -1,10 +1,11 @@
 import os
-from configuration_view import ConfigurationView
-from setup_view import SetupView
-from setup_attribute_gui import GUISetupAttribute
-from connection_gui import GUIConnection
+from views.configuration_view import ConfigurationView
+from views.setup_view import SetupView
+from blocks_gui.setup.setup_attribute_gui import GUISetupAttribute
 from helper_functions_general import delete_all
-from config import *
+from config.settings import Settings
+from config.config import *
+
 
 class Model:
     """

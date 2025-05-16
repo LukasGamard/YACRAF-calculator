@@ -1,8 +1,8 @@
 from options import Options
-from connection_gui import GUIConnection
-from connection_blocks_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
+from blocks_gui.connection.connection_gui import GUIConnection
+from blocks_gui.connection.connection_blocks_gui import GUIConnectionTriangle, GUIConnectionScalarsIndicator
 from helper_functions_general import convert_value_to_string, distance_to_closest_grid_intersection
-from config import *
+from config.config import *
 
 class GUIConnectionWithBlocks(GUIConnection):
     """

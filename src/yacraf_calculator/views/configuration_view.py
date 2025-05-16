@@ -1,12 +1,12 @@
 import os
 import pickle
-from view import View
-from configuration_class_gui import GUIConfigurationClass
-from configuration_input_gui import GUIConfigurationInput
-from buttons_gui import TouchButton
-from connection_gui import GUIConnection
+from views.view import View
+from blocks_gui.configuration.configuration_class_gui import GUIConfigurationClass
+from blocks_gui.configuration.configuration_input_gui import GUIConfigurationInput
+from blocks_gui.buttons_gui import TouchButton
+from blocks_gui.connection.connection_gui import GUIConnection
 from helper_functions_general import delete_all
-from config import *
+from config.config import *
 
 class ConfigurationView(View):
     """

@@ -1,7 +1,7 @@
-from general_gui import GUIBlock, GUIModelingBlock
+from blocks_gui.general_gui import GUIBlock, GUIModelingBlock
 from helper_functions_general import convert_grid_coordinate_to_actual, get_max_directions_movement, convert_direction_to_vector
-from default_coordinate_functions import get_block_start_coordinates
-from config import *
+from config.default_coordinate_functions import get_block_start_coordinates
+from config.config import *
 
 def get_triangle_coordinates(view, x, y, direction, is_end_block):
     """

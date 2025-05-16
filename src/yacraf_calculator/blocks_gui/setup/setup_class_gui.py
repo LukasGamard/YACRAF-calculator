@@ -1,10 +1,9 @@
-import tkinter as tk
 import numpy as np
-from general_gui import GUIClass
-from setup_attribute_gui import GUISetupAttribute
-from circle_indicator_gui import GUICircleIndicator
+from blocks_gui.setup.setup_attribute_gui import GUISetupAttribute
+from blocks_gui.general_gui import GUIClass
+from blocks_gui.circle_indicator_gui import GUICircleIndicator
 from options import Options
-from config import *
+from config.config import *
 
 class GUISetupClass(GUIClass):
     """

@@ -1,8 +1,8 @@
-from general_gui import GUIModelingBlock
-from configuration_attribute_calculation import ConfigurationAttribute
+from blocks_gui.general_gui import GUIModelingBlock
+from blocks_calculation.configuration.configuration_attribute_calculation import ConfigurationAttribute
 from helper_functions_general import delete_all
 from options import Options
-from config import *
+from config.config import *
 
 class GUIConfigurationAttribute(GUIModelingBlock):
     """

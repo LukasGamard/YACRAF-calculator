@@ -5,7 +5,7 @@ def convert_value_to_string(value):
     """
     Takes a NumPy array or list as input and converts it to a string
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     if not isinstance(value, tuple):
         print(f"Error: Could not convert {value} to string, as it was not a tuple")
@@ -47,7 +47,7 @@ def convert_grid_coordinate_to_actual(grid_x, grid_y, length_unit):
     """
     Converts/scales a coordinate in the grid to one based on pixels
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     actual_x = round(grid_x * length_unit, DECIMALS_WHEN_ROUNDING)
     actual_y = round(grid_y * length_unit, DECIMALS_WHEN_ROUNDING)
@@ -58,7 +58,7 @@ def convert_actual_coordinate_to_grid(actual_x, actual_y, length_unit):
     """
     Converts/scales a coordinate based on pixels to one based on the grid
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     grid_x = round(actual_x / length_unit, DECIMALS_WHEN_ROUNDING)
     grid_y = round(actual_y / length_unit, DECIMALS_WHEN_ROUNDING)
@@ -93,7 +93,7 @@ def distance_to_closest_grid_intersection(view, grid_x, grid_y):
     Find the distance from a grid coordinate to the closest grid intersection considering the offset of the grid due to panning/zooming
     The x and y distances are in the range [-0.5, 0.5)
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     grid_offset_x, grid_offset_y = view.get_grid_offset()
     
@@ -112,7 +112,7 @@ def get_grid_mid_x(view, grid_x):
     """
     Get the x coordinate in the middle of the current grid square considering the offset of the grid due to panning/zooming
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     grid_offset_x, _ = view.get_grid_offset()
     
@@ -124,7 +124,7 @@ def get_grid_mid_y(view, grid_y):
     """
     Get the y cooridinate in the middle of the current grid square considering the offset of the grid due to panning/zooming
     """
-    from config import DECIMALS_WHEN_ROUNDING
+    from config.config import DECIMALS_WHEN_ROUNDING
     
     _, grid_offset_y = view.get_grid_offset()
     
@@ -178,7 +178,7 @@ def get_font(length_unit, *, canvas_and_label=None, has_line_break=False):
     
     Returns the font size that should be used in a text field on the canvas given considering the current scaling (zoom) level and whether there is a line break (need to lower font size further)
     """
-    from config import LENGTH_UNIT, FONT, FONT_DECREASE_LINE_BREAK
+    from config.config import LENGTH_UNIT, FONT, FONT_DECREASE_LINE_BREAK
     
     new_font_size = int(FONT[1] * length_unit / LENGTH_UNIT + 0.5)
     
@@ -211,7 +211,7 @@ def get_text_that_fits(canvas, label, text, text_width, is_bold, length_unit):
     """
     Returns the text and its corresponding font required for the specified text to fit within the specified grid text width
     """
-    from config import OUTLINE_WIDTH
+    from config.config import OUTLINE_WIDTH
     
     actual_maximum_text_width = convert_grid_coordinate_to_actual(text_width, 0, length_unit)[0] - 2 * OUTLINE_WIDTH
     font = get_font(length_unit, canvas_and_label=(canvas, label))
@@ -259,8 +259,8 @@ def delete_all(to_delete_list, manual_delete=False):
     """
     Calls the delete method of all elements in to_delete_list
     """
-    from configuration_attribute_gui import GUIConfigurationAttribute
-    from connection_blocks_gui import GUIConnectionCorner, GUIConnectionScalarsIndicator
+    from blocks_gui.configuration.configuration_attribute_gui import GUIConfigurationAttribute
+    from blocks_gui.connection.connection_blocks_gui import GUIConnectionCorner, GUIConnectionScalarsIndicator
     
     for i in range(len(to_delete_list)-1, -1, -1):
         if manual_delete and isinstance(to_delete_list[i], (GUIConfigurationAttribute, GUIConnectionCorner, GUIConnectionScalarsIndicator)):

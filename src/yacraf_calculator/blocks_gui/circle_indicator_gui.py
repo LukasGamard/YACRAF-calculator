@@ -1,5 +1,5 @@
 from helper_functions_general import convert_grid_coordinate_to_actual, get_actual_coordinates_after_scale, get_font
-from config import *
+from config.config import *
 
 class GUICircleIndicator:
     """

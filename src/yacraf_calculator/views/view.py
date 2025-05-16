@@ -1,11 +1,10 @@
 import tkinter as tk
-from general_gui import GUIModelingBlock
-from buttons_gui import TouchButton
-from connection_with_blocks_gui import GUIConnectionWithBlocks
+from blocks_gui.general_gui import GUIModelingBlock
+from blocks_gui.buttons_gui import TouchButton
 from options import Options
 from helper_functions_general import convert_actual_coordinate_to_grid
-from default_coordinate_functions import get_change_configuration_view_start_coordinate, get_change_setup_view_start_coordinate
-from config import *
+from config.default_coordinate_functions import get_change_configuration_view_start_coordinate, get_change_setup_view_start_coordinate
+from config.config import *
 
 class View(tk.Frame):
     """

@@ -6,7 +6,7 @@ setup(
     version="1.0.1",
     description="A calculator for a YACRAF instance",
     packages=find_packages("src"),  # Automatically find all Python packages inside `src`
-    package_dir={"": "src"},  # Root of Python packages
+    package_dir={"": "src/yacraf_calculator"},  # Root of Python packages
     install_requires=["numpy"],  # Dependencies
     long_description=(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown"

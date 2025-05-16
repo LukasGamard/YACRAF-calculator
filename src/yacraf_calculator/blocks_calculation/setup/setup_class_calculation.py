@@ -1,5 +1,5 @@
-from setup_attribute_calculation import SetupAttribute
-from config import *
+from blocks_calculation.setup.setup_attribute_calculation import SetupAttribute
+from config.config import *
 
 class SetupClass:
     def __init__(self, instance_name, configuration_class):

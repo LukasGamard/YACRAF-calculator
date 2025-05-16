@@ -1,10 +1,10 @@
 import tkinter as tk
-from general_gui import GUIBlock, GUIModelingBlock
-from buttons_gui import TouchButton, RadioButton, ToggleButton
+from blocks_gui.general_gui import GUIBlock, GUIModelingBlock
+from blocks_gui.buttons_gui import TouchButton, RadioButton, ToggleButton
+from blocks_gui.pressable_entry import PressableEntry
 from helper_functions_general import convert_value_to_string, convert_string_to_value, convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid, get_font, delete_all
-from default_coordinate_functions import get_options_coordinate
-from pressable_entry import PressableEntry
-from config import *
+from config.default_coordinate_functions import get_options_coordinate
+from config.config import *
 
 class Options:
     """

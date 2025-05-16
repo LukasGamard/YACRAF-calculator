@@ -2,7 +2,7 @@ import tkinter as tk
 import sys
 import os
 
-from settings import Settings
+from src.yacraf_calculator.config.settings import Settings
 
 def main():
     if len(sys.argv) != 2:

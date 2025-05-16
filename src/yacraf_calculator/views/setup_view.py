@@ -1,12 +1,13 @@
 import os
 import pickle
-from view import View
-from setup_class_gui import GUISetupClass
-from buttons_gui import TouchButton
-from connection_gui import GUIConnection
-from connection_with_blocks_gui import GUIConnectionWithBlocks
+import os
+from views.view import View
+from blocks_gui.setup.setup_class_gui import GUISetupClass
+from blocks_gui.connection.connection_gui import GUIConnection
+from blocks_gui.connection.connection_with_blocks_gui import GUIConnectionWithBlocks
+from blocks_gui.buttons_gui import TouchButton
 from helper_functions_general import delete_all
-from config import *
+from config.config import *
 
 class SetupView(View):
     """
@@ -25,6 +26,7 @@ class SetupView(View):
         self.__run_script_buttons = []
         
         # Add buttons to run scripts
+        print(os.getcwd())
         for file_name_full in os.listdir(SCRIPTS_PATH):
             # Find all .py files
             if file_name_full.strip()[-3:] == ".py":

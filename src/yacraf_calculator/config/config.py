@@ -1,10 +1,28 @@
+import os
 import platform
+from blocks_calculation.general_calculations import ValueTypeString, ValueTypeNumber, ValueTypeProbability, ValueTypeTriangleDistribution, CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeDivision, CalculationTypeSampleTriangle, CalculationTypeQualitative
+from config.settings import Settings
+
+settings = Settings()
 
 # The pixel width of each block in the grid
 LENGTH_UNIT = 25
 LENGTH_UNIT_ZOOM_LIMITS = (5, 50)
 
 DECIMALS_WHEN_ROUNDING = 3
+
+SCRIPTS_PATH = "src/yacraf_calculator/scripts"
+
+# File paths
+SAVES_DIRECTORY = os.path.join("saves", settings.get_save_name())
+
+#SAVES_PATH = os.path.join(BASE_PATH, SAVES_DIRECTORY)
+FILE_PATHS_SAVES_PATH = os.path.join(SAVES_DIRECTORY, "view_file_paths.txt")
+CONFIGURATION_SAVES_DIRECTORY = "configurations"
+SETUP_SAVES_DIRECTORY = "setups"
+
+# Ensure directory exists
+#os.makedirs(SCRIPTS_PATH, exist_ok=True)
 
 
 # Available types of attribute values

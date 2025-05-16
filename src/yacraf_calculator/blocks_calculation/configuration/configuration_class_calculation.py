@@ -1,6 +1,6 @@
-from configuration_attribute_calculation import ConfigurationAttribute
-from setup_class_calculation import SetupClass
-from config import *
+from blocks_calculation.configuration.configuration_attribute_calculation import ConfigurationAttribute
+from blocks_calculation.setup.setup_class_calculation import SetupClass
+from config.config import *
 
 class ConfigurationClass:
     """

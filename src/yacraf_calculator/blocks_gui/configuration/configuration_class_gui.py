@@ -1,10 +1,10 @@
-from general_gui import GUIClass
-from buttons_gui import TouchButton
+from blocks_gui.general_gui import GUIClass
+from blocks_gui.buttons_gui import TouchButton
+from blocks_gui.configuration.configuration_attribute_gui import GUIConfigurationAttribute
+from blocks_calculation.configuration.configuration_class_calculation import ConfigurationClass
 from options import Options
-from configuration_class_calculation import ConfigurationClass
-from configuration_attribute_gui import GUIConfigurationAttribute
 from helper_functions_general import delete_all
-from config import *
+from config.config import *
 
 class GUIConfigurationClass(GUIClass):
     """
