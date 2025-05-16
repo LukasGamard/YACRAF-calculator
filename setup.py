@@ -1,4 +1,3 @@
-print(f"Importing {__name__}")
 from setuptools import setup, find_packages
 from pathlib import Path
 

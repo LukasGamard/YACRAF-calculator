@@ -1,34 +1,10 @@
-import os
-import tkinter as tk
 import platform
-
-from program_paths import *
-from settings import Settings
-from general_calculations import *
-
-settings = Settings()
 
 # The pixel width of each block in the grid
 LENGTH_UNIT = 25
 LENGTH_UNIT_ZOOM_LIMITS = (5, 50)
 
-
-
 DECIMALS_WHEN_ROUNDING = 3
-
-
-
-# File paths
-SAVES_DIRECTORY = os.path.join(SAVES_DIRECTORY, settings.get_save_name())
-
-SAVES_PATH = os.path.join(BASE_PATH, SAVES_DIRECTORY)
-FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.txt")
-CONFIGURATION_SAVES_DIRECTORY = "configurations"
-SETUP_SAVES_DIRECTORY = "setups"
-
-# Ensure directory exists
-os.makedirs(SCRIPTS_PATH, exist_ok=True)
-
 
 
 # Available types of attribute values
@@ -36,7 +12,6 @@ VALUE_TYPES = (ValueTypeString, ValueTypeNumber, ValueTypeProbability, ValueType
 
 # Available types of calculation operations between input attribute values
 CALCULATION_TYPES = (CalculationTypeMean, CalculationTypeAND, CalculationTypeOR, CalculationTypeMultiplication, CalculationTypeDivision, CalculationTypeSampleTriangle, CalculationTypeQualitative)
-
 
 
 VIEW_BACKGROUND_COLOR = "white" # Window default value
