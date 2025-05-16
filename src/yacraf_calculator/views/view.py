@@ -202,8 +202,8 @@ class View(tk.Frame):
         """
         Removes a button that changes to a specified view
         """
-        from configuration_view import ConfigurationView
-        from setup_view import SetupView
+        from views.configuration_view import ConfigurationView
+        from views.setup_view import SetupView
         
         # Move up the button that adds another view
         if isinstance(view_to_remove, ConfigurationView):
@@ -234,8 +234,8 @@ class View(tk.Frame):
         if up:
             to_move *= -1
             
-        from configuration_view import ConfigurationView
-        from setup_view import SetupView
+        from views.configuration_view import ConfigurationView
+        from views.setup_view import SetupView
         
         if isinstance(view_to_move, ConfigurationView):
             self.__configuration_change_view_buttons[view_to_move].move_block(0, to_move)
@@ -244,8 +244,8 @@ class View(tk.Frame):
             self.__setup_change_view_buttons[view_to_move].move_block(0, to_move)
             
     def set_color_change_view_button(self, view, color):
-        from configuration_view import ConfigurationView
-        from setup_view import SetupView
+        from views.configuration_view import ConfigurationView
+        from views.setup_view import SetupView
         
         if isinstance(view, ConfigurationView):
             self.__configuration_change_view_buttons[view].set_fill_color(color)

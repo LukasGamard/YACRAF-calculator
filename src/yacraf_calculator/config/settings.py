@@ -1,6 +1,8 @@
 import os
 
-SETTINGS_FILE = "settings.txt"
+from config.program_paths import CONFIG_PATH
+
+SETTINGS_FILE = os.path.join(CONFIG_PATH, "settings.txt")
 
 class Settings:
     """

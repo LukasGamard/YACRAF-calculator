@@ -1,17 +1,15 @@
 import unittest
 import tkinter as tk
-import sys
-import os
 import time
 from tkinter import font
 from io import StringIO
 
-from model import Model
-from script_interface import ScriptInterface
-from configuration_class_calculation import ConfigurationClass
-from helper_functions_general import convert_grid_coordinate_to_actual, convert_actual_coordinate_to_grid
-from default_coordinate_functions import get_block_start_coordinates
-from config import *
+from src.yacraf_calculator.model import Model
+from src.yacraf_calculator.script_interface import ScriptInterface
+from src.yacraf_calculator.blocks_calculation.configuration.configuration_class_calculation import ConfigurationClass
+from src.yacraf_calculator.helper_functions_general import convert_value_to_string, convert_string_to_value, convert_grid_coordinate_to_actual
+from src.yacraf_calculator.config.default_coordinate_functions import get_block_start_coordinates
+from src.yacraf_calculator.config.config import *
 
 # sys.stdout = StringIO() # Suppress prints
 

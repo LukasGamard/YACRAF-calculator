@@ -16,8 +16,8 @@ SCRIPTS_PATH = "src/yacraf_calculator/scripts"
 # File paths
 SAVES_DIRECTORY = os.path.join("saves", settings.get_save_name())
 
-#SAVES_PATH = os.path.join(BASE_PATH, SAVES_DIRECTORY)
-FILE_PATHS_SAVES_PATH = os.path.join(SAVES_DIRECTORY, "view_file_paths.txt")
+SAVES_PATH = os.path.join("src/yacraf_calculator", SAVES_DIRECTORY)
+FILE_PATHS_SAVES_PATH = os.path.join(SAVES_PATH, "view_file_paths.txt")
 CONFIGURATION_SAVES_DIRECTORY = "configurations"
 SETUP_SAVES_DIRECTORY = "setups"
 

@@ -1,6 +1,6 @@
 from blocks_gui.general_gui import GUIModelingBlock
 from blocks_gui.pressable_entry import PressableEntry
-from helper_functions_general import convert_grid_coordinate_to_actual, get_font, get_text_that_fits
+from helper_functions_general import convert_grid_coordinate_to_actual, get_font, get_text_that_fits, convert_string_to_value, convert_value_to_string
 from config.config import *
 
 class GUISetupAttribute(GUIModelingBlock):
