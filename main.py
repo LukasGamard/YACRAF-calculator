@@ -2,8 +2,8 @@ import tkinter as tk
 import sys
 import os
 
-from config.settings import Settings
-from config.program_paths import SAVES_PATH
+from yacraf_calculator.config.settings import Settings
+from yacraf_calculator.config.program_paths import SAVES_PATH
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     settings = Settings(save_name)
     settings.save()
     
-    from model import Model
+    from yacraf_calculator.model import Model
     
     root = tk.Tk()
     model = Model(root)
